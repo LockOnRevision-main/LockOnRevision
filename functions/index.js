@@ -1,7 +1,5 @@
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { getAuth } from "firebase-admin/auth";
-import { getStorage } from "firebase-admin/storage";
 import { FieldValue } from "firebase-admin/firestore";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import {
@@ -11,8 +9,6 @@ import {
 
 initializeApp();
 const db = getFirestore();
-const auth = getAuth();
-const storage = getStorage();
 
 const geminiApiKey = process.env.GEMINI_API_KEY;
 const geminiModel = process.env.GEMINI_MODEL || "gemini-1.5-flash";
@@ -57,30 +53,6 @@ async function callGeminiJson(prompt, fallbackValue = null) {
   }
 }
 
-async function callGeminiText(prompt, fallbackText = "") {
-  if (!model) {
-    if (fallbackText) return fallbackText;
-    throw new HttpsError("unavailable", "Gemini API is not configured.");
-  }
-
-  try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    
-    if (!text) {
-      if (fallbackText) return fallbackText;
-      throw new HttpsError("internal", "Gemini returned no text.");
-    }
-
-    return text;
-  } catch (error) {
-    console.error("Gemini API error:", error);
-    if (fallbackText) return fallbackText;
-    throw new HttpsError("internal", `Gemini request failed: ${error.message}`);
-  }
-}
-
 async function verifyAuthenticated(context) {
   if (!context.auth) {
     throw new HttpsError("unauthenticated", "You must be authenticated to call this function.");
@@ -97,10 +69,10 @@ function validateRequest(data, requiredFields = []) {
 }
 
 export const generateForgeStructure = onCall(async (request) => {
-  const uid = await verifyAuthenticated(request);
+  await verifyAuthenticated(request);
   validateRequest(request.data, ["sourceText"]);
 
-  const { sourceText, sourceFileIds = [] } = request.data;
+  const { sourceText } = request.data;
 
   const prompt = `Analyze the study material and create a structured learning path.
 Return strict JSON only with this exact shape:
@@ -170,7 +142,7 @@ ${sourceText}`;
 });
 
 export const generateLearningContent = onCall(async (request) => {
-  const uid = await verifyAuthenticated(request);
+  await verifyAuthenticated(request);
   validateRequest(request.data, ["sourceText"]);
 
   const { sourceText } = request.data;
@@ -251,7 +223,7 @@ ${sourceText}`;
 });
 
 export const aiTutorChat = onCall(async (request) => {
-  const uid = await verifyAuthenticated(request);
+  await verifyAuthenticated(request);
   validateRequest(request.data, ["messages"]);
 
   const { messages, context } = request.data;
@@ -383,27 +355,7 @@ export const processUploadedNotes = onCall(async (request) => {
 
   const file = fileDoc.data();
 
-  let sourceText = "";
-  if (file.content) {
-    sourceText = file.content;
-  } else if (file.storagePath) {
-    try {
-      const bucket = storage.bucket();
-      const fileRef = bucket.file(file.storagePath);
-      const [exists] = await fileRef.exists();
-      if (exists) {
-        const [contents] = await fileRef.download();
-        sourceText = contents.toString("utf-8");
-      }
-    } catch (error) {
-      console.error("Error reading file from storage:", error);
-      sourceText = `File: ${file.name}`;
-    }
-  }
-
-  if (!sourceText) {
-    sourceText = `File: ${file.name}`;
-  }
+  const sourceText = file.content || `File: ${file.name}. Uploaded URL: ${file.url || "unavailable"}.`;
 
   const generated = await callGeminiJson(
     `Create structured active-recall learning content from these notes.

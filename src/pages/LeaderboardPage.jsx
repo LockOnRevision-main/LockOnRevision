@@ -32,7 +32,7 @@ export function LeaderboardPage() {
             <h1 className="mt-2 text-4xl font-black tracking-tight">Top learners</h1>
             <p className="mt-2 flex items-center gap-2 text-sm font-bold text-slate-500">
               <Zap size={16} className="text-cyan-500" />
-              ⚡ 1 Energy = 100 XP
+              1 Energy = 100 XP
             </p>
           </div>
           <button

@@ -12,9 +12,9 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
-import { db, isFirebaseConfigured, storage } from "../config/firebase.js";
+import { db, isFirebaseConfigured } from "../config/firebase.js";
 import { getLocalUser, makeId, subscribeLocalState, updateLocalUser } from "./localStore.js";
+import { uploadToCloudinary } from "../utils/cloudinary.js";
 
 function localList(uid, name) {
   return getLocalUser(uid)?.[name] || [];
@@ -493,35 +493,33 @@ export async function uploadNoteFile(uid, file, onProgress) {
     return localFile;
   }
 
-  const cleanName = file.name.replace(/[^\w.\-]+/g, "-").toLowerCase();
-  const path = `users/${uid}/uploads/${Date.now()}-${cleanName}`;
-  const fileRef = ref(storage, path);
-  const uploadTask = uploadBytesResumable(fileRef, file, {
-    contentType: file.type,
-    customMetadata: { owner: uid },
+  onProgress?.(20);
+
+  // Upload directly to Cloudinary (unsigned)
+  const resourceType = file.type === 'application/pdf' ? 'raw' : 'auto';
+  const uploadResult = await uploadToCloudinary(file, {
+    folder: `lockon-revision/${uid}/learning`,
+    resourceType,
   });
 
-  await new Promise((resolve, reject) => {
-    uploadTask.on(
-      "state_changed",
-      (snapshot) => onProgress?.(Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)),
-      reject,
-      resolve,
-    );
-  });
+  onProgress?.(80);
 
-  const url = await getDownloadURL(fileRef);
   const fileDoc = await addDoc(collection(db, "users", uid, "files"), {
     name: file.name,
     size: file.size,
     type: file.type,
-    storagePath: path,
-    url,
+    cloudinaryPublicId: uploadResult.publicId,
+    url: uploadResult.url,
+    format: uploadResult.format,
+    width: uploadResult.width,
+    height: uploadResult.height,
     status: "uploaded",
     createdAt: serverTimestamp(),
   });
 
-  return { id: fileDoc.id, url, storagePath: path };
+  onProgress?.(100);
+
+  return { id: fileDoc.id, url: uploadResult.url, cloudinaryPublicId: uploadResult.publicId };
 }
 
 export async function processUploadedFile(fileId) {
@@ -669,32 +667,14 @@ export async function recordAnswer(uid, question, selectedAnswer) {
         },
         ...userData.answers,
       ],
-      questions: userData.questions.map((item) =>
-        item.id === question.id
-          ? {
-              ...item,
-              mastery: Math.max(0, Math.min(100, Number(item.mastery || 50) + (isCorrect ? 8 : -12))),
-              attempts: Number(item.attempts || 0) + 1,
-              correctAttempts: Number(item.correctAttempts || 0) + (isCorrect ? 1 : 0),
-              updatedAt: now,
-            }
-          : item,
-      ),
-      profile: {
-        ...userData.profile,
-        energy: Math.max(0, Number(userData.profile.energy || 0) - (isCorrect ? 2 : 4)),
-        streak: Number(userData.profile.streak || 0) + (isCorrect ? 1 : 0),
-        dailyUsage: {
-          ...userData.profile.dailyUsage,
-          quizzesCompleted: Number(userData.profile.dailyUsage?.quizzesCompleted || 0) + 1,
-        },
-      },
+      xp: userData.xp + (isCorrect ? 10 : 0),
     }));
-    return isCorrect;
+    return { isCorrect, xpEarned: isCorrect ? 10 : 0 };
   }
 
   const isCorrect = selectedAnswer === question.correctAnswer;
-  const masteryDelta = isCorrect ? 8 : -12;
+  const xpEarned = isCorrect ? 10 : 0;
+  const now = serverTimestamp();
 
   await addDoc(collection(db, "users", uid, "answers"), {
     questionId: question.id,
@@ -704,23 +684,105 @@ export async function recordAnswer(uid, question, selectedAnswer) {
     selectedAnswer,
     correctAnswer: question.correctAnswer,
     isCorrect,
-    answeredAt: serverTimestamp(),
-  });
-
-  await updateDoc(doc(db, "users", uid, "questions", question.id), {
-    mastery: Math.max(0, Math.min(100, Number(question.mastery || 50) + masteryDelta)),
-    attempts: increment(1),
-    correctAttempts: increment(isCorrect ? 1 : 0),
-    updatedAt: serverTimestamp(),
+    answeredAt: now,
+    updatedAt: now,
   });
 
   await updateDoc(doc(db, "users", uid), {
-    energy: increment(isCorrect ? -2 : -4),
-    "dailyUsage.quizzesCompleted": increment(1),
-    updatedAt: serverTimestamp(),
+    xp: increment(xpEarned),
+    "dailyUsage.answersCount": increment(1),
+    updatedAt: now,
   });
 
-  return isCorrect;
+  return { isCorrect, xpEarned };
+}
+
+export async function completeLesson(uid, lessonId, xpEarned, perfectLesson = false) {
+  if (!isFirebaseConfigured) {
+    updateLocalUser(uid, (userData) => {
+      const lesson = userData.lessons?.find(l => l.id === lessonId);
+      if (lesson) {
+        lesson.completed = true;
+        lesson.completedAt = new Date().toISOString();
+        lesson.xpEarned = xpEarned;
+        lesson.perfect = perfectLesson;
+      }
+      return {
+        ...userData,
+        xp: userData.xp + xpEarned + (perfectLesson ? 5 : 0),
+        streak: perfectLesson ? userData.streak + 1 : userData.streak,
+      };
+    });
+    return { success: true, totalXP: xpEarned + (perfectLesson ? 5 : 0) };
+  }
+
+  const now = serverTimestamp();
+  const bonusXP = perfectLesson ? 5 : 0;
+  const totalXP = xpEarned + bonusXP;
+
+  await updateDoc(doc(db, "users", uid, "lessons", lessonId), {
+    completed: true,
+    completedAt: now,
+    xpEarned: totalXP,
+    perfect: perfectLesson,
+    updatedAt: now,
+  });
+
+  const userPatch = {
+    xp: increment(totalXP),
+    "dailyUsage.lessonsCompleted": increment(1),
+    updatedAt: now,
+  };
+  if (perfectLesson) userPatch.streak = increment(1);
+
+  await updateDoc(doc(db, "users", uid), userPatch);
+
+  return { success: true, totalXP };
+}
+
+export async function submitExerciseAnswer(uid, lessonId, exerciseId, answer) {
+  if (!isFirebaseConfigured) {
+    const state = JSON.parse(localStorage.getItem("lockon-revision-local-state") || "{}");
+    const userData = state.users?.[uid];
+    const lesson = userData?.lessons?.find(l => l.id === lessonId);
+    const exercise = lesson?.exercises?.find(e => e.id === exerciseId);
+    
+    if (!exercise) {
+      throw new Error("Exercise not found");
+    }
+
+    const isCorrect = answer === exercise.correctAnswer;
+    const now = new Date().toISOString();
+    
+    updateLocalUser(uid, (userData) => ({
+      ...userData,
+      exerciseAnswers: [
+        {
+          id: makeId("exercise-answer"),
+          lessonId,
+          exerciseId,
+          answer,
+          correctAnswer: exercise.correctAnswer,
+          isCorrect,
+          answeredAt: now,
+        },
+        ...(userData.exerciseAnswers || []),
+      ],
+    }));
+
+    return { isCorrect, explanation: exercise.explanation };
+  }
+
+  const now = serverTimestamp();
+  
+  await addDoc(collection(db, "users", uid, "exerciseAnswers"), {
+    lessonId,
+    exerciseId,
+    answer,
+    answeredAt: now,
+  });
+
+  throw new Error("Exercise answer submission requires client-side lesson exercise data.");
 }
 
 export function findNextLesson(lessons = [], questions = []) {

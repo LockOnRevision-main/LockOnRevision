@@ -236,8 +236,8 @@ export function LandingPage() {
           <p className="text-sm font-bold uppercase tracking-widest text-blue-600">Admin Capabilities</p>
           <h2 className="mt-3 text-4xl font-black tracking-tight">Designed for cohorts, moderation, and insight.</h2>
           <p className="mt-4 text-slate-600">
-            Admin services are scaffolded as placeholders so Firebase integration can add real controls without changing
-            the frontend architecture.
+            Admin tooling gives authorized teams a focused place to review users, rewards, Forge content, and access
+            decisions.
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -250,7 +250,7 @@ export function LandingPage() {
             <article key={title} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
               <Icon className="text-blue-600" />
               <h3 className="mt-4 font-black">{title}</h3>
-              <p className="mt-2 text-sm text-slate-500">TODO backend integration point.</p>
+              <p className="mt-2 text-sm text-slate-500">Available through the authenticated admin workspace.</p>
             </article>
           ))}
         </div>
@@ -261,7 +261,7 @@ export function LandingPage() {
           <CheckCircle2 className="mx-auto" size={36} />
           <h2 className="mt-4 text-4xl font-black tracking-tight">Ready to lock in better revision?</h2>
           <p className="mx-auto mt-3 max-w-2xl text-white/80">
-            The frontend is ready, the architecture is scaffolded, and Firebase can be connected later without a rebuild.
+            Create an account, upload your notes, generate lessons, and keep momentum visible as you revise.
           </p>
           <button
             type="button"

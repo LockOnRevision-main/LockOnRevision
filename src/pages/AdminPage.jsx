@@ -164,7 +164,7 @@ export function AdminPage() {
         <StatCard label="Forge subjects" value={forgeContent.length} helper="Across all users" tone="bg-blue-50" />
         <StatCard
           label="Top score"
-          value={overview?.topUsers?.[0]?.totalScore?.toLocaleString() || "—"}
+          value={overview?.topUsers?.[0]?.totalScore?.toLocaleString() || "-"}
           helper="Leaderboard leader"
           tone="bg-cyan-50"
         />
@@ -240,7 +240,7 @@ export function AdminPage() {
 
           {selectedUser ? (
             <p className="mb-4 rounded-lg bg-slate-50 p-3 text-sm">
-              <strong>{selectedUser.name}</strong> — XP {selectedUser.xp || 0}, Energy {selectedUser.energy || 0},
+              <strong>{selectedUser.name}</strong> - XP {selectedUser.xp || 0}, Energy {selectedUser.energy || 0},
               Total {selectedUser.totalScore || calculateTotalScore(selectedUser.xp, selectedUser.energy)}
             </p>
           ) : (
@@ -376,10 +376,10 @@ export function AdminPage() {
                 <div key={`${entry.userId}-${entry.subject.id}`} className="border-b border-slate-100 px-3 py-3 last:border-b-0">
                   <p className="font-black">{entry.subject.title}</p>
                   <p className="text-xs text-slate-500">
-                    {entry.userName} • {entry.userEmail}
+                    {entry.userName} &bull; {entry.userEmail}
                   </p>
                   <p className="mt-1 text-sm text-slate-600">
-                    {entry.subject.units?.length || 0} units •{" "}
+                    {entry.subject.units?.length || 0} units &bull;{" "}
                     {entry.subject.units?.reduce((acc, unit) => acc + (unit.subUnits?.length || 0), 0) || 0} sub-units
                   </p>
                   <button

@@ -2,20 +2,30 @@ import { FileUp, RefreshCw, Save, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ForgeStructureEditor } from "../components/ForgeStructureEditor.jsx";
 import { EmptyState } from "../components/EmptyState.jsx";
+import { ForgeCurriculumView } from "../components/ForgeCurriculumView.jsx";
+import { LessonPlayer } from "../components/LessonPlayer.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { completeLesson } from "../services/learningService.js";
 import {
   generateForgeStructure,
   getForgeContext,
   regenerateForgeStructure,
   saveForgeStructure,
   subscribeForgeSubjects,
+  subscribeForgeUnits,
+  subscribeForgeSubUnits,
+  subscribeForgeLessons,
   uploadForgeFiles,
 } from "../services/forgeService.js";
 
 export function ForgePage() {
   const { user } = useAuth();
   const [subjects, setSubjects] = useState([]);
-  const [selectedId, setSelectedId] = useState("");
+  const [units, setUnits] = useState([]);
+  const [subUnits, setSubUnits] = useState([]);
+  const [lessons, setLessons] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
+  const [selectedLesson, setSelectedLesson] = useState(null);
   const [draft, setDraft] = useState(null);
   const [pastedNotes, setPastedNotes] = useState("");
   const [progress, setProgress] = useState(0);
@@ -23,16 +33,23 @@ export function ForgePage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => subscribeForgeSubjects(user.uid, setSubjects), [user.uid]);
+  useEffect(() => subscribeForgeUnits(user.uid, setUnits), [user.uid]);
+  useEffect(() => subscribeForgeSubUnits(user.uid, setSubUnits), [user.uid]);
+  useEffect(() => subscribeForgeLessons(user.uid, setLessons), [user.uid]);
 
   useEffect(() => {
-    if (!selectedId && subjects.length) {
+    if (selectedId === null && subjects.length) {
+      setSelectedId(subjects[0].id);
+      return;
+    }
+    if (selectedId && subjects.length && !subjects.some((subject) => subject.id === selectedId)) {
       setSelectedId(subjects[0].id);
     }
   }, [subjects, selectedId]);
 
   useEffect(() => {
     const selected = subjects.find((item) => item.id === selectedId);
-    setDraft(selected ? structuredClone(selected) : null);
+    setDraft(selected ? JSON.parse(JSON.stringify(selected)) : null);
   }, [subjects, selectedId]);
 
   async function handleUpload(event) {
@@ -121,6 +138,76 @@ export function ForgePage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  const handleStartLesson = (lesson) => {
+    setSelectedLesson(lesson);
+  };
+
+  const handleCompleteLesson = async (lessonId, xpEarned, perfect) => {
+    try {
+      await completeLesson(user.uid, lessonId, xpEarned, perfect);
+      setSelectedLesson(null);
+      setStatus(`Lesson completed! +${xpEarned} XP${perfect ? " (Perfect!)" : ""}`);
+    } catch (error) {
+      setStatus(error.message);
+    }
+  };
+
+  const selectedSubject = subjects.find((s) => s.id === selectedId);
+  const subjectUnits = units.filter((u) => u.subjectId === selectedId);
+  const subjectSubUnits = subUnits.filter((su) => subjectUnits.map((u) => u.id).includes(su.unitId));
+  const subjectLessons = lessons.filter((l) => l.subjectId === selectedId);
+
+  if (selectedLesson) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <button
+          onClick={() => setSelectedLesson(null)}
+          className="mb-4 text-gray-600 hover:text-gray-900 flex items-center gap-2"
+        >
+          &larr; Back to Curriculum
+        </button>
+        <LessonPlayer
+          lesson={selectedLesson}
+          onComplete={handleCompleteLesson}
+        />
+      </div>
+    );
+  }
+
+  if (selectedSubject && subjectUnits.length > 0) {
+    return (
+      <div>
+        <div className="max-w-4xl mx-auto p-6">
+          <div className="flex items-center justify-between mb-6">
+            <button
+              onClick={() => setSelectedId("")}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              &larr; All Subjects
+            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleRegenerate}
+                disabled={busy || !draft}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${busy ? "animate-spin" : ""}`} />
+                Regenerate
+              </button>
+            </div>
+          </div>
+        </div>
+        <ForgeCurriculumView
+          subject={selectedSubject}
+          units={subjectUnits}
+          subUnits={subjectSubUnits}
+          lessons={subjectLessons}
+          onStartLesson={handleStartLesson}
+        />
+      </div>
+    );
   }
 
   return (

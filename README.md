@@ -1,17 +1,17 @@
 # LockOn Revision
 
-Modern React + Tailwind frontend scaffold for a Firebase-backed competitive revision platform.
+Modern React + Tailwind frontend for a Firebase-backed competitive revision platform.
 
-Firebase is currently unavailable, so runtime Firebase initialization is intentionally disabled. All Firebase-facing files,
-services, and backend folders remain in place as TODO scaffolds for later integration.
+LockOn Revision uses Firebase Auth and Firestore for user data, Cloudinary for uploads, and Gemini-backed API routes for lesson generation, tutor responses, hints, and explanations.
 
 ## Routes
 
-- `/` - Startup-style marketing landing page
-- `/login` - Firebase Auth placeholder
-- `/app` - Dashboard scaffold
-- `/leaderboard` - Leaderboard architecture with loading/empty states only
-- `/admin` - Admin capability scaffold
+- `/` - Marketing landing page
+- `/login` - Firebase email/password authentication
+- `/app` - Dashboard, scoring actions, and progress overview
+- `/forge` - Cloudinary upload, Gemini curriculum generation, and lesson playback
+- `/leaderboard` - Ranked user progress
+- `/admin` - User, reward, and Forge moderation tools
 
 ## Core Scoring Model
 
@@ -19,16 +19,10 @@ services, and backend folders remain in place as TODO scaffolds for later integr
 Total Score = XP + (Energy x 100)
 ```
 
-Leaderboard label:
+## Backend
 
-```txt
-⚡ 1 Energy = 100 XP
-```
-
-
-## Backend Scaffold
-
-- `functions/` - Cloud Functions scaffold
+- `api/` - Vercel API routes for Gemini workflows
+- `functions/` - Firebase callable functions
 - `backend/` - backend architecture notes
 
 ## Run

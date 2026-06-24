@@ -79,7 +79,7 @@ export function AppPage() {
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="XP" value={score.xp.toLocaleString()} helper="Learning progress" tone="bg-white" />
-        <StatCard label="Energy" value={`${score.energy} ⚡`} helper="1 Energy = 100 XP" tone="bg-cyan-50" />
+        <StatCard label="Energy" value={String(score.energy)} helper="1 Energy = 100 XP" tone="bg-cyan-50" />
         <StatCard label="Total Score" value={score.totalScore.toLocaleString()} helper="XP + Energy bonus" tone="bg-blue-50" />
         <StatCard
           label="Completed"
@@ -109,7 +109,7 @@ export function AppPage() {
                     <div>
                       <p className="font-black">{test.title}</p>
                       <p className="mt-1 text-sm text-slate-500">
-                        {test.difficulty} • +{test.energy} energy • +{test.xp} XP • requires 60%+
+                        {test.difficulty} &bull; +{test.energy} energy &bull; +{test.xp} XP &bull; requires 60%+
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -163,7 +163,7 @@ export function AppPage() {
                 >
                   <span>
                     <span className="block font-black">{unit.title}</span>
-                    <span className="mt-1 block text-sm text-slate-500">+1 energy • +{unit.xp} XP</span>
+                    <span className="mt-1 block text-sm text-slate-500">+1 energy &bull; +{unit.xp} XP</span>
                   </span>
                   {completed ? <CheckCircle2 className="text-cyan-600" /> : <Flame className="text-slate-300" />}
                 </button>

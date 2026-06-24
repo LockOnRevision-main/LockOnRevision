@@ -1,58 +1,17 @@
 import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
   getDocs,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
-  setDoc,
-  updateDoc,
   writeBatch,
 } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
-import { db, isFirebaseConfigured, storage } from "../config/firebase.js";
+import { db, isFirebaseConfigured } from "../config/firebase.js";
 import { getLocalUser, makeId, subscribeLocalState, updateLocalUser } from "./localStore.js";
-
-const FORGE_PROMPT = `Analyze the study material and create a structured learning path.
-Return strict JSON only with this exact shape:
-{
-  "subject": {
-    "title": "string",
-    "description": "string",
-    "units": [
-      {
-        "title": "string",
-        "summary": "string",
-        "subUnits": [
-          {
-            "title": "string",
-            "summary": "string",
-            "lessons": [
-              {
-                "title": "string",
-                "summary": "string",
-                "keyPoints": ["string"]
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  }
-}
-
-Requirements:
-- Create 2-3 units minimum.
-- Each unit must have 2-3 sub-units.
-- Each sub-unit must have 2-3 lessons.
-- Ground all titles and summaries in the uploaded material.
-- Use clear, student-friendly names.
-
-STUDY MATERIAL:
-`;
+import { uploadToCloudinary } from "../utils/cloudinary.js";
 
 function sortByOrder(items) {
   return [...items].sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0));
@@ -111,6 +70,11 @@ function normalizeGeneratedStructure(generated) {
       lessons: (subUnit.lessons || []).slice(0, 6).map((lesson, lessonIndex) => ({
         title: lesson.title || `Lesson ${lessonIndex + 1}`,
         summary: lesson.summary || "",
+        concept: lesson.concept || lesson.summary || lesson.title || `Lesson ${lessonIndex + 1}`,
+        durationMinutes: Number(lesson.durationMinutes || 3),
+        xpReward: Number(lesson.xpReward || 15),
+        interactionTypes: Array.isArray(lesson.interactionTypes) ? lesson.interactionTypes : ["multipleChoice"],
+        exercises: Array.isArray(lesson.exercises) ? lesson.exercises.slice(0, 5) : [],
         keyPoints: Array.isArray(lesson.keyPoints) ? lesson.keyPoints.slice(0, 5) : [],
       })),
     })),
@@ -172,6 +136,34 @@ function normalizeGeneratedStructure(generated) {
   };
 }
 
+function normalizeExercise(exercise, lesson, index) {
+  const keyPoint = lesson.keyPoints?.[index % Math.max(lesson.keyPoints.length, 1)] || lesson.summary || lesson.title;
+  const options = Array.isArray(exercise?.options) && exercise.options.length >= 2
+    ? exercise.options.slice(0, 4)
+    : [
+        keyPoint,
+        "A detail not supported by the notes",
+        "A formatting instruction",
+        "An unrelated revision tip",
+      ];
+  const correctAnswer = options.includes(exercise?.correctAnswer) ? exercise.correctAnswer : options[0];
+
+  return {
+    id: exercise?.id || makeId("exercise"),
+    type: exercise?.type || "multipleChoice",
+    question: exercise?.question || `Which statement best matches ${lesson.title}?`,
+    options,
+    correctAnswer,
+    explanation: exercise?.explanation || `This answer is grounded in the lesson: ${keyPoint}`,
+  };
+}
+
+function buildLessonExercises(lesson) {
+  const provided = Array.isArray(lesson.exercises) ? lesson.exercises : [];
+  const source = provided.length ? provided : [null, null, null];
+  return source.slice(0, 5).map((exercise, index) => normalizeExercise(exercise, lesson, index));
+}
+
 function flattenStructure(subjectInput, sourceFileIds = [], sourceText = "") {
   const now = new Date().toISOString();
   const subject = {
@@ -219,6 +211,13 @@ function flattenStructure(subjectInput, sourceFileIds = [], sourceText = "") {
       subUnits.push(subUnit);
 
       subUnitInput.lessons.forEach((lessonInput, lessonOrder) => {
+        const lesson = {
+          ...lessonInput,
+          title: lessonInput.title || `Lesson ${lessonOrder + 1}`,
+          summary: lessonInput.summary || "",
+          keyPoints: Array.isArray(lessonInput.keyPoints) ? lessonInput.keyPoints : [],
+          xpReward: Number(lessonInput.xpReward || 15),
+        };
         lessons.push({
           id: makeId("lesson"),
           subjectId: subject.id,
@@ -227,12 +226,19 @@ function flattenStructure(subjectInput, sourceFileIds = [], sourceText = "") {
           subjectName: subject.title,
           unitName: unit.title,
           subUnitName: subUnit.title,
-          title: lessonInput.title,
-          summary: lessonInput.summary || "",
-          keyPoints: lessonInput.keyPoints || [],
+          title: lesson.title,
+          summary: lesson.summary,
+          concept: lessonInput.concept || lesson.summary || lesson.title,
+          durationMinutes: Number(lessonInput.durationMinutes || 3),
+          xpReward: lesson.xpReward,
+          interactionTypes: lessonInput.interactionTypes || ["multipleChoice"],
+          exercises: buildLessonExercises(lesson),
+          keyPoints: lesson.keyPoints,
           order: lessonOrder,
           mastery: 0,
           difficulty: "medium",
+          completed: false,
+          xpEarned: 0,
           sourceFileIds,
           createdAt: now,
           updatedAt: now,
@@ -302,6 +308,36 @@ export function subscribeForgeSubjects(uid, callback) {
   });
 }
 
+export function subscribeForgeUnits(uid, callback) {
+  if (!isFirebaseConfigured) {
+    return subscribeLocalState(() => callback(getLocalUser(uid)?.units || []));
+  }
+
+  return onSnapshot(query(collection(db, "users", uid, "units"), orderBy("updatedAt", "desc")), (snapshot) => {
+    callback(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+  });
+}
+
+export function subscribeForgeSubUnits(uid, callback) {
+  if (!isFirebaseConfigured) {
+    return subscribeLocalState(() => callback(getLocalUser(uid)?.subUnits || []));
+  }
+
+  return onSnapshot(query(collection(db, "users", uid, "subUnits"), orderBy("updatedAt", "desc")), (snapshot) => {
+    callback(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+  });
+}
+
+export function subscribeForgeLessons(uid, callback) {
+  if (!isFirebaseConfigured) {
+    return subscribeLocalState(() => callback(getLocalUser(uid)?.lessons || []));
+  }
+
+  return onSnapshot(query(collection(db, "users", uid, "lessons"), orderBy("updatedAt", "desc")), (snapshot) => {
+    callback(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+  });
+}
+
 export async function fetchForgeSubjects(uid) {
   if (!isFirebaseConfigured) {
     return localForgeSubjects(uid);
@@ -359,34 +395,23 @@ export async function uploadForgeFiles(uid, files, onProgress) {
       continue;
     }
 
-    const cleanName = file.name.replace(/[^\w.\-]+/g, "-").toLowerCase();
-    const path = `users/${uid}/uploads/${Date.now()}-${cleanName}`;
-    const fileRef = ref(storage, path);
-    const uploadTask = uploadBytesResumable(fileRef, file, {
-      contentType: file.type,
-      customMetadata: { owner: uid },
+    // Upload directly to Cloudinary (unsigned)
+    const resourceType = file.type === 'application/pdf' ? 'raw' : 'auto';
+    const uploadResult = await uploadToCloudinary(file, {
+      folder: `lockon-revision/${uid}/forge`,
+      resourceType,
     });
 
-    await new Promise((resolve, reject) => {
-      uploadTask.on(
-        "state_changed",
-        (snapshot) =>
-          onProgress?.(
-            Math.round(((index + snapshot.bytesTransferred / snapshot.totalBytes) / files.length) * 100),
-          ),
-        reject,
-        resolve,
-      );
-    });
-
-    const url = await getDownloadURL(fileRef);
     const fileDoc = await addDoc(collection(db, "users", uid, "files"), {
       name: file.name,
       size: file.size,
       type: file.type,
       content: content.slice(0, 50000),
-      storagePath: path,
-      url,
+      cloudinaryPublicId: uploadResult.publicId,
+      url: uploadResult.url,
+      format: uploadResult.format,
+      width: uploadResult.width,
+      height: uploadResult.height,
       status: "uploaded",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -539,6 +564,11 @@ function treeToFlat(tree) {
           title: lesson.title,
           summary: lesson.summary || "",
           keyPoints: lesson.keyPoints || [],
+          concept: lesson.concept || lesson.summary || lesson.title,
+          durationMinutes: Number(lesson.durationMinutes || 3),
+          xpReward: Number(lesson.xpReward || 15),
+          interactionTypes: lesson.interactionTypes || ["multipleChoice"],
+          exercises: buildLessonExercises(lesson),
           order: lessonOrder,
           mastery: lesson.mastery || 0,
           difficulty: lesson.difficulty || "medium",
@@ -569,7 +599,6 @@ export async function saveForgeStructure(uid, tree) {
 
   if (!isFirebaseConfigured) {
     updateLocalUser(uid, (userData) => {
-      const subjectIds = new Set([tree.id]);
       return {
         ...userData,
         subjects: userData.subjects.map((item) =>

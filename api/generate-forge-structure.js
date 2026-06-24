@@ -49,31 +49,53 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { sourceText, sourceFileIds = [] } = req.body;
+    const { sourceText } = req.body;
 
     if (!sourceText) {
       return res.status(400).json({ error: 'Missing required field: sourceText' });
     }
 
-    const prompt = `Analyze the study material and create a structured learning path.
-Return strict JSON only with this exact shape:
+    const prompt = `You are an expert curriculum designer. Analyze the study material and create a structured learning path.
+
+First, detect the subject (e.g., Biology, Physics, Chemistry, Mathematics, History, Geography, Computer Science, Business, Languages, etc.).
+
+Then create a curriculum-quality hierarchy following this exact JSON structure:
 {
   "subject": {
     "title": "string",
     "description": "string",
+    "detectedSubject": "string",
     "units": [
       {
+        "id": "string",
         "title": "string",
         "summary": "string",
+        "order": number,
         "subUnits": [
           {
+            "id": "string",
             "title": "string",
             "summary": "string",
+            "order": number,
             "lessons": [
               {
+                "id": "string",
                 "title": "string",
                 "summary": "string",
-                "keyPoints": ["string"]
+                "concept": "string",
+                "durationMinutes": number,
+                "xpReward": number,
+                "order": number,
+                "interactionTypes": ["string"],
+                "exercises": [
+                  {
+                    "type": "string",
+                    "question": "string",
+                    "options": ["string"],
+                    "correctAnswer": "string",
+                    "explanation": "string"
+                  }
+                ]
               }
             ]
           }
@@ -83,12 +105,44 @@ Return strict JSON only with this exact shape:
   }
 }
 
-Requirements:
-- Create 2-3 units minimum.
-- Each unit must have 2-3 sub-units.
-- Each sub-unit must have 2-3 lessons.
-- Ground all titles and summaries in the uploaded material.
-- Use clear, student-friendly names.
+CRITICAL HIERARCHY REQUIREMENTS:
+- Generate 6-15 units (not 2-3)
+- Each unit must have 3-8 sub-units (not 2-3)
+- Each sub-unit must have 3-10 lessons (not 2-3)
+- This creates a deep, comprehensive curriculum
+
+LESSON REQUIREMENTS:
+- Each lesson must teach ONE tiny concept (2-5 minutes)
+- Duration should be 2-5 minutes per lesson
+- XP reward: 10-25 XP per lesson based on complexity
+- Concept field: the single specific concept being taught
+- Examples of good lesson concepts: "What is a Cell?", "Cell Membrane", "Nucleus", "Mitochondria" (NOT "Everything about Cells")
+
+INTERACTION TYPES (choose based on subject):
+For Languages: "multipleChoice", "wordBank", "typeAnswer", "fillBlank", "sentenceOrder", "matchVocabulary"
+For Biology: "multipleChoice", "labelDiagram", "identifyStructure", "sequenceProcess", "explainFunction", "imageIdentification"
+For Chemistry: "multipleChoice", "balanceEquation", "predictProduct", "molecularStructure", "fillCompound", "periodicTable"
+For Physics: "multipleChoice", "numericalAnswer", "formulaSelection", "unitConversion", "graphInterpretation", "scenarioReasoning"
+For Mathematics: "multipleChoice", "numericalAnswer", "multiStepWorking", "equationSolving", "patternRecognition", "errorFinding"
+For History: "multipleChoice", "timelineOrder", "sourceAnalysis", "causeEffect", "matchEvents", "chronologicalSequence"
+For Geography: "multipleChoice", "mapInteraction", "imageRecognition", "climateMatch", "caseStudy", "diagramInterpretation"
+For Computer Science: "multipleChoice", "codeCompletion", "debugCode", "predictOutput", "arrangeAlgorithm", "buildSnippet"
+For Business/Economics: "multipleChoice", "caseStudy", "decisionMaking", "dataInterpretation", "graphAnalysis", "realWorldScenario"
+
+EXERCISE REQUIREMENTS:
+- Generate 3-5 exercises per lesson
+- Mix different interaction types appropriate for the subject
+- Each exercise must have a clear question
+- Multiple choice: provide 4 options
+- Include explanation for correct answer
+- Make exercises challenging but fair
+
+CURRICULUM QUALITY:
+- Group concepts logically (follow real curriculum structure)
+- Avoid duplicates and overlapping lessons
+- Use clear, student-friendly names
+- If the material mentions GCSE, JEE, AP, or other exams, structure accordingly
+- Ensure progressive difficulty within units
 
 STUDY MATERIAL:
 ${sourceText}`;
@@ -97,19 +151,38 @@ ${sourceText}`;
       subject: {
         title: 'Generated Subject',
         description: 'AI-generated learning path from your notes.',
+        detectedSubject: 'General',
         units: [
           {
+            id: 'unit-1',
             title: 'Unit 1',
             summary: 'Core concepts from your notes.',
+            order: 1,
             subUnits: [
               {
+                id: 'subunit-1-1',
                 title: 'Sub Unit 1',
                 summary: 'Introduction to key ideas.',
+                order: 1,
                 lessons: [
                   {
+                    id: 'lesson-1-1-1',
                     title: 'Lesson 1',
                     summary: 'Review the main concepts.',
-                    keyPoints: ['Key point 1', 'Key point 2'],
+                    concept: 'Core concept introduction',
+                    durationMinutes: 3,
+                    xpReward: 15,
+                    order: 1,
+                    interactionTypes: ['multipleChoice'],
+                    exercises: [
+                      {
+                        type: 'multipleChoice',
+                        question: 'What is the main concept?',
+                        options: ['Option A', 'Option B', 'Option C', 'Option D'],
+                        correctAnswer: 'Option A',
+                        explanation: 'Explanation of why this is correct.'
+                      }
+                    ]
                   },
                 ],
               },
