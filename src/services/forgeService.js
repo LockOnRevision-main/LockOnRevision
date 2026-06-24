@@ -14,7 +14,6 @@ import {
 } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
 import { db, isFirebaseConfigured, storage } from "../config/firebase.js";
-import { callGeminiJson } from "./geminiService.js";
 import { getLocalUser, makeId, subscribeLocalState, updateLocalUser } from "./localStore.js";
 
 const FORGE_PROMPT = `Analyze the study material and create a structured learning path.
@@ -246,8 +245,27 @@ function flattenStructure(subjectInput, sourceFileIds = [], sourceText = "") {
 }
 
 async function generateStructureFromText(sourceText) {
-  const generated = await callGeminiJson(`${FORGE_PROMPT}${sourceText}`, buildFallbackStructure(sourceText));
-  return normalizeGeneratedStructure(generated);
+  if (!isFirebaseConfigured) {
+    return normalizeGeneratedStructure(buildFallbackStructure(sourceText));
+  }
+
+  try {
+    const response = await fetch('/api/generate-forge-structure', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceText }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return normalizeGeneratedStructure(result);
+  } catch (error) {
+    console.error("Vercel API error:", error);
+    return normalizeGeneratedStructure(buildFallbackStructure(sourceText));
+  }
 }
 
 function assembleForgeTree(subject, units, subUnits, lessons) {

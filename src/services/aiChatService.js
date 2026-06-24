@@ -1,4 +1,4 @@
-import { callGeminiJson } from "./geminiService.js";
+import { isFirebaseConfigured } from "../config/firebase.js";
 import { getForgeContext } from "./forgeService.js";
 
 function summarizeForgeStructure(subjects) {
@@ -23,32 +23,37 @@ function summarizeForgeStructure(subjects) {
 }
 
 export async function askForgeAssistant(uid, messages) {
-  const { subjects, sourceText } = await getForgeContext(uid);
-  const structureSummary = summarizeForgeStructure(subjects);
-  const conversation = messages
-    .map((message) => `${message.role === "user" ? "Student" : "Assistant"}: ${message.content}`)
-    .join("\n");
+  if (!isFirebaseConfigured) {
+    const { subjects } = await getForgeContext(uid);
+    const fallback = {
+      reply: subjects.length
+        ? "I can help you revise your Forge subjects. Ask about a specific unit, sub-unit, or lesson."
+        : "Upload notes in Forge first so I can answer with your study material context.",
+    };
+    return fallback;
+  }
 
-  const prompt = `You are LockOn Revision's AI study assistant.
-Answer using the student's uploaded study material and generated Forge learning structure whenever possible.
-Be concise, encouraging, and focused on active recall.
+  try {
+    const { subjects } = await getForgeContext(uid);
+    const response = await fetch('/api/ask-forge-assistant', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, subjects }),
+    });
 
-Generated learning structure:
-${structureSummary}
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status}`);
+    }
 
-Uploaded study material (excerpt):
-${sourceText.slice(0, 80000) || "No source text stored yet."}
-
-Conversation:
-${conversation}
-
-Return strict JSON only: {"reply":"your response here"}`;
-
-  const fallback = {
-    reply: subjects.length
-      ? "I can help you revise your Forge subjects. Ask about a specific unit, sub-unit, or lesson."
-      : "Upload notes in Forge first so I can answer with your study material context.",
-  };
-
-  return callGeminiJson(prompt, fallback);
+    return await response.json();
+  } catch (error) {
+    console.error("Vercel API error:", error);
+    const { subjects } = await getForgeContext(uid);
+    const fallback = {
+      reply: subjects.length
+        ? "I can help you revise your Forge subjects. Ask about a specific unit, sub-unit, or lesson."
+        : "Upload notes in Forge first so I can answer with your study material context.",
+    };
+    return fallback;
+  }
 }

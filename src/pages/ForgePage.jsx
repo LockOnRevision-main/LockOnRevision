@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { ForgeStructureEditor } from "../components/ForgeStructureEditor.jsx";
 import { EmptyState } from "../components/EmptyState.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import { hasGeminiKey } from "../services/geminiService.js";
 import {
   generateForgeStructure,
   getForgeContext,
@@ -141,13 +140,6 @@ export function ForgePage() {
           </p>
         </div>
       </section>
-
-      {!hasGeminiKey() ? (
-        <p className="rounded-lg border border-amber-100 bg-amber-50 p-3 text-sm font-bold text-amber-900">
-          Add VITE_GEMINI_API_KEY to your environment for AI generation. A local fallback structure will be used
-          without it.
-        </p>
-      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
