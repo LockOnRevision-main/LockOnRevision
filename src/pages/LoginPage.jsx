@@ -36,7 +36,7 @@ export function LoginPage() {
           <p className="text-sm font-bold uppercase tracking-widest text-blue-600">LockOn Revision</p>
           <h1 className="mt-2 text-3xl font-black">{mode === "register" ? "Create account" : "Welcome back"}</h1>
           <p className="mt-2 text-sm text-slate-500">
-            {isFirebaseConfigured ? "Sign in with Firebase email/password." : "Firebase config is missing."}
+            {isFirebaseConfigured ? "Sign in with your email and password." : "Firebase config is missing."}
           </p>
         </div>
 
