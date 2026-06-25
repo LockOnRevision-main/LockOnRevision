@@ -76,7 +76,7 @@ export function LoginPage() {
               <LockKeyhole size={17} className="text-slate-400" />
               <input
                 required
-                minLength={6}
+                minLength={8}
                 type="password"
                 className="min-w-0 flex-1 py-3 outline-none"
                 value={form.password}
