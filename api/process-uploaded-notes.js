@@ -1,14 +1,22 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const geminiApiKey = process.env.GEMINI_API_KEY;
-const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+const geminiModel = process.env.GEMINI_MODEL;
 
-if (!geminiApiKey) {
-  console.warn('GEMINI_API_KEY not set. AI functions will fail.');
+if (!geminiApiKey || !geminiModel) {
+  console.error('GEMINI_API_KEY or GEMINI_MODEL not set.');
 }
 
 const genAI = geminiApiKey ? new GoogleGenerativeAI(geminiApiKey) : null;
 const model = genAI ? genAI.getGenerativeModel({ model: geminiModel }) : null;
+
+function validateGeminiResponse(data) {
+  if (!data || !data.subjects || !Array.isArray(data.subjects)) {
+    throw new Error('Invalid Gemini response structure.');
+  }
+  // Further validation can be added here.
+  return true;
+}
 
 function parseGeminiJson(text) {
   const cleaned = text
@@ -35,7 +43,9 @@ async function callGeminiJson(prompt, fallbackValue = null) {
       throw new Error('Gemini returned no text.');
     }
 
-    return parseGeminiJson(text);
+    const parsed = parseGeminiJson(text);
+    validateGeminiResponse(parsed);
+    return parsed;
   } catch (error) {
     console.error('Gemini API error:', error);
     if (fallbackValue !== null) return fallbackValue;
@@ -56,43 +66,58 @@ export default async function handler(req, res) {
     }
 
     const generated = await callGeminiJson(
-      `Create structured active-recall learning content from these notes.
-Return strict JSON only with this exact shape:
-{
-  "subjects": [
-    {
-      "title": "string",
-      "description": "string",
-      "units": [
-        {
-          "title": "string",
-          "summary": "string",
-          "lessons": [
-            {
-              "title": "string",
-              "summary": "string",
-              "difficulty": "easy|medium|hard",
-              "keyPoints": ["string"],
-              "questions": [
-                {
-                  "prompt": "string",
-                  "options": ["A", "B", "C", "D"],
-                  "correctAnswer": "must exactly match one option",
-                  "explanation": "string",
-                  "topic": "string",
-                  "difficulty": "easy|medium|hard"
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
-Create concise lessons, 3-5 recall questions per lesson, and only use facts grounded in the notes.
+      `You are an expert educational AI. Your goal is to transform user-uploaded study notes into a premium, interactive, and structured learning experience that feels like a professional educational platform.
 
-NOTES:
+Analyze the provided notes and generate a highly structured JSON response representing a complete subject curriculum.
+
+Follow these strict requirements:
+1. Subject Analysis: Identify the primary subject, curriculum, and target syllabus level.
+2. Structure: Break down the content into logical Units -> Subunits -> Lessons.
+3. Lessons: Every lesson must be focused, active-recall-oriented, and designed for 2-5 minutes of engagement.
+4. Lesson Types: Use diverse interaction types (multipleChoice, fillBlank, matchPairs, arrangeOrder, etc.) appropriate to the subject matter.
+5. Interactive Exercises: For each lesson, generate 3-5 rigorous, high-quality exercises that reinforce understanding.
+6. Validation: Every exercise must have a clear "correctAnswer" from the provided options and a concise, educational "explanation".
+
+Return ONLY valid JSON with this structure:
+{
+  "subject": {
+    "title": "string",
+    "description": "string",
+    "units": [
+      {
+        "title": "string",
+        "summary": "string",
+        "subUnits": [
+          {
+            "title": "string",
+            "summary": "string",
+            "lessons": [
+              {
+                "title": "string",
+                "summary": "string",
+                "concept": "string",
+                "difficulty": "easy|medium|hard",
+                "interactionTypes": ["multipleChoice", "fillBlank", "matchPairs", "arrangeOrder"],
+                "keyPoints": ["string"],
+                "exercises": [
+                  {
+                    "type": "string",
+                    "question": "string",
+                    "options": ["string"],
+                    "correctAnswer": "string",
+                    "explanation": "string"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+
+STUDY NOTES:
 ${sourceText}`,
       null
     );

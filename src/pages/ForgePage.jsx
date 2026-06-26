@@ -241,7 +241,7 @@ export function ForgePage() {
               className="hidden"
               type="file"
               multiple
-              accept=".pdf,.txt,.md,.png,.jpg,.jpeg,.csv,.json"
+              accept=".pdf,.txt,.md,.png,.jpg,.jpeg,.webp,.gif,.svg,.docx,.pptx"
               onChange={handleUpload}
               disabled={busy}
             />

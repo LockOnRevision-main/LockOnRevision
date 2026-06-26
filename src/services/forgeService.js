@@ -58,27 +58,34 @@ function buildFallbackStructure(sourceText) {
 }
 
 function normalizeGeneratedStructure(generated) {
-  const subject = generated?.subject || generated?.subjects?.[0];
+  const subject = generated?.subject;
   if (!subject) return buildFallbackStructure("");
 
-  const units = (subject.units || []).slice(0, 6).map((unit, unitIndex) => ({
+  const units = (subject.units || []).slice(0, 10).map((unit, unitIndex) => ({
     title: unit.title || `Unit ${unitIndex + 1}`,
     summary: unit.summary || "",
-    subUnits: (unit.subUnits || unit.subunits || []).slice(0, 6).map((subUnit, subIndex) => ({
+    subUnits: (unit.subUnits || []).slice(0, 10).map((subUnit, subIndex) => ({
       title: subUnit.title || `Sub Unit ${subIndex + 1}`,
       summary: subUnit.summary || "",
-      lessons: (subUnit.lessons || []).slice(0, 6).map((lesson, lessonIndex) => ({
+      lessons: (subUnit.lessons || []).slice(0, 10).map((lesson, lessonIndex) => ({
         title: lesson.title || `Lesson ${lessonIndex + 1}`,
         summary: lesson.summary || "",
         concept: lesson.concept || lesson.summary || lesson.title || `Lesson ${lessonIndex + 1}`,
         durationMinutes: Number(lesson.durationMinutes || 3),
         xpReward: Number(lesson.xpReward || 15),
+        difficulty: lesson.difficulty || "medium",
         interactionTypes: Array.isArray(lesson.interactionTypes) ? lesson.interactionTypes : ["multipleChoice"],
-        exercises: Array.isArray(lesson.exercises) ? lesson.exercises.slice(0, 5) : [],
-        keyPoints: Array.isArray(lesson.keyPoints) ? lesson.keyPoints.slice(0, 5) : [],
+        exercises: Array.isArray(lesson.exercises) ? lesson.exercises.map(ex => ({
+            id: makeId("exercise"),
+            ...ex
+        })) : [],
+        keyPoints: Array.isArray(lesson.keyPoints) ? lesson.keyPoints : [],
       })),
     })),
   }));
+
+  // ... (keeping the rest of the padding logic to ensure valid structure)
+
 
   while (units.length < 2) {
     units.push({
@@ -136,33 +143,23 @@ function normalizeGeneratedStructure(generated) {
   };
 }
 
-function normalizeExercise(exercise, lesson, index) {
-  const keyPoint = lesson.keyPoints?.[index % Math.max(lesson.keyPoints.length, 1)] || lesson.summary || lesson.title;
-  const options = Array.isArray(exercise?.options) && exercise.options.length >= 2
-    ? exercise.options.slice(0, 4)
-    : [
-        keyPoint,
-        "A detail not supported by the notes",
-        "A formatting instruction",
-        "An unrelated revision tip",
-      ];
-  const correctAnswer = options.includes(exercise?.correctAnswer) ? exercise.correctAnswer : options[0];
-
+function normalizeExercise(exercise, lesson, _index) {
   return {
     id: exercise?.id || makeId("exercise"),
     type: exercise?.type || "multipleChoice",
-    question: exercise?.question || `Which statement best matches ${lesson.title}?`,
-    options,
-    correctAnswer,
-    explanation: exercise?.explanation || `This answer is grounded in the lesson: ${keyPoint}`,
+    question: exercise?.question || `Question about ${lesson.title}`,
+    options: Array.isArray(exercise?.options) ? exercise.options : [],
+    correctAnswer: exercise?.correctAnswer || "",
+    explanation: exercise?.explanation || "Review the lesson material.",
   };
 }
 
+
 function buildLessonExercises(lesson) {
   const provided = Array.isArray(lesson.exercises) ? lesson.exercises : [];
-  const source = provided.length ? provided : [null, null, null];
-  return source.slice(0, 5).map((exercise, index) => normalizeExercise(exercise, lesson, index));
+  return provided.map((exercise, index) => normalizeExercise(exercise, lesson, index));
 }
+
 
 function flattenStructure(subjectInput, sourceFileIds = [], sourceText = "") {
   const now = new Date().toISOString();
@@ -396,10 +393,8 @@ export async function uploadForgeFiles(uid, files, onProgress) {
     }
 
     // Upload directly to Cloudinary (unsigned)
-    const resourceType = file.type === 'application/pdf' ? 'raw' : 'auto';
     const uploadResult = await uploadToCloudinary(file, {
       folder: `lockon-revision/${uid}/forge`,
-      resourceType,
     });
 
     const fileDoc = await addDoc(collection(db, "users", uid, "files"), {
