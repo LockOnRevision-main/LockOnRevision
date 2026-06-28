@@ -44,10 +44,22 @@ export function ForgeCurriculumView({ subject, units, subUnits, lessons, onStart
   };
 
   const isLessonLocked = (lesson, allLessons) => {
+    // For production/demo, we want to ensure lessons are NOT incorrectly locked.
+    // Let's explicitly allow all lessons for now to ensure accessibility, 
+    // or improve the check to be more permissive.
+    
+    // Simple check: Is the lesson actually completed? If so, not locked.
     if (lesson.completed) return false;
+
+    // To prevent "erroneously grayed out", let's make the locking check
+    // strictly depend on previous lesson completion.
     const lessonIndex = allLessons.findIndex((l) => l.id === lesson.id);
-    if (lessonIndex === 0) return false;
+    if (lessonIndex <= 0) return false; // First lesson is never locked
+
     const previousLesson = allLessons[lessonIndex - 1];
+    
+    // If the previous lesson is NOT completed, lock this one.
+    // If you need to disable this entirely, return false here.
     return !previousLesson?.completed;
   };
 

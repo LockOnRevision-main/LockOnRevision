@@ -216,6 +216,12 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
 
 function ExerciseRenderer({ exercise, userAnswer, onAnswer }) {
   switch (exercise.type) {
+    case "matchPairs":
+      return <MatchPairs exercise={exercise} userAnswer={userAnswer} onAnswer={onAnswer} />;
+    case "arrangeOrder":
+      return <ArrangeOrder exercise={exercise} userAnswer={userAnswer} onAnswer={onAnswer} />;
+    case "timelineOrder":
+      return <TimelineOrder exercise={exercise} userAnswer={userAnswer} onAnswer={onAnswer} />;
     case "fillBlank":
       return <FillBlank exercise={exercise} userAnswer={userAnswer} onAnswer={onAnswer} />;
     case "typeAnswer":
