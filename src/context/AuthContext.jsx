@@ -17,13 +17,22 @@ function createUserProfile(user, name) {
   return {
     name: name || user.displayName || "LockOn Learner",
     email: user.email,
+    username: user.email?.split('@')[0] || "learner",
+    bio: "",
+    avatarUrl: "",
     role,
     xp: 0,
     energy: 0,
     totalScore: 0,
+    streak: 0,
+    totalStudyHours: 0,
     completedTests: [],
     completedUnits: [],
     lastTestAttempt: null,
+    goals: "",
+    favoriteSubjects: [],
+    theme: "system",
+    activity: {},
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -42,18 +51,32 @@ async function ensureUserDocument(user, name) {
 
   const data = snapshot.data();
   const patch = {};
-  const xp = typeof data.xp === "number" ? data.xp : 0;
-  const energy = typeof data.energy === "number" ? data.energy : 0;
-
+  
+  // Core Identity
   if (!data.name) patch.name = name || user.displayName || "LockOn Learner";
   if (!data.email) patch.email = user.email;
+  if (!data.username) patch.username = user.email?.split('@')[0] || "learner";
+  if (data.role === undefined) patch.role = resolveRole(data, user.email);
+
+  // Gamification Defaults
   if (typeof data.xp !== "number") patch.xp = 0;
   if (typeof data.energy !== "number") patch.energy = 0;
-  if (typeof data.totalScore !== "number") patch.totalScore = xp + energy * 100;
+  if (typeof data.streak !== "number") patch.streak = 0;
+  if (typeof data.totalStudyHours !== "number") patch.totalStudyHours = 0;
+  if (typeof data.totalScore !== "number") patch.totalScore = (data.xp || 0) + (data.energy || 0) * 100;
+
+  // Data Structures
   if (!Array.isArray(data.completedTests)) patch.completedTests = [];
   if (!Array.isArray(data.completedUnits)) patch.completedUnits = [];
+  if (!Array.isArray(data.favoriteSubjects)) patch.favoriteSubjects = [];
+  if (typeof data.activity !== "object" || data.activity === null) patch.activity = {};
   if (!("lastTestAttempt" in data)) patch.lastTestAttempt = null;
-  if (!data.role) patch.role = resolveRole(data, user.email);
+
+  // Profile Settings
+  if (data.bio === undefined) patch.bio = "";
+  if (data.goals === undefined) patch.goals = "";
+  if (data.theme === undefined) patch.theme = "system";
+  if (data.avatarUrl === undefined) patch.avatarUrl = "";
 
   if (Object.keys(patch).length) {
     patch.updatedAt = serverTimestamp();

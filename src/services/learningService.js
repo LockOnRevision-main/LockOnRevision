@@ -245,7 +245,8 @@ function writeGeminiCourse(uid, generated, sourceFileId = null) {
           unitName: unit.title,
           title: lessonInput.title || "Generated Lesson",
           summary: lessonInput.summary || "",
-          keyPoints: lessonInput.keyPoints || [],
+          explanation: lessonInput.explanation || "",
+          examples: lessonInput.examples || [],
           mastery: 45,
           difficulty: lessonInput.difficulty || "medium",
           sourceFileId,
@@ -361,20 +362,21 @@ async function writeFirebaseCourse(uid, generated, sourceFileId = null) {
       created.units.push(unitRef.id);
 
       for (const lessonInput of unitInput.lessons || []) {
-        const lessonRef = await addDoc(collection(db, "users", uid, "lessons"), {
-          subjectId: subjectRef.id,
-          unitId: unitRef.id,
-          subjectName: subjectInput.title || "Generated Subject",
-          unitName: unitInput.title || "Generated Unit",
-          title: lessonInput.title || "Generated Lesson",
-          summary: lessonInput.summary || "",
-          keyPoints: lessonInput.keyPoints || [],
-          mastery: 45,
-          difficulty: lessonInput.difficulty || "medium",
-          sourceFileId,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
+         const lessonRef = await addDoc(collection(db, "users", uid, "lessons"), {
+           subjectId: subjectRef.id,
+           unitId: unitRef.id,
+           subjectName: subjectInput.title || "Generated Subject",
+           unitName: unitInput.title || "Generated Unit",
+           title: lessonInput.title || "Generated Lesson",
+           summary: lessonInput.summary || "",
+           explanation: lessonInput.explanation || "",
+           examples: lessonInput.examples || [],
+           mastery: 45,
+           difficulty: lessonInput.difficulty || "medium",
+           sourceFileId,
+           createdAt: serverTimestamp(),
+           updatedAt: serverTimestamp(),
+         });
         created.lessons.push(lessonRef.id);
 
         for (const questionInput of lessonInput.questions || []) {
@@ -567,16 +569,40 @@ export async function processRawNotes(uid, text) {
   return buildFirebaseGeminiCourse(uid, text);
 }
 
-export async function askTutor(messages, context) {
+export async function getUserLearningContext(uid) {
   if (!isFirebaseConfigured) {
-    const last = messages[messages.length - 1]?.content || "";
+    const state = JSON.parse(localStorage.getItem("lockon-revision-local-state") || "{}");
+    const userData = state.users?.[uid];
+    if (!userData) return null;
+
     return {
-      reply:
-        last.length > 0
-          ? `Local tutor: ${last} connects back to your uploaded lessons. Try answering it as a question first, then compare against your lesson summaries.`
-          : "Local tutor ready. Ask about a topic from your notes.",
+      subjects: userData.subjects || [],
+      units: userData.units || [],
+      lessons: userData.lessons || [],
     };
   }
+
+  try {
+    const subjectsSnap = await getDocs(collection(db, "users", uid, "subjects"));
+    const unitsSnap = await getDocs(collection(db, "users", uid, "units"));
+    const lessonsSnap = await getDocs(collection(db, "users", uid, "lessons"));
+
+    return {
+      subjects: subjectsSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+      units: unitsSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+      lessons: lessonsSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+    };
+  } catch (error) {
+    console.error("Error fetching learning context:", error);
+    return null;
+  }
+}
+
+export async function askTutor(messages, context) {
+  if (!isFirebaseConfigured) {
+    throw new Error("AI Tutor is only available with Firebase configured.");
+  }
+  // ... rest of the function
 
   try {
     const response = await fetch('/api/ai-tutor-chat', {

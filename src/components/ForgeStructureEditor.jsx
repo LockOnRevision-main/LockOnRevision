@@ -53,7 +53,7 @@ export function ForgeStructureEditor({ tree, onChange }) {
   return (
     <div className="grid gap-4">
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-        <p className="text-xs font-bold uppercase tracking-widest text-blue-600">Subject</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-indigo-600">Subject</p>
         <input
           value={tree.title}
           onChange={(event) => updateSubject("title", event.target.value)}
@@ -96,7 +96,7 @@ export function ForgeStructureEditor({ tree, onChange }) {
           </NodeEditor>
 
           {unit.subUnits?.map((subUnit, subIndex) => (
-            <div key={subUnit.id} className="grid gap-3 border-l-2 border-cyan-100 pl-4">
+            <div key={subUnit.id} className="grid gap-3 border-l-2 border-amber-100 pl-4">
               <NodeEditor
                 label="Sub Unit"
                 title={subUnit.title}

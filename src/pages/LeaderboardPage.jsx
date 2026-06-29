@@ -28,10 +28,10 @@ export function LeaderboardPage() {
       <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
-            <p className="text-sm font-bold uppercase tracking-widest text-blue-600">Leaderboard</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-indigo-600">Leaderboard</p>
             <h1 className="mt-2 text-4xl font-black tracking-tight">Top learners</h1>
             <p className="mt-2 flex items-center gap-2 text-sm font-bold text-slate-500">
-              <Zap size={16} className="text-cyan-500" />
+              <Zap size={16} className="text-amber-500" />
               1 Energy = 100 XP
             </p>
           </div>
@@ -71,7 +71,7 @@ export function LeaderboardPage() {
               className="grid grid-cols-[80px_1fr_160px] items-center gap-3 border-t border-slate-100 px-4 py-4"
             >
               <div className="flex items-center gap-2 font-black">
-                {leader.rank <= 3 ? <Medal className="text-cyan-500" size={18} /> : <Trophy className="text-slate-300" size={18} />}
+                {leader.rank <= 3 ? <Medal className="text-amber-500" size={18} /> : <Trophy className="text-slate-300" size={18} />}
                 {leader.rank}
               </div>
               <div>

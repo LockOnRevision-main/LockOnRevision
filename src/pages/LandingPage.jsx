@@ -19,21 +19,21 @@ import { useAuth } from "../context/AuthContext.jsx";
 
 function IsoStack({ variant = "blue" }) {
   const palette =
-    variant === "cyan"
-      ? "from-cyan-300 via-blue-400 to-indigo-500"
+    variant === "amber"
+      ? "from-amber-300 via-blue-400 to-indigo-500"
       : variant === "green"
-        ? "from-emerald-300 via-cyan-400 to-blue-500"
-        : "from-blue-400 via-cyan-300 to-sky-500";
+        ? "from-emerald-300 via-amber-400 to-indigo-500"
+        : "from-blue-400 via-amber-300 to-sky-500";
 
   return (
     <div className="relative mx-auto h-72 w-full max-w-md [perspective:900px]" aria-hidden="true">
       <div className="absolute inset-x-10 top-12 h-44 rotate-[-8deg] skew-y-[-16deg] rounded-xl bg-gradient-to-br from-white to-slate-100 shadow-2xl shadow-blue-200" />
-      <div className={`absolute left-20 top-4 h-28 w-44 rotate-[-8deg] skew-y-[-16deg] rounded-xl bg-gradient-to-br ${palette} shadow-xl shadow-cyan-200`} />
+      <div className={`absolute left-20 top-4 h-28 w-44 rotate-[-8deg] skew-y-[-16deg] rounded-xl bg-gradient-to-br ${palette} shadow-xl shadow-amber-200`} />
       <div className="absolute right-16 top-24 h-24 w-36 rotate-[-8deg] skew-y-[-16deg] rounded-xl border border-white/60 bg-white/85 shadow-xl" />
       <div className="absolute left-28 top-28 grid h-20 w-20 rotate-[-8deg] skew-y-[-16deg] place-items-center rounded-xl bg-slate-950 text-white shadow-xl">
         <Zap size={30} />
       </div>
-      <div className="absolute right-24 top-9 grid h-14 w-14 rotate-[-8deg] skew-y-[-16deg] place-items-center rounded-lg bg-white text-blue-600 shadow-lg">
+      <div className="absolute right-24 top-9 grid h-14 w-14 rotate-[-8deg] skew-y-[-16deg] place-items-center rounded-lg bg-white text-indigo-600 shadow-lg">
         <Trophy size={24} />
       </div>
       <div className="absolute bottom-8 left-16 h-6 w-64 rounded-full bg-blue-900/10 blur-xl" />
@@ -81,11 +81,11 @@ export function LandingPage() {
 
   return (
     <main className="min-h-screen bg-white text-slate-950">
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-cyan-100">
+      <section className="relative overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-amber-100">
         <div className="absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_50%_0%,rgba(34,211,238,.28),transparent_60%)]" />
         <nav className="relative mx-auto flex max-w-7xl items-center justify-between px-5 py-5">
           <Link to="/" className="flex items-center gap-3 font-black">
-            <span className="grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br from-blue-600 to-cyan-400 text-white">
+            <span className="grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br from-indigo-600 to-amber-400 text-white">
               <Sparkles size={20} />
             </span>
             LockOn Revision
@@ -122,7 +122,7 @@ export function LandingPage() {
                 type="button"
                 onClick={getStarted}
                 disabled={loading}
-                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 px-6 py-3 font-black text-white shadow-xl shadow-cyan-100 transition hover:-translate-y-0.5 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-amber-500 px-6 py-3 font-black text-white shadow-xl shadow-amber-100 transition hover:-translate-y-0.5 disabled:opacity-60"
               >
                 Get Started
                 <ArrowRight size={18} />
@@ -138,7 +138,7 @@ export function LandingPage() {
 
       <section className="mx-auto grid max-w-7xl gap-8 px-5 py-20 lg:grid-cols-[0.8fr_1.2fr]">
         <div>
-          <p className="text-sm font-bold uppercase tracking-widest text-blue-600">Why LockOn</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-indigo-600">Why LockOn</p>
           <h2 className="mt-3 text-4xl font-black tracking-tight">Revision needs feedback, not just effort.</h2>
           <p className="mt-4 text-slate-600">
             Students often study without knowing whether the work is compounding. LockOn makes progress measurable and
@@ -148,7 +148,7 @@ export function LandingPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           {featureCards.map((feature) => (
             <article key={feature.title} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <feature.icon className="text-blue-600" size={24} />
+              <feature.icon className="text-indigo-600" size={24} />
               <h3 className="mt-4 text-lg font-black">{feature.title}</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">{feature.copy}</p>
             </article>
@@ -159,7 +159,7 @@ export function LandingPage() {
       <section className="bg-slate-50 py-20">
         <div className="mx-auto max-w-7xl px-5">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-sm font-bold uppercase tracking-widest text-blue-600">Features</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-indigo-600">Features</p>
             <h2 className="mt-3 text-4xl font-black tracking-tight">A revision platform built around action.</h2>
           </div>
           <div className="mt-10 grid gap-5 md:grid-cols-3">
@@ -169,7 +169,7 @@ export function LandingPage() {
               ["Leaderboard", "Ranks students by total score, not vanity activity.", Medal],
             ].map(([title, copy, Icon]) => (
               <article key={title} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                <Icon className="text-cyan-500" size={28} />
+                <Icon className="text-amber-500" size={28} />
                 <h3 className="mt-5 text-2xl font-black">{title}</h3>
                 <p className="mt-2 leading-7 text-slate-600">{copy}</p>
               </article>
@@ -181,19 +181,19 @@ export function LandingPage() {
       <section className="mx-auto grid max-w-7xl items-center gap-10 px-5 py-20 lg:grid-cols-2">
         <IsoStack variant="green" />
         <div>
-          <p className="text-sm font-bold uppercase tracking-widest text-blue-600">How It Works</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-indigo-600">How It Works</p>
           <h2 className="mt-3 text-4xl font-black tracking-tight">XP + Energy creates a clearer score.</h2>
           <div className="mt-6 grid gap-3">
             {steps.map((step, index) => (
               <div key={step} className="flex gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-blue-50 text-sm font-black text-blue-700">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-indigo-50 text-sm font-black text-blue-700">
                   {index + 1}
                 </span>
                 <p className="font-bold text-slate-700">{step}</p>
               </div>
             ))}
           </div>
-          <p className="mt-5 rounded-xl bg-gradient-to-r from-blue-50 to-cyan-50 p-4 font-black text-blue-800">
+          <p className="mt-5 rounded-xl bg-gradient-to-r from-indigo-50 to-amber-50 p-4 font-black text-blue-800">
             Total Score = XP + (Energy x 100)
           </p>
         </div>
@@ -202,18 +202,18 @@ export function LandingPage() {
       <section className="bg-gradient-to-br from-slate-950 to-blue-950 py-20 text-white">
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-5 lg:grid-cols-[1fr_0.9fr]">
           <div>
-            <p className="text-sm font-bold uppercase tracking-widest text-cyan-300">Leaderboard Overview</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-amber-300">Leaderboard Overview</p>
             <h2 className="mt-3 text-4xl font-black tracking-tight">Competition that rewards consistency.</h2>
             <p className="mt-4 leading-7 text-white/70">
               The leaderboard is intentionally simple: students are ranked by total score. XP shows learning volume,
               Energy highlights high-value performance, and the formula keeps the system easy to understand.
             </p>
-            <p className="mt-5 inline-flex items-center gap-2 rounded-lg bg-white/10 px-4 py-3 font-black text-cyan-100">
+            <p className="mt-5 inline-flex items-center gap-2 rounded-lg bg-white/10 px-4 py-3 font-black text-amber-100">
               <Zap size={18} />
               1 Energy = 100 XP
             </p>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/10 p-5 shadow-2xl shadow-cyan-950/40 backdrop-blur">
+          <div className="rounded-xl border border-white/10 bg-white/10 p-5 shadow-2xl shadow-amber-950/40 backdrop-blur">
             {["Rank", "Name", "Total Score"].map((item) => (
               <span key={item} className="mr-6 text-xs font-bold uppercase tracking-widest text-white/45">
                 {item}
@@ -223,7 +223,7 @@ export function LandingPage() {
               {["Student profile", "XP breakdown", "Energy bonus"].map((item, index) => (
                 <div key={item} className="flex items-center justify-between rounded-lg bg-white/10 p-4">
                   <span className="font-black">{index + 1}. {item}</span>
-                  <span className="text-cyan-200">Firestore</span>
+                  <span className="text-amber-200">Firestore</span>
                 </div>
               ))}
             </div>
@@ -233,7 +233,7 @@ export function LandingPage() {
 
       <section className="mx-auto grid max-w-7xl gap-8 px-5 py-20 lg:grid-cols-[0.9fr_1.1fr]">
         <div>
-          <p className="text-sm font-bold uppercase tracking-widest text-blue-600">Admin Capabilities</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-indigo-600">Admin Capabilities</p>
           <h2 className="mt-3 text-4xl font-black tracking-tight">Designed for cohorts, moderation, and insight.</h2>
           <p className="mt-4 text-slate-600">
             Admin tooling gives authorized teams a focused place to review users, rewards, Forge content, and access
@@ -248,7 +248,7 @@ export function LandingPage() {
             ["Access management", Lock],
           ].map(([title, Icon]) => (
             <article key={title} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <Icon className="text-blue-600" />
+              <Icon className="text-indigo-600" />
               <h3 className="mt-4 font-black">{title}</h3>
               <p className="mt-2 text-sm text-slate-500">Available through the authenticated admin workspace.</p>
             </article>
@@ -257,7 +257,7 @@ export function LandingPage() {
       </section>
 
       <section className="px-5 pb-20">
-        <div className="mx-auto max-w-5xl rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 p-10 text-center text-white shadow-2xl shadow-cyan-100">
+        <div className="mx-auto max-w-5xl rounded-2xl bg-gradient-to-r from-indigo-600 to-amber-500 p-10 text-center text-white shadow-2xl shadow-amber-100">
           <CheckCircle2 className="mx-auto" size={36} />
           <h2 className="mt-4 text-4xl font-black tracking-tight">Ready to lock in better revision?</h2>
           <p className="mx-auto mt-3 max-w-2xl text-white/80">

@@ -30,10 +30,10 @@ export function LoginPage() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-gradient-to-br from-blue-50 via-white to-cyan-100 px-4 text-slate-950">
+    <main className="grid min-h-screen place-items-center bg-gradient-to-br from-indigo-50 via-white to-amber-100 px-4 text-slate-950">
       <section className="w-full max-w-md rounded-xl border border-white/80 bg-white/90 p-6 shadow-2xl shadow-blue-100 backdrop-blur">
         <div className="mb-6">
-          <p className="text-sm font-bold uppercase tracking-widest text-blue-600">LockOn Revision</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-indigo-600">LockOn Revision</p>
           <h1 className="mt-2 text-3xl font-black">{mode === "register" ? "Create account" : "Welcome back"}</h1>
           <p className="mt-2 text-sm text-slate-500">
             {isFirebaseConfigured ? "Sign in with your email and password." : "Firebase config is missing."}

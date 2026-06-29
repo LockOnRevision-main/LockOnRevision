@@ -67,26 +67,21 @@ Return strict JSON only with this exact shape:
         {
           "title": "string",
           "summary": "string",
-          "subUnits": [
+          "lessons": [
             {
               "title": "string",
               "summary": "string",
-              "lessons": [
+              "explanation": "Detailed explanation of the concept",
+              "examples": ["Example 1", "Example 2"],
+              "difficulty": "easy|medium|hard",
+              "questions": [
                 {
-                  "title": "string",
-                  "summary": "string",
-                  "explanation": "string",
-                  "difficulty": "easy|medium|hard",
-                  "exercises": [
-                    {
-                      "type": "multipleChoice|wordBank|fillBlank|typeAnswer|matchPairs|trueFalse|ordering",
-                      "question": "string",
-                      "content": "string (or object depending on type)",
-                      "options": ["string"],
-                      "correctAnswer": "string",
-                      "explanation": "string"
-                    }
-                  ]
+                  "type": "multipleChoice|fillBlank|matchPairs|ordering|trueFalse|shortAnswer",
+                  "question": "The question text",
+                  "content": "Additional content or context if needed",
+                  "options": ["Option A", "Option B", "Option C", "Option D"],
+                  "correctAnswer": "The correct answer",
+                  "explanation": "Why this answer is correct"
                 }
               ]
             }
@@ -98,11 +93,21 @@ Return strict JSON only with this exact shape:
 }
 
 REQUIREMENTS:
-1. Hierarchy: Unit -> Sub Unit -> Lesson.
-2. Exercises: Generate diverse exercises using the specified types.
-3. Content: Grounded strictly in the notes.
-4. Explanations: Provide detailed explanations for every exercise.
-5. Adaptability: Adjust difficulty and interaction type to the subject.
+1. Hierarchy: Subject -> Unit -> Lesson.
+2. Every Lesson MUST contain:
+   - explanation: A deep dive into the concept.
+   - examples: At least 2 concrete examples.
+   - difficulty: One of 'easy', 'medium', 'hard'.
+   - questions: 3-5 exercises per lesson.
+3. Exercise Types Support:
+   - multipleChoice: 4 options.
+   - fillBlank: A sentence with a blank.
+   - matchPairs: Pairs of related items.
+   - ordering: A sequence of steps.
+   - trueFalse: A statement to verify.
+   - shortAnswer: A question requiring a brief response.
+4. Content: Grounded strictly in the notes.
+5. Explanations: Provide detailed explanations for every exercise.
 
 NOTES:
 ${sourceText}`;

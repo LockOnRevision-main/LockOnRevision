@@ -12,7 +12,7 @@ import { canAccessAdmin } from "./utils/permissions.js";
 function LoadingScreen() {
   return (
     <main className="grid min-h-screen place-items-center bg-slate-50 text-slate-950">
-      <div className="h-12 w-12 animate-spin rounded-full border-4 border-cyan-100 border-t-blue-600" />
+       <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600" />
     </main>
   );
 }

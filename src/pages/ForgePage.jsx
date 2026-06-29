@@ -70,6 +70,7 @@ export function ForgePage() {
         user.uid,
         sourceText,
         uploaded.map((item) => item.id),
+        uploaded,
       );
       setSelectedId(generated.id);
       setPastedNotes("");
@@ -180,18 +181,18 @@ export function ForgePage() {
     <div className="relative space-y-6">
       {busy && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-4 p-8 text-center">
-            <RefreshCw className="w-12 h-12 text-blue-600 animate-spin" />
-            <div className="text-lg font-bold text-gray-900">{status || "Processing..."}</div>
-            {progress > 0 && (
-              <div className="w-64 h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-blue-600 transition-all duration-300" 
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            )}
-          </div>
+             <div className="flex flex-col items-center gap-4 p-8 text-center">
+               <img src="/assets/branding/loading.svg" className="w-16 h-16" alt="Processing..." />
+               <div className="text-lg font-bold text-gray-900">{status || "Processing..."}</div>
+               {progress > 0 && (
+                 <div className="w-64 h-2 bg-gray-200 rounded-full overflow-hidden">
+                   <div 
+                     className="h-full bg-indigo-600 transition-all duration-300" 
+                     style={{ width: `${progress}%` }}
+                   />
+                 </div>
+               )}
+             </div>
         </div>
       )}
 
@@ -230,10 +231,10 @@ export function ForgePage() {
           <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-black text-slate-800">My Subjects</h2>
-              <button 
-                onClick={() => setSelectedId("")}
-                className="text-sm font-bold text-blue-600 hover:text-blue-800"
-              >
+                     <button
+                       onClick={() => setSelectedId("")}
+                       className="text-sm font-bold text-indigo-600 hover:text-indigo-800"
+                     >
                 View All
               </button>
             </div>
@@ -244,9 +245,9 @@ export function ForgePage() {
                   type="button"
                   onClick={() => setSelectedId(subject.id)}
                   className={`rounded-full border px-4 py-2 text-sm font-bold transition ${
-                    selectedId === subject.id
-                      ? "border-blue-600 bg-blue-600 text-white"
-                      : "border-slate-200 text-slate-700 hover:border-slate-300"
+                     selectedId === subject.id
+                       ? "border-indigo-600 bg-indigo-600 text-white"
+                       : "border-slate-200 text-slate-700 hover:border-slate-300"
                   }`}
                 >
                   {subject.title}
@@ -260,8 +261,8 @@ export function ForgePage() {
               <p className="text-sm font-bold uppercase tracking-widest text-slate-500">Forge New</p>
               <h2 className="mt-1 text-2xl font-black">Study materials</h2>
 
-              <label className="mt-4 grid cursor-pointer place-items-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center transition hover:border-blue-400">
-                <FileUp size={32} className="text-blue-600" />
+               <label className="mt-4 grid cursor-pointer place-items-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center transition hover:border-indigo-400">
+                 <FileUp size={32} className="text-indigo-600" />
                 <strong className="mt-3">Upload notes or documents</strong>
                 <span className="mt-1 text-sm text-slate-500">PDF, text, or images up to 20MB each</span>
                 <input
@@ -277,7 +278,7 @@ export function ForgePage() {
               <textarea
                 value={pastedNotes}
                 onChange={(event) => setPastedNotes(event.target.value)}
-                className="mt-4 min-h-40 w-full resize-y rounded-lg border border-slate-200 px-4 py-3 text-sm leading-6 outline-none focus:border-blue-400"
+                 className="mt-4 min-h-40 w-full resize-y rounded-lg border border-slate-200 px-4 py-3 text-sm leading-6 outline-none focus:border-indigo-400"
                 placeholder="Or paste notes here..."
                 disabled={busy}
               />
@@ -309,12 +310,12 @@ export function ForgePage() {
                       <RefreshCw size={16} />
                       Regenerate
                     </button>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={handleSave}
-                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-black text-white disabled:bg-blue-300"
-                    >
+                     <button
+                       type="button"
+                       disabled={busy}
+                       onClick={handleSave}
+                       className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-black text-white disabled:bg-indigo-300"
+                     >
                       <Save size={16} />
                       Save changes
                     </button>

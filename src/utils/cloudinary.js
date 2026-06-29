@@ -4,13 +4,8 @@ const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 const MAX_RETRIES = 3;
 
 function getResourceType(file) {
-  const imageTypes = [
-    'image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif', 'image/svg+xml', 'image/avif'
-  ];
-  if (imageTypes.includes(file.type)) {
-    return 'image';
-  }
-  // PDF and other documents should be 'raw'
+  if (file.type?.startsWith('image/')) return 'image';
+  if (file.type?.startsWith('video/')) return 'video';
   return 'raw';
 }
 
@@ -24,7 +19,7 @@ export async function uploadToCloudinary(file, options = {}) {
     throw new Error('Cloudinary configuration is missing. Please set VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET.');
   }
 
-  const resourceType = getResourceType(file);
+  const resourceType = options.resourceType || getResourceType(file);
   const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`;
 
   const formData = new FormData();

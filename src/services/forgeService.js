@@ -430,15 +430,38 @@ export async function uploadForgeFiles(uid, files, onProgress) {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-    uploaded.push({ id: fileDoc.id, name: file.name, content });
+    uploaded.push({ id: fileDoc.id, name: file.name, content, url: uploadResult.url, type: file.type });
     onProgress?.(Math.round(((index + 1) / files.length) * 100));
   }
 
   return { uploaded, combinedText: contents.join("\n\n---\n\n") };
 }
 
-export async function generateForgeStructure(uid, sourceText, sourceFileIds = []) {
-  const normalized = await generateStructureFromText(sourceText);
+export async function generateForgeStructure(uid, sourceText, sourceFileIds = [], files = []) {
+  let normalized;
+  if (!isFirebaseConfigured) {
+    normalized = normalizeGeneratedStructure(buildFallbackStructure(sourceText));
+  } else if (files.length > 0) {
+    try {
+      const response = await fetch('/api/process-uploaded-notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          uid, 
+          files: files.map(f => ({ url: f.url, mimeType: f.type })) 
+        }),
+      });
+      if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+      const result = await response.json();
+      normalized = normalizeGeneratedStructure(result.data);
+    } catch (error) {
+      console.error("Forge upload processing error:", error);
+      normalized = normalizeGeneratedStructure(buildFallbackStructure(sourceText));
+    }
+  } else {
+    normalized = await generateStructureFromText(sourceText);
+  }
+
   const flat = flattenStructure(normalized.subject, sourceFileIds, sourceText);
 
   if (!isFirebaseConfigured) {

@@ -46,16 +46,18 @@ function parseGeminiJson(text) {
     }
 }
 
-async function callGeminiWithFile(fileUri, mimeType, prompt) {
+async function callGeminiWithFiles(files, prompt) {
   if (!model) throw new Error('Gemini API is not configured.');
 
+  const contents = files.map(f => ({
+    fileData: {
+      mimeType: f.mimeType,
+      fileUri: f.fileUri
+    }
+  }));
+
   const result = await model.generateContent([
-    {
-      fileData: {
-        mimeType: mimeType,
-        fileUri: fileUri
-      }
-    },
+    ...contents,
     { text: prompt },
   ]);
 
@@ -69,31 +71,46 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { url, mimeType } = req.body;
+    const { url, mimeType, files: requestedFiles } = req.body;
 
-    if (!url || !mimeType) {
-      return res.status(400).json({ error: 'Missing required fields: url or mimeType' });
+    // Support both single file (url/mimeType) and multiple files (files array)
+    const filesToProcess = [];
+    if (url && mimeType) {
+      filesToProcess.push({ url, mimeType });
+    } else if (Array.isArray(requestedFiles)) {
+      filesToProcess.push(...requestedFiles);
+    } else {
+      return res.status(400).json({ error: 'Missing required fields: url/mimeType or files array' });
     }
 
-    // 1. Download file from Cloudinary to /tmp
-    const fileName = path.basename(url);
-    const filePath = path.join('/tmp', fileName);
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Failed to download file from Cloudinary: ${response.status}`);
-    await pipeline(response.body, fs.createWriteStream(filePath));
+    const geminiFiles = [];
+    const tempFiles = [];
 
-    // 2. Upload to Gemini File API
-    const uploadResponse = await fileManager.uploadFile(filePath, {
-      mimeType: mimeType,
-      displayName: fileName,
-    });
-    const fileUri = uploadResponse.file.uri;
+    for (const file of filesToProcess) {
+      // 1. Download file from Cloudinary to /tmp
+      const fileName = path.basename(file.url);
+      const filePath = path.join('/tmp', fileName);
+      const response = await fetch(file.url);
+      if (!response.ok) throw new Error(`Failed to download file ${file.url} from Cloudinary: ${response.status}`);
+      await pipeline(response.body, fs.createWriteStream(filePath));
+      tempFiles.push(filePath);
 
-    // 3. Generate curriculum using the file
+      // 2. Upload to Gemini File API
+      const uploadResponse = await fileManager.uploadFile(filePath, {
+        mimeType: file.mimeType,
+        displayName: fileName,
+      });
+      geminiFiles.push({
+        fileUri: uploadResponse.file.uri,
+        mimeType: file.mimeType
+      });
+    }
+
+    // 3. Generate curriculum using the files
     const prompt = `You are an expert educational AI. Your goal is to transform the uploaded study notes into a premium, interactive, and structured learning experience.
     
-Analyze the provided file and generate a highly structured JSON response representing a complete subject curriculum.
-
+Analyze the provided files and generate a highly structured JSON response representing a complete subject curriculum.
+ 
 Follow these strict requirements:
 1. Subject Analysis: Identify the primary subject, curriculum, and target syllabus level.
 2. Structure: Break down the content into logical Units -> Subunits -> Lessons.
@@ -142,12 +159,14 @@ Return ONLY valid JSON with this structure:
 }
 `;
 
-    const generated = await callGeminiWithFile(fileUri, mimeType, prompt);
+    const generated = await callGeminiWithFiles(geminiFiles, prompt);
     validateGeminiResponse(generated);
 
-    // Clean up tmp file
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    // Clean up tmp files
+    for (const filePath of tempFiles) {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
     }
 
     return res.status(200).json({ ok: true, data: generated });

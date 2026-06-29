@@ -152,7 +152,7 @@ export function AdminPage() {
       </section>
 
       {!isFirebaseConfigured ? (
-        <p className="rounded-lg border border-cyan-100 bg-cyan-50 p-3 text-sm font-bold text-cyan-900">
+        <p className="rounded-lg border border-amber-100 bg-amber-50 p-3 text-sm font-bold text-amber-900">
           Firebase is required for admin actions.
         </p>
       ) : null}
@@ -166,14 +166,14 @@ export function AdminPage() {
           label="Top score"
           value={overview?.topUsers?.[0]?.totalScore?.toLocaleString() || "-"}
           helper="Leaderboard leader"
-          tone="bg-cyan-50"
+          tone="bg-amber-50"
         />
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
         <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-3">
-            <Users className="text-blue-600" />
+            <Users className="text-indigo-600" />
             <div>
               <p className="text-sm font-bold uppercase tracking-widest text-slate-500">User management</p>
               <h2 className="text-2xl font-black">Search users</h2>
@@ -231,7 +231,7 @@ export function AdminPage() {
 
         <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-3">
-            <Zap className="text-cyan-600" />
+            <Zap className="text-amber-600" />
             <div>
               <p className="text-sm font-bold uppercase tracking-widest text-slate-500">Rewards & progress</p>
               <h2 className="text-2xl font-black">Adjust selected user</h2>
@@ -257,7 +257,7 @@ export function AdminPage() {
                   onChange={(event) => setXpDelta(event.target.value)}
                   className="w-24 rounded-lg border border-slate-200 px-3 py-2 text-sm"
                 />
-                <button type="button" disabled={busy} onClick={() => runXpAdjust(1)} className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-black text-white">
+                <button type="button" disabled={busy} onClick={() => runXpAdjust(1)} className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-black text-white">
                   Add XP
                 </button>
                 <button type="button" disabled={busy} onClick={() => runXpAdjust(-1)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold">
@@ -275,7 +275,7 @@ export function AdminPage() {
                   onChange={(event) => setEnergyDelta(event.target.value)}
                   className="w-24 rounded-lg border border-slate-200 px-3 py-2 text-sm"
                 />
-                <button type="button" disabled={busy} onClick={() => runEnergyAdjust(1)} className="rounded-lg bg-cyan-600 px-3 py-2 text-sm font-black text-white">
+                <button type="button" disabled={busy} onClick={() => runEnergyAdjust(1)} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-black text-white">
                   Add Energy
                 </button>
                 <button type="button" disabled={busy} onClick={() => runEnergyAdjust(-1)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold">
@@ -305,7 +305,7 @@ export function AdminPage() {
       <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
         <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-3">
-            <Trophy className="text-blue-600" />
+            <Trophy className="text-indigo-600" />
             <div>
               <p className="text-sm font-bold uppercase tracking-widest text-slate-500">Leaderboard</p>
               <h2 className="text-2xl font-black">Reward events</h2>
@@ -337,7 +337,7 @@ export function AdminPage() {
               type="button"
               disabled={busy}
               onClick={runRewardEvent}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-400 px-4 py-3 font-black text-white disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-amber-400 px-4 py-3 font-black text-white disabled:opacity-50"
             >
               <Award size={18} />
               Grant reward event
@@ -363,7 +363,7 @@ export function AdminPage() {
 
         <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-3">
-            <BookOpen className="text-cyan-600" />
+            <BookOpen className="text-amber-600" />
             <div>
               <p className="text-sm font-bold uppercase tracking-widest text-slate-500">Content</p>
               <h2 className="text-2xl font-black">Forge moderation</h2>

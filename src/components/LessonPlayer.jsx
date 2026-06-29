@@ -151,12 +151,7 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
     return (
       <div className="max-w-2xl mx-auto p-6 text-center">
         <h2 className="text-xl font-bold text-gray-900 mb-4">No exercises available</h2>
-        <button
-          onClick={() => onComplete?.(lesson.id, Number(lesson.xpReward || 15), false)}
-          className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-        >
-          Mark Complete
-        </button>
+        <p className="text-gray-600">Please contact support or try generating the course again.</p>
       </div>
     );
   }
@@ -178,9 +173,34 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
       </div>
 
       {/* Lesson Info */}
-      <div className="mb-6 p-4 bg-purple-50 rounded-lg">
-        <h2 className="text-xl font-bold text-gray-900 mb-1">{lesson.title}</h2>
-        <p className="text-sm text-gray-600">{lesson.concept}</p>
+      <div className="mb-6 space-y-4">
+        <div className="p-4 bg-purple-50 rounded-lg">
+          <h2 className="text-xl font-bold text-gray-900 mb-1">{lesson.title}</h2>
+          <p className="text-sm text-gray-600">{lesson.summary}</p>
+        </div>
+        
+        {lesson.explanation && (
+          <div className="p-4 bg-white border-2 border-purple-100 rounded-lg">
+            <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
+              <Zap className="w-4 h-4 text-purple-600" />
+              Explanation
+            </h3>
+            <div className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+              {lesson.explanation}
+            </div>
+          </div>
+        )}
+
+        {lesson.examples && lesson.examples.length > 0 && (
+          <div className="p-4 bg-white border-2 border-purple-100 rounded-lg">
+            <h3 className="font-bold text-gray-900 mb-2">Examples</h3>
+            <ul className="list-disc pl-5 space-y-2 text-gray-700">
+              {lesson.examples.map((example, index) => (
+                <li key={index}>{example}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* Exercise */}
@@ -218,17 +238,40 @@ function ExerciseRenderer({ exercise, userAnswer, onAnswer }) {
   switch (exercise.type) {
     case "matchPairs":
       return <MatchPairs exercise={exercise} userAnswer={userAnswer} onAnswer={onAnswer} />;
-    case "arrangeOrder":
+    case "ordering":
       return <ArrangeOrder exercise={exercise} userAnswer={userAnswer} onAnswer={onAnswer} />;
-    case "timelineOrder":
-      return <TimelineOrder exercise={exercise} userAnswer={userAnswer} onAnswer={onAnswer} />;
     case "fillBlank":
       return <FillBlank exercise={exercise} userAnswer={userAnswer} onAnswer={onAnswer} />;
-    case "typeAnswer":
+    case "shortAnswer":
       return <TypeAnswer exercise={exercise} userAnswer={userAnswer} onAnswer={onAnswer} />;
+    case "trueFalse":
+      return <TrueFalse exercise={exercise} userAnswer={userAnswer} onAnswer={onAnswer} />;
     default:
       return <MultipleChoice exercise={exercise} userAnswer={userAnswer} onAnswer={onAnswer} />;
   }
+}
+
+function TrueFalse({ exercise, userAnswer, onAnswer }) {
+  return (
+    <div>
+      <h3 className="text-lg font-medium text-gray-900 mb-4">{exercise.question}</h3>
+      <div className="flex gap-4">
+        {["True", "False"].map((option) => (
+          <button
+            key={option}
+            onClick={() => onAnswer(option)}
+            className={`flex-1 p-4 text-center rounded-lg border-2 transition-all ${
+              userAnswer === option
+                ? "border-purple-500 bg-purple-50"
+                : "border-gray-200 hover:border-purple-300"
+            }`}
+          >
+            {option}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function MultipleChoice({ exercise, userAnswer, onAnswer }) {
@@ -398,52 +441,7 @@ function ArrangeOrder({ exercise, userAnswer: _userAnswer, onAnswer }) {
 }
 
 function TimelineOrder({ exercise, userAnswer: _userAnswer, onAnswer }) {
-  const [events, setEvents] = useState(exercise.events || []);
-
-  const moveEvent = (fromIndex, toIndex) => {
-    const newEvents = [...events];
-    const [removed] = newEvents.splice(fromIndex, 1);
-    newEvents.splice(toIndex, 0, removed);
-    setEvents(newEvents);
-    
-    const answer = newEvents.map(e => e.id).join(',');
-    onAnswer(answer);
-  };
-
-  return (
-    <div>
-      <h3 className="text-lg font-medium text-gray-900 mb-4">{exercise.question}</h3>
-      <p className="text-sm text-gray-600 mb-4">Arrange these events in chronological order.</p>
-      <div className="relative pl-8 border-l-2 border-gray-300">
-        {events.map((event, index) => (
-          <div
-            key={event.id}
-            className="relative mb-4 last:mb-0"
-          >
-            <div className="absolute -left-10 w-4 h-4 bg-purple-500 rounded-full border-2 border-white" />
-            <div className="flex items-center gap-2 p-3 bg-white border-2 border-gray-200 rounded-lg">
-              <button
-                onClick={() => moveEvent(index, Math.max(0, index - 1))}
-                disabled={index === 0}
-                className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
-              >
-              Up
-              </button>
-              <button
-                onClick={() => moveEvent(index, Math.min(events.length - 1, index + 1))}
-                disabled={index === events.length - 1}
-                className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
-              >
-              Down
-              </button>
-              <div className="flex-1">
-                <div className="font-medium text-gray-900">{event.title}</div>
-                {event.year && <div className="text-sm text-gray-600">{event.year}</div>}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  // ... logic
 }
+// Remove the unused TimelineOrder definition from imports if any, and it's defined below but not used in ExerciseRenderer
+

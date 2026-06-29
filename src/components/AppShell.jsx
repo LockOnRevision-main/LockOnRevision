@@ -1,4 +1,4 @@
-import { LogOut, Sparkles, Trophy, Zap } from "lucide-react";
+import { LogOut, Hammer, Trophy } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { AiSidebar } from "./AiSidebar.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -12,36 +12,36 @@ export function AppShell({ children }) {
     <main className="min-h-screen bg-slate-50 text-slate-950">
       <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <NavLink to="/app" className="flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br from-blue-600 to-cyan-400 text-white">
-              <Zap size={20} />
-            </span>
-            <div>
-              <p className="font-black tracking-tight">LockOn Revision</p>
-              <p className="text-xs text-slate-500">{profile?.name || "Local Learner"}</p>
-            </div>
-          </NavLink>
+           <NavLink to="/app" className="flex items-center gap-3">
+             <div className="h-10 w-10 overflow-hidden rounded-lg bg-indigo-900">
+               <img src="/assets/branding/logo-dark.svg" alt="LockOn Logo" className="h-full w-full object-contain" />
+             </div>
+             <div>
+               <p className="font-black tracking-tight text-indigo-950">LockOn Revision</p>
+               <p className="text-xs text-slate-500">{profile?.name || "Local Learner"}</p>
+             </div>
+           </NavLink>
 
           <nav className="flex items-center gap-2">
             <NavLink
               to="/app"
-              className={({ isActive }) =>
-                `rounded-lg px-3 py-2 text-sm font-bold ${isActive ? "bg-blue-50 text-blue-700" : "text-slate-600"}`
-              }
+               className={({ isActive }) =>
+                 `rounded-lg px-3 py-2 text-sm font-bold ${isActive ? "bg-indigo-50 text-indigo-700" : "text-slate-600"}`
+               }
             >
               Dashboard
             </NavLink>
-            <NavLink
-              to="/forge"
-              className={({ isActive }) =>
-                `inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold ${
-                  isActive ? "bg-blue-50 text-blue-700" : "text-slate-600"
-                }`
-              }
-            >
-              <Sparkles size={16} />
-              Forge
-            </NavLink>
+             <NavLink
+               to="/forge"
+               className={({ isActive }) =>
+                 `inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold ${
+                   isActive ? "bg-indigo-50 text-indigo-700" : "text-slate-600"
+                 }`
+               }
+             >
+               <Hammer size={16} />
+               Forge
+             </NavLink>
             <NavLink
               to="/leaderboard"
               className={({ isActive }) =>

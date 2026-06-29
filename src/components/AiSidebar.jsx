@@ -3,6 +3,7 @@ import { Loader2, MessageSquare, Send, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { EmptyState } from "./EmptyState.jsx";
+import { getUserLearningContext } from "../services/learningService.js";
 
 export function AiSidebar() {
   const { user } = useAuth();
@@ -11,7 +12,18 @@ export function AiSidebar() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [context, setContext] = useState(null);
   const scrollRef = useRef(null);
+
+  useEffect(() => {
+    async function loadContext() {
+      if (user) {
+        const ctx = await getUserLearningContext(user.uid);
+        setContext(ctx);
+      }
+    }
+    loadContext();
+  }, [user]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -36,7 +48,7 @@ export function AiSidebar() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           messages: nextMessages,
-          context: {} // Context can be added if available in this scope
+          context: context
         }),
       });
 
@@ -79,7 +91,7 @@ export function AiSidebar() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`fixed bottom-6 right-6 z-30 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-blue-600 to-cyan-400 text-white shadow-lg transition-all duration-300 hover:scale-105 ${
+        className={`fixed bottom-6 right-6 z-30 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-indigo-600 to-amber-400 text-white shadow-lg transition-all duration-300 hover:scale-105 ${
           open ? "pointer-events-none scale-0 opacity-0" : "scale-100 opacity-100"
         }`}
         aria-label="Open AI assistant"
@@ -98,7 +110,7 @@ export function AiSidebar() {
       >
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
           <div className="flex items-center gap-2">
-            <MessageSquare className="text-blue-600" size={18} />
+            <MessageSquare className="text-indigo-600" size={18} />
             <div>
               <p className="text-sm font-black">AI Assistant</p>
               <p className="text-xs text-slate-500">Context from your Forge subjects</p>
@@ -122,7 +134,7 @@ export function AiSidebar() {
                   key={`${message.role}-${index}`}
                   className={`max-w-[90%] rounded-xl px-3 py-2 text-sm leading-6 ${
                     message.role === "user"
-                      ? "ml-auto bg-blue-600 text-white"
+                      ? "ml-auto bg-indigo-600 text-white"
                       : "border border-slate-200 bg-white text-slate-700"
                   }`}
                 >

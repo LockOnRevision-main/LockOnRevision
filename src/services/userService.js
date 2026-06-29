@@ -1,115 +1,114 @@
-import {
-  collection,
-  doc,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  runTransaction,
-  serverTimestamp,
-} from "firebase/firestore";
 import { db } from "../config/firebase.js";
+import { doc, updateDoc, increment, serverTimestamp, arrayUnion, getDocs, query, orderBy, collection } from "firebase/firestore";
+
+export async function fetchLeaderboard(limit = 50) {
+  if (!db) throw new Error("Firebase is not configured.");
+  const usersSnap = await getDocs(
+    query(collection(db, "users"), orderBy("totalScore", "desc"), limit(limit))
+  );
+  return usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+export function calculateTotalScore(profile) {
+  const xp = Number(profile?.xp || 0);
+  const energy = Number(profile?.energy || 0);
+  return xp + energy * 100;
+}
 
 export const TESTS = [
-  { id: "foundations-easy", title: "Foundations Sprint", difficulty: "Easy", energy: 1, xp: 100 },
-  { id: "mixed-medium", title: "Mixed Recall", difficulty: "Medium", energy: 2, xp: 180 },
-  { id: "deep-hard", title: "Deep Focus Trial", difficulty: "Hard", energy: 3, xp: 260 },
+  { id: 'test-1', title: 'Foundations of Knowledge', difficulty: 'Easy', energy: 10, xp: 100 },
+  { id: 'test-2', title: 'Intermediate Concepts', difficulty: 'Medium', energy: 20, xp: 250 },
+  { id: 'test-3', title: 'Advanced Mastery', difficulty: 'Hard', energy: 40, xp: 500 },
 ];
-
-export const UNITS = [
-  { id: "unit-active-recall", title: "Active Recall Basics", xp: 60 },
-  { id: "unit-spaced-repetition", title: "Spaced Repetition", xp: 60 },
-  { id: "unit-exam-strategy", title: "Exam Strategy", xp: 60 },
-];
-
-const TEN_MINUTES = 10 * 60 * 1000;
-
-export function calculateTotalScore(xp = 0, energy = 0) {
-  return Number(xp || 0) + Number(energy || 0) * 100;
-}
-
-function lastAttemptMs(value) {
-  if (!value) return 0;
-  if (typeof value.toMillis === "function") return value.toMillis();
-  if (typeof value === "string") return Date.parse(value);
-  return Number(value) || 0;
-}
 
 export async function completeMockTest(uid, testId, score) {
   if (!db) throw new Error("Firebase is not configured.");
-
-  const test = TESTS.find((item) => item.id === testId);
+  const test = TESTS.find(t => t.id === testId);
   if (!test) throw new Error("Test not found.");
-  if (Number(score) < 60) throw new Error("Score must be at least 60% to earn energy.");
 
+  const earnedEnergy = score >= 60 ? test.energy : 0;
+  const earnedXp = score >= 60 ? test.xp : Math.round(test.xp * (score / 100));
+  
   const userRef = doc(db, "users", uid);
-
-  return runTransaction(db, async (transaction) => {
-    const snapshot = await transaction.get(userRef);
-    if (!snapshot.exists()) throw new Error("User profile not found.");
-
-    const data = snapshot.data();
-    const completedTests = data.completedTests || [];
-    if (completedTests.includes(testId)) throw new Error("This test has already awarded energy.");
-
-    const lastAttempt = lastAttemptMs(data.lastTestAttempt);
-    if (lastAttempt && Date.now() - lastAttempt < TEN_MINUTES) {
-      const remaining = Math.ceil((TEN_MINUTES - (Date.now() - lastAttempt)) / 60000);
-      throw new Error(`Mock test cooldown active. Try again in ${remaining} min.`);
-    }
-
-    const nextXp = Number(data.xp || 0) + test.xp;
-    const nextEnergy = Number(data.energy || 0) + test.energy;
-    const nextTotal = calculateTotalScore(nextXp, nextEnergy);
-
-    transaction.update(userRef, {
-      xp: nextXp,
-      energy: nextEnergy,
-      totalScore: nextTotal,
-      completedTests: [...completedTests, testId],
-      lastTestAttempt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-
-    return { earnedEnergy: test.energy, earnedXp: test.xp, totalScore: nextTotal };
+  await updateDoc(userRef, {
+    xp: increment(earnedXp),
+    energy: increment(earnedEnergy),
+    completedTests: arrayUnion(testId),
+    updatedAt: serverTimestamp(),
   });
+  
+  return { earnedEnergy, earnedXp };
 }
 
 export async function completeUnit(uid, unitId) {
   if (!db) throw new Error("Firebase is not configured.");
-
-  const unit = UNITS.find((item) => item.id === unitId);
-  if (!unit) throw new Error("Unit not found.");
-
+  const earnedEnergy = 15;
+  const earnedXp = 150;
+  
   const userRef = doc(db, "users", uid);
+  await updateDoc(userRef, {
+    xp: increment(earnedXp),
+    energy: increment(earnedEnergy),
+    completedUnits: arrayUnion(unitId),
+    updatedAt: serverTimestamp(),
+  });
+  
+  return { earnedEnergy, earnedXp };
+}
 
-  return runTransaction(db, async (transaction) => {
-    const snapshot = await transaction.get(userRef);
-    if (!snapshot.exists()) throw new Error("User profile not found.");
-
-    const data = snapshot.data();
-    const completedUnits = data.completedUnits || [];
-    if (completedUnits.includes(unitId)) throw new Error("This unit has already awarded energy.");
-
-    const nextXp = Number(data.xp || 0) + unit.xp;
-    const nextEnergy = Number(data.energy || 0) + 1;
-    const nextTotal = calculateTotalScore(nextXp, nextEnergy);
-
-    transaction.update(userRef, {
-      xp: nextXp,
-      energy: nextEnergy,
-      totalScore: nextTotal,
-      completedUnits: [...completedUnits, unitId],
-      updatedAt: serverTimestamp(),
-    });
-
-    return { earnedEnergy: 1, earnedXp: unit.xp, totalScore: nextTotal };
+export async function updateUserProfile(uid, updates) {
+  if (!db) throw new Error("Firebase is not configured.");
+  const userRef = doc(db, "users", uid);
+  return updateDoc(userRef, {
+    ...updates,
+    updatedAt: serverTimestamp(),
   });
 }
 
-export async function fetchLeaderboard() {
+export async function trackStudyTime(uid, minutes) {
   if (!db) throw new Error("Firebase is not configured.");
+  const userRef = doc(db, "users", uid);
+  const today = new Date().toISOString().split('T')[0];
+  
+  return updateDoc(userRef, {
+    totalStudyHours: increment(minutes / 60),
+    [`activity.${today}`]: increment(minutes / 60),
+    updatedAt: serverTimestamp(),
+  });
+}
 
-  const snapshot = await getDocs(query(collection(db, "users"), orderBy("totalScore", "desc"), limit(50)));
-  return snapshot.docs.map((item, index) => ({ id: item.id, rank: index + 1, ...item.data() }));
+export async function updateGoal(uid, goalId, goalData) {
+  if (!db) throw new Error("Firebase is not configured.");
+  const userRef = doc(db, "users", uid);
+  
+  return updateDoc(userRef, {
+    [`goals.${goalId}`]: goalData,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function toggleFavoriteSubject(uid, _subjectId) {
+  if (!db) throw new Error("Firebase is not configured.");
+  const _userRef = doc(db, "users", uid);
+}
+
+export function calculateLevel(xp) {
+  return Math.floor(Math.sqrt(xp / 100)) + 1;
+}
+
+export function getRank(level) {
+  if (level < 5) return "Novice";
+  if (level < 15) return "Apprentice";
+  if (level < 30) return "Scholar";
+  if (level < 50) return "Expert";
+  return "Master";
+}
+
+export function getBadge(xp, lessonsCompleted, streak) {
+  const badges = [];
+  if (xp >= 1000) badges.push({ id: 'xp-1k', label: '1k XP Club', icon: '🏆' });
+  if (lessonsCompleted >= 50) badges.push({ id: 'lesson-50', label: 'Consistent Learner', icon: '📚' });
+  if (streak >= 7) badges.push({ id: 'streak-7', label: 'Week Warrior', icon: '🔥' });
+  if (streak >= 30) badges.push({ id: 'streak-30', label: 'Month Master', icon: '🌟' });
+  return badges;
 }
