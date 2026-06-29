@@ -4,10 +4,13 @@ const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 const MAX_RETRIES = 3;
 
 function getResourceType(file) {
-  const imageTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/svg+xml'];
+  const imageTypes = [
+    'image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif', 'image/svg+xml', 'image/avif'
+  ];
   if (imageTypes.includes(file.type)) {
     return 'image';
   }
+  // PDF and other documents should be 'raw'
   return 'raw';
 }
 

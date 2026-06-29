@@ -10,37 +10,11 @@ if (!geminiApiKey) {
 const genAI = geminiApiKey ? new GoogleGenerativeAI(geminiApiKey) : null;
 const model = genAI ? genAI.getGenerativeModel({ model: geminiModel }) : null;
 
-function parseGeminiJson(text) {
-  const cleaned = text
-    .replace(/^```json\s*/i, '')
-    .replace(/^```\s*/i, '')
-    .replace(/```$/i, '')
-    .trim();
-  return JSON.parse(cleaned);
-}
-
-async function callGeminiJson(prompt, fallbackValue = null) {
-  if (!model) {
-    if (fallbackValue !== null) return fallbackValue;
-    throw new Error('Gemini API is not configured.');
-  }
-
-  try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    
-    if (!text) {
-      if (fallbackValue !== null) return fallbackValue;
-      throw new Error('Gemini returned no text.');
-    }
-
-    return parseGeminiJson(text);
-  } catch (error) {
-    console.error('Gemini API error:', error);
-    if (fallbackValue !== null) return fallbackValue;
-    throw new Error(`Gemini request failed: ${error.message}`);
-  }
+async function callGeminiStream(prompt) {
+  if (!model) throw new Error('Gemini API is not configured.');
+  
+  const result = await model.generateContentStream(prompt);
+  return result.stream;
 }
 
 export default async function handler(req, res) {
@@ -55,23 +29,46 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing required field: messages' });
     }
 
-    const conversation = messages.map((m) => `${m.role}: ${m.content}`).join('\n');
-    const contextStr = context ? `\n\nContext:\n${JSON.stringify(context)}` : '';
+    const conversation = messages.map((m) => `${m.role === 'user' ? 'Student' : 'Assistant'}: ${m.content}`).join('\n');
+    const contextStr = context ? `\n\nSTUDY MATERIAL CONTEXT:\n${JSON.stringify(context, null, 2)}` : '';
 
-    const prompt = `You are LockOn Revision's AI tutor. Be concise, helpful, and active-recall focused.
-Return JSON only: {"reply":"string"}
+    const prompt = `You are the LockOn Revision AI Tutor, a world-class educational assistant specializing in active recall and spaced repetition.
+Your goal is to help students master their material through guided learning, not just giving answers.
 
-Conversation:
-${conversation}${contextStr}`;
+CAPABILITIES:
+1. Explain Concepts: Break down complex ideas into simple, digestible parts. Use analogies.
+2. Generate Quizzes: Create challenging active-recall questions (MCQs, Short Answer, True/False) based on the context.
+3. Generate Summaries: Provide concise, high-impact summaries of study materials.
+4. Homework Help: Guide students to the answer by asking leading questions rather than just providing the solution.
+5. Reference Materials: Always prioritize the provided STUDY MATERIAL CONTEXT. If the answer isn't there, state that it's not in the notes but provide a general helpful answer.
 
-    const fallback = {
-      reply: "I'm here to help you learn. Ask me a question about your study material.",
-    };
+STYLE GUIDELINES:
+- Be concise, encouraging, and academic yet accessible.
+- Use Markdown for formatting (bolding, lists, tables).
+- If the student is struggling, offer a simpler explanation.
+- End responses with a follow-up question to keep the student engaged.
 
-    const result = await callGeminiJson(prompt, fallback);
-    return res.status(200).json(result);
+CONVERSATION HISTORY:
+${conversation}${contextStr}
+
+Please provide your response in plain text (Markdown). Do not wrap it in JSON.`;
+
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    const stream = await callGeminiStream(prompt);
+    for await (const chunk of stream) {
+      const chunkText = chunk.text();
+      res.write(chunkText);
+    }
+    res.end();
   } catch (error) {
     console.error('Error in ai-tutor-chat:', error);
-    return res.status(500).json({ error: error.message });
+    if (!res.headersSent) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.write(`\n\n[Error: ${error.message}]`);
+      res.end();
+    }
   }
 }

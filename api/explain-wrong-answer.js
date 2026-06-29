@@ -1,3 +1,4 @@
+/* global setTimeout */
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const geminiApiKey = process.env.GEMINI_API_KEY;
@@ -11,12 +12,25 @@ const genAI = geminiApiKey ? new GoogleGenerativeAI(geminiApiKey) : null;
 const model = genAI ? genAI.getGenerativeModel({ model: geminiModel }) : null;
 
 function parseGeminiJson(text) {
-  const cleaned = text
-    .replace(/^```json\s*/i, '')
-    .replace(/^```\s*/i, '')
-    .replace(/```$/i, '')
-    .trim();
-  return JSON.parse(cleaned);
+  try {
+    const cleaned = text
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/```$/i, '')
+      .trim();
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.error("JSON parse error:", e, "Original text:", text);
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          return JSON.parse(jsonMatch[0]);
+        } catch {
+          throw e;
+        }
+      }
+    throw e;
+  }
 }
 
 async function callGeminiJson(prompt, fallbackValue = null) {
@@ -25,22 +39,35 @@ async function callGeminiJson(prompt, fallbackValue = null) {
     throw new Error('Gemini API is not configured.');
   }
 
-  try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    
-    if (!text) {
-      if (fallbackValue !== null) return fallbackValue;
-      throw new Error('Gemini returned no text.');
-    }
+  const MAX_RETRIES = 3;
+  let lastError;
 
-    return parseGeminiJson(text);
-  } catch (error) {
-    console.error('Gemini API error:', error);
-    if (fallbackValue !== null) return fallbackValue;
-    throw new Error(`Gemini request failed: ${error.message}`);
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      if (!text) {
+        if (fallbackValue !== null) return fallbackValue;
+        throw new Error('Gemini returned no text.');
+      }
+
+      return parseGeminiJson(text);
+    } catch (error) {
+      lastError = error;
+      // Retry on rate limit (429) or server error (500, 503)
+      const isRetryable = error.message?.includes('429') || error.message?.includes('500') || error.message?.includes('503');
+      if (!isRetryable || attempt === MAX_RETRIES - 1) break;
+      
+      const delay = Math.pow(2, attempt) * 1000;
+      console.warn(`Gemini API rate limited or error. Retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
   }
+
+  if (fallbackValue !== null) return fallbackValue;
+  throw new Error(`Gemini request failed after ${MAX_RETRIES} attempts: ${lastError.message}`);
 }
 
 export default async function handler(req, res) {

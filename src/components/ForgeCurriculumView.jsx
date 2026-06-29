@@ -197,48 +197,51 @@ export function ForgeCurriculumView({ subject, units, subUnits, lessons, onStart
                         {isSubExpanded && (
                           <div className="border-t border-gray-200 bg-white p-4">
                             <div className="space-y-2">
-                              {subUnitLessons.map((lesson) => {
-                                const locked = isLessonLocked(lesson, sortedLessons);
-                                return (
-                                  <button
-                                    key={lesson.id}
-                                    onClick={() => !locked && onStartLesson(lesson)}
-                                    disabled={locked}
-                                    className={`w-full p-4 rounded-lg border-2 transition-all flex items-center gap-4 ${
-                                      locked
-                                        ? "border-gray-200 bg-gray-50 cursor-not-allowed opacity-60"
-                                        : lesson.completed
-                                        ? "border-green-200 bg-green-50 hover:bg-green-100"
-                                        : "border-purple-200 bg-purple-50 hover:bg-purple-100"
-                                    }`}
-                                  >
-                                    <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0">
-                                      {locked ? (
-                                        <Lock className="w-6 h-6 text-gray-400" />
-                                      ) : lesson.completed ? (
-                                        <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
-                                      ) : (
-                                        <Play className="w-6 h-6 text-purple-500" />
-                                      )}
-                                    </div>
-                                    <div className="flex-1 text-left">
-                                      <div className="font-medium text-gray-900">{lesson.title}</div>
-                                      <div className="text-sm text-gray-600">{lesson.concept}</div>
-                                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                                        <span>{lesson.durationMinutes} min</span>
-                                        <span>&bull;</span>
-                                        <span>{lesson.xpReward} XP</span>
-                                        {lesson.perfect && <span className="text-yellow-600">&bull; Perfect!</span>}
-                                      </div>
-                                    </div>
-                                    {lesson.completed && (
-                                      <div className="text-green-600 font-semibold">
-                                        Done: {lesson.xpEarned} XP
-                                      </div>
-                                    )}
-                                  </button>
-                                );
-                              })}
+                               {subUnitLessons.map((lesson, index) => {
+                                 const locked = isLessonLocked(lesson, sortedLessons);
+                                 return (
+                                   <button
+                                     key={lesson.id}
+                                     onClick={() => !locked && onStartLesson(lesson)}
+                                     disabled={locked}
+                                     className={`w-full p-4 rounded-lg border-2 transition-all flex items-center gap-4 ${
+                                       locked
+                                         ? "border-gray-200 bg-gray-50 cursor-not-allowed opacity-60"
+                                         : lesson.completed
+                                         ? "border-green-200 bg-green-50 hover:bg-green-100"
+                                         : "border-purple-200 bg-purple-50 hover:bg-purple-100"
+                                     }`}
+                                   >
+                                     <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0">
+                                       {locked ? (
+                                         <Lock className="w-6 h-6 text-gray-400" />
+                                       ) : lesson.completed ? (
+                                         <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+                                       ) : (
+                                         <Play className="w-6 h-6 text-purple-500" />
+                                       )}
+                                     </div>
+                                     <div className="flex-1 text-left">
+                                       <div className="font-medium text-gray-900">
+                                         <span className="text-gray-400 mr-2">Lesson {index + 1}</span>
+                                         {lesson.title}
+                                       </div>
+                                       <div className="text-sm text-gray-600">{lesson.concept}</div>
+                                       <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                                         <span>{lesson.durationMinutes} min</span>
+                                         <span>&bull;</span>
+                                         <span>{lesson.xpReward} XP</span>
+                                         {lesson.perfect && <span className="text-yellow-600">&bull; Perfect!</span>}
+                                       </div>
+                                     </div>
+                                     {lesson.completed && (
+                                       <div className="text-green-600 font-semibold">
+                                         Done: {lesson.xpEarned} XP
+                                       </div>
+                                     )}
+                                   </button>
+                                 );
+                               })}
                             </div>
                           </div>
                         )}

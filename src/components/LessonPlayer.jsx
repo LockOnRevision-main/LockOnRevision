@@ -284,7 +284,6 @@ function TypeAnswer({ exercise, userAnswer, onAnswer }) {
   );
 }
 
-/* eslint-disable no-unused-vars */
 function MatchPairs({ exercise, userAnswer: _userAnswer, onAnswer }) {
   const pairs = exercise.pairs || [];
   const [selectedLeft, setSelectedLeft] = useState(null);
@@ -352,7 +351,6 @@ function MatchPairs({ exercise, userAnswer: _userAnswer, onAnswer }) {
   );
 }
 
-/* eslint-disable no-unused-vars */
 function ArrangeOrder({ exercise, userAnswer: _userAnswer, onAnswer }) {
   const [items, setItems] = useState(exercise.items || []);
 
@@ -399,7 +397,6 @@ function ArrangeOrder({ exercise, userAnswer: _userAnswer, onAnswer }) {
   );
 }
 
-/* eslint-disable no-unused-vars */
 function TimelineOrder({ exercise, userAnswer: _userAnswer, onAnswer }) {
   const [events, setEvents] = useState(exercise.events || []);
 

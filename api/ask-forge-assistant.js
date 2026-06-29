@@ -11,12 +11,17 @@ const genAI = geminiApiKey ? new GoogleGenerativeAI(geminiApiKey) : null;
 const model = genAI ? genAI.getGenerativeModel({ model: geminiModel }) : null;
 
 function parseGeminiJson(text) {
-  const cleaned = text
-    .replace(/^```json\s*/i, '')
-    .replace(/^```\s*/i, '')
-    .replace(/```$/i, '')
-    .trim();
-  return JSON.parse(cleaned);
+  try {
+    const cleaned = text
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/```$/i, '')
+      .trim();
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.error("JSON parse error:", e, "Original text:", text);
+    return { reply: text.replace(/```json\s*|```/gi, '').trim() };
+  }
 }
 
 async function callGeminiJson(prompt, fallbackValue = null) {
@@ -68,17 +73,28 @@ export default async function handler(req, res) {
       .map((message) => `${message.role === 'user' ? 'Student' : 'Assistant'}: ${message.content}`)
       .join('\n');
 
-    const prompt = `You are LockOn Revision's AI study assistant.
-Answer using the student's uploaded study material and generated Forge learning structure whenever possible.
-Be concise, encouraging, and focused on active recall.
+    const prompt = `You are the LockOn Revision Forge Assistant. You have access to the student's structured learning path (Units, Sub-Units, and Lessons).
+Your goal is to help the student navigate their curriculum and master the specific concepts outlined in the Forge structure.
 
-Generated learning structure:
+CAPABILITIES:
+1. Curriculum Guidance: Help the student understand how concepts link across different units and lessons.
+2. Concept Clarification: Explain specific lesson concepts using the structure as a map.
+3. Active Recall: Generate quick check-on-learning questions based on the units the student is studying.
+4. Progress Motivation: Encourage the student to complete locked lessons.
+
+STYLE GUIDELINES:
+- Use Markdown for formatting (bolding, lists).
+- Be concise, encouraging, and focused on the Forge hierarchy.
+- Always reference specific Units or Lessons when applicable.
+- End responses with a question that encourages the student to move to the next lesson or test their knowledge.
+
+FORGE LEARNING STRUCTURE:
 ${structureSummary}
 
-Conversation:
+CONVERSATION HISTORY:
 ${conversation}
 
-Return strict JSON only: {"reply":"your response here"}`;
+Return a JSON object: {"reply": "your markdown-formatted response here"}`;
 
     const fallback = {
       reply: subjects && subjects.length

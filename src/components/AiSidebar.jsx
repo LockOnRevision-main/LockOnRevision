@@ -1,7 +1,7 @@
+/* global TextDecoder */
 import { Loader2, MessageSquare, Send, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
-import { askForgeAssistant } from "../services/aiChatService.js";
 import { EmptyState } from "./EmptyState.jsx";
 
 export function AiSidebar() {
@@ -23,20 +23,51 @@ export function AiSidebar() {
     event.preventDefault();
     if (!input.trim() || loading || !user) return;
 
-    const nextMessages = [...messages, { role: "user", content: input.trim() }];
+    const userMessage = { role: "user", content: input.trim() };
+    const nextMessages = [...messages, userMessage];
     setMessages(nextMessages);
     setInput("");
     setError("");
     setLoading(true);
 
     try {
-      const response = await askForgeAssistant(user.uid, nextMessages);
-      setMessages([...nextMessages, { role: "assistant", content: response.reply }]);
+      const response = await fetch('/api/ai-tutor-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          messages: nextMessages,
+          context: {} // Context can be added if available in this scope
+        }),
+      });
+
+      if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let assistantReply = "";
+
+      // Add the assistant message as a placeholder for streaming
+      setMessages([...nextMessages, { role: "assistant", content: "" }]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        assistantReply += chunk;
+
+        setMessages((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { role: "assistant", content: assistantReply };
+          return updated;
+        });
+      }
     } catch (err) {
-      setError(err.message);
+      console.error("AI Assistant Error:", err);
+      setError(err.message || "An unexpected error occurred.");
       setMessages([
         ...nextMessages,
-        { role: "assistant", content: "Sorry, I couldn't process that request. Please try again." },
+        { role: "assistant", content: "I'm having trouble connecting to my brain right now. Please try again in a moment!" },
       ]);
     } finally {
       setLoading(false);
@@ -56,11 +87,14 @@ export function AiSidebar() {
         <Sparkles size={22} />
       </button>
 
-      <aside
-        className={`fixed inset-y-0 right-0 z-40 flex w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
-          open ? "translate-x-0" : "translate-x-full"
-        }`}
-        aria-hidden={!open}
+       <aside
+         className={`fixed inset-y-0 right-0 z-40 flex w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
+           open ? "translate-x-0" : "translate-x-full"
+         }`}
+         inert={!open}
+         aria-hidden={!open}
+         style={{ visibility: open ? 'visible' : 'hidden' }}
+
       >
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
           <div className="flex items-center gap-2">

@@ -57,6 +57,71 @@ function buildFallbackStructure(sourceText) {
   };
 }
 
+function generateExercisesForLesson(lesson) {
+  const { title, summary, keyPoints = [] } = lesson;
+  const content = keyPoints.length > 0 ? keyPoints : [summary].filter(Boolean);
+  if (!content.length) return [];
+
+  const mainPoint = content[0];
+  const secondaryPoint = content[1] || mainPoint;
+
+  return [
+    {
+      id: makeId("exercise"),
+      type: "multipleChoice",
+      question: `Which of the following best describes ${title}?`,
+      options: [mainPoint, "A completely unrelated concept", "A minor detail of the subject", "None of the above"],
+      correctAnswer: mainPoint,
+      explanation: `The core concept of this lesson is: ${mainPoint}`
+    },
+    {
+      id: makeId("exercise"),
+      type: "fillBlank",
+      question: `Complete the statement: ${secondaryPoint.replace(/[.!?]$/, "")}...`,
+      correctAnswer: secondaryPoint.split(' ').pop()?.replace(/[.!?]$/, ""),
+      explanation: `The full concept is: ${secondaryPoint}`
+    },
+    {
+      id: makeId("exercise"),
+      type: "typeAnswer",
+      question: `In your own words, what is the main objective of ${title}?`,
+      correctAnswer: mainPoint,
+      explanation: `The primary objective is ${mainPoint}.`
+    },
+    {
+      id: makeId("exercise"),
+      type: "matchPairs",
+      question: `Match the key terms with their descriptions.`,
+      pairs: [
+        { left: { id: 'l1', text: title }, right: { id: 'r1', text: mainPoint } },
+        { left: { id: 'l2', text: 'Key Detail' }, right: { id: 'r2', text: secondaryPoint } }
+      ],
+      correctAnswer: 'l1-r1,l2-r2',
+      explanation: "Matching based on the lesson content."
+    },
+    {
+      id: makeId("exercise"),
+      type: "arrangeOrder",
+      question: `Arrange the following concepts in logical order.`,
+      items: [
+        { id: 'o1', text: title },
+        { id: 'o2', text: mainPoint },
+        { id: 'o3', text: secondaryPoint }
+      ],
+      correctAnswer: 'o1,o2,o3',
+      explanation: "Logical flow from title to main point then detail."
+    },
+    {
+      id: makeId("exercise"),
+      type: "multipleChoice",
+      question: `True or False: ${mainPoint} is a key part of ${title}.`,
+      options: ["True", "False"],
+      correctAnswer: "True",
+      explanation: "As stated in the lesson content."
+    }
+  ];
+}
+
 function normalizeGeneratedStructure(generated) {
   const subject = generated?.subject;
   if (!subject) return buildFallbackStructure("");
@@ -84,56 +149,6 @@ function normalizeGeneratedStructure(generated) {
     })),
   }));
 
-  // ... (keeping the rest of the padding logic to ensure valid structure)
-
-
-  while (units.length < 2) {
-    units.push({
-      title: `Unit ${units.length + 1}`,
-      summary: "Additional unit from your material.",
-      subUnits: [
-        {
-          title: "Sub Unit 1",
-          summary: "Core ideas.",
-          lessons: [
-            { title: "Lesson 1", summary: "Review key concepts.", keyPoints: [] },
-            { title: "Lesson 2", summary: "Apply what you learned.", keyPoints: [] },
-          ],
-        },
-        {
-          title: "Sub Unit 2",
-          summary: "Practice and recall.",
-          lessons: [
-            { title: "Lesson 1", summary: "Quick recall check.", keyPoints: [] },
-            { title: "Lesson 2", summary: "Deepen understanding.", keyPoints: [] },
-          ],
-        },
-      ],
-    });
-  }
-
-  units.forEach((unit) => {
-    while (unit.subUnits.length < 2) {
-      unit.subUnits.push({
-        title: `Sub Unit ${unit.subUnits.length + 1}`,
-        summary: unit.summary || "Supporting topics.",
-        lessons: [
-          { title: "Lesson 1", summary: "Review.", keyPoints: [] },
-          { title: "Lesson 2", summary: "Practice.", keyPoints: [] },
-        ],
-      });
-    }
-    unit.subUnits.forEach((subUnit) => {
-      while (subUnit.lessons.length < 2) {
-        subUnit.lessons.push({
-          title: `Lesson ${subUnit.lessons.length + 1}`,
-          summary: subUnit.summary || "Study this section.",
-          keyPoints: [],
-        });
-      }
-    });
-  });
-
   return {
     subject: {
       title: subject.title || "Generated Subject",
@@ -142,6 +157,7 @@ function normalizeGeneratedStructure(generated) {
     },
   };
 }
+
 
 function normalizeExercise(exercise, lesson, _index) {
   return {
@@ -157,6 +173,9 @@ function normalizeExercise(exercise, lesson, _index) {
 
 function buildLessonExercises(lesson) {
   const provided = Array.isArray(lesson.exercises) ? lesson.exercises : [];
+  if (provided.length === 0) {
+    return generateExercisesForLesson(lesson);
+  }
   return provided.map((exercise, index) => normalizeExercise(exercise, lesson, index));
 }
 
@@ -482,26 +501,17 @@ export async function generateForgeStructure(uid, sourceText, sourceFileIds = []
     });
   });
 
-  flat.lessons.forEach((lesson) => {
-    const lessonRef = doc(collection(db, "users", uid, "lessons"));
-    batch.set(lessonRef, {
-      subjectId: subjectRef.id,
-      unitId: unitIdMap.get(lesson.unitId),
-      subUnitId: subUnitIdMap.get(lesson.subUnitId),
-      subjectName: flat.subject.title,
-      unitName: lesson.unitName,
-      subUnitName: lesson.subUnitName,
-      title: lesson.title,
-      summary: lesson.summary,
-      keyPoints: lesson.keyPoints,
-      order: lesson.order,
-      mastery: 0,
-      difficulty: lesson.difficulty,
-      sourceFileIds,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+    flat.lessons.forEach((lesson) => {
+      const lessonRef = doc(collection(db, "users", uid, "lessons"));
+      batch.set(lessonRef, {
+        ...lesson,
+        subjectId: subjectRef.id,
+        unitId: unitIdMap.get(lesson.unitId),
+        subUnitId: subUnitIdMap.get(lesson.subUnitId),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
     });
-  });
 
   batch.set(doc(db, "users", uid, "forgeSources", subjectRef.id), {
     sourceText: sourceText.slice(0, 100000),

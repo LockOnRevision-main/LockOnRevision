@@ -55,7 +55,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing required field: sourceText' });
     }
 
-    const prompt = `Create structured active-recall learning content from these notes.
+    const prompt = `You are a premium educational AI tutor. Analyze the user's study notes and transform them into a highly interactive, structured learning curriculum.
+
 Return strict JSON only with this exact shape:
 {
   "subjects": [
@@ -66,20 +67,26 @@ Return strict JSON only with this exact shape:
         {
           "title": "string",
           "summary": "string",
-          "lessons": [
+          "subUnits": [
             {
               "title": "string",
               "summary": "string",
-              "difficulty": "easy|medium|hard",
-              "keyPoints": ["string"],
-              "questions": [
+              "lessons": [
                 {
-                  "prompt": "string",
-                  "options": ["A", "B", "C", "D"],
-                  "correctAnswer": "must exactly match one option",
+                  "title": "string",
+                  "summary": "string",
                   "explanation": "string",
-                  "topic": "string",
-                  "difficulty": "easy|medium|hard"
+                  "difficulty": "easy|medium|hard",
+                  "exercises": [
+                    {
+                      "type": "multipleChoice|wordBank|fillBlank|typeAnswer|matchPairs|trueFalse|ordering",
+                      "question": "string",
+                      "content": "string (or object depending on type)",
+                      "options": ["string"],
+                      "correctAnswer": "string",
+                      "explanation": "string"
+                    }
+                  ]
                 }
               ]
             }
@@ -89,7 +96,13 @@ Return strict JSON only with this exact shape:
     }
   ]
 }
-Create concise lessons, 3-5 recall questions per lesson, and only use facts grounded in the notes.
+
+REQUIREMENTS:
+1. Hierarchy: Unit -> Sub Unit -> Lesson.
+2. Exercises: Generate diverse exercises using the specified types.
+3. Content: Grounded strictly in the notes.
+4. Explanations: Provide detailed explanations for every exercise.
+5. Adaptability: Adjust difficulty and interaction type to the subject.
 
 NOTES:
 ${sourceText}`;

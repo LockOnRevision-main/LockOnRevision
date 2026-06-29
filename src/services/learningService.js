@@ -2,6 +2,7 @@ import {
   addDoc,
   collection,
   doc,
+  getDoc,
   getDocs,
   increment,
   limit,
@@ -522,21 +523,30 @@ export async function uploadNoteFile(uid, file, onProgress) {
   return { id: fileDoc.id, url: uploadResult.url, cloudinaryPublicId: uploadResult.publicId };
 }
 
-export async function processUploadedFile(fileId) {
+export async function processUploadedFile(uid, fileId) {
   if (!isFirebaseConfigured) {
     const state = JSON.parse(localStorage.getItem("lockon-revision-local-state") || "{}");
-    const uid = state.currentUserId;
-    const file = uid ? state.users?.[uid]?.files?.find((item) => item.id === fileId) : null;
-    if (!uid || !file) throw new Error("Local file not found.");
-    await buildGeminiCourse(uid, file.content || file.name, fileId);
+    const currentUid = state.currentUserId;
+    const file = currentUid ? state.users?.[currentUid]?.files?.find((item) => item.id === fileId) : null;
+    if (!currentUid || !file) throw new Error("Local file not found.");
+    await buildGeminiCourse(currentUid, file.content || file.name, fileId);
     return { data: { ok: true } };
   }
 
   try {
+    const fileSnap = await getDoc(doc(db, "users", uid, "files", fileId));
+    if (!fileSnap.exists()) throw new Error("File not found in database.");
+    const fileData = fileSnap.data();
+
     const response = await fetch('/api/process-uploaded-notes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fileId }),
+      body: JSON.stringify({ 
+        uid, 
+        fileId, 
+        url: fileData.url, 
+        mimeType: fileData.type 
+      }),
     });
 
     if (!response.ok) {
