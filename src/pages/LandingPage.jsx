@@ -20,23 +20,23 @@ import { useAuth } from "../context/AuthContext.jsx";
 function IsoStack({ variant = "blue" }) {
   const palette =
     variant === "amber"
-      ? "from-amber-300 via-blue-400 to-indigo-500"
+      ? "from-accent via-primary to-secondary"
       : variant === "green"
-        ? "from-emerald-300 via-amber-400 to-indigo-500"
-        : "from-blue-400 via-amber-300 to-sky-500";
+        ? "from-success via-primary to-secondary"
+        : "from-primary via-accent to-secondary";
 
   return (
     <div className="relative mx-auto h-72 w-full max-w-md [perspective:900px]" aria-hidden="true">
-      <div className="absolute inset-x-10 top-12 h-44 rotate-[-8deg] skew-y-[-16deg] rounded-xl bg-gradient-to-br from-white to-slate-100 shadow-2xl shadow-blue-200" />
-      <div className={`absolute left-20 top-4 h-28 w-44 rotate-[-8deg] skew-y-[-16deg] rounded-xl bg-gradient-to-br ${palette} shadow-xl shadow-amber-200`} />
-      <div className="absolute right-16 top-24 h-24 w-36 rotate-[-8deg] skew-y-[-16deg] rounded-xl border border-white/60 bg-white/85 shadow-xl" />
-      <div className="absolute left-28 top-28 grid h-20 w-20 rotate-[-8deg] skew-y-[-16deg] place-items-center rounded-xl bg-slate-950 text-white shadow-xl">
+      <div className="absolute inset-x-10 top-12 h-44 rotate-[-8deg] skew-y-[-16deg] rounded-xl bg-gradient-to-br from-surface to-background shadow-2xl shadow-primary/20" />
+      <div className={`absolute left-20 top-4 h-28 w-44 rotate-[-8deg] skew-y-[-16deg] rounded-xl bg-gradient-to-br ${palette} shadow-xl shadow-accent/20`} />
+      <div className="absolute right-16 top-24 h-24 w-36 rotate-[-8deg] skew-y-[-16deg] rounded-xl border border-text-primary/60 bg-surface/85 shadow-xl" />
+      <div className="absolute left-28 top-28 grid h-20 w-20 rotate-[-8deg] skew-y-[-16deg] place-items-center rounded-xl bg-secondary text-text-primary shadow-xl">
         <Zap size={30} />
       </div>
-      <div className="absolute right-24 top-9 grid h-14 w-14 rotate-[-8deg] skew-y-[-16deg] place-items-center rounded-lg bg-white text-indigo-600 shadow-lg">
+      <div className="absolute right-24 top-9 grid h-14 w-14 rotate-[-8deg] skew-y-[-16deg] place-items-center rounded-lg bg-surface text-primary shadow-lg">
         <Trophy size={24} />
       </div>
-      <div className="absolute bottom-8 left-16 h-6 w-64 rounded-full bg-blue-900/10 blur-xl" />
+      <div className="absolute bottom-8 left-16 h-6 w-64 rounded-full bg-primary/10 blur-xl" />
     </div>
   );
 }
@@ -80,25 +80,25 @@ export function LandingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white text-slate-950">
-      <section className="relative overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-amber-100">
-        <div className="absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_50%_0%,rgba(34,211,238,.28),transparent_60%)]" />
+    <main className="min-h-screen bg-background text-text-primary">
+      <section className="relative overflow-hidden bg-gradient-to-br from-background via-surface to-secondary">
+        <div className="absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_50%_0%,var(--color-primary),transparent_60%)] opacity-20" />
         <nav className="relative mx-auto flex max-w-7xl items-center justify-between px-5 py-5">
           <Link to="/" className="flex items-center gap-3 font-black">
-            <span className="grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br from-indigo-600 to-amber-400 text-white">
+            <span className="grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br from-primary to-secondary text-text-primary">
               <Sparkles size={20} />
             </span>
             LockOn Revision
           </Link>
           <div className="flex items-center gap-2">
-            <Link to="/leaderboard" className="hidden rounded-lg px-3 py-2 text-sm font-bold text-slate-600 sm:inline-flex">
+            <Link to="/leaderboard" className="hidden rounded-lg px-3 py-2 text-sm font-bold text-text-secondary sm:inline-flex">
               Leaderboard
             </Link>
             <button
               type="button"
               onClick={getStarted}
               disabled={loading}
-              className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-black text-white disabled:opacity-60"
+              className="rounded-lg bg-secondary px-4 py-2 text-sm font-black text-text-primary disabled:opacity-60"
             >
               Get Started
             </button>

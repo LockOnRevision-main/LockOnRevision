@@ -9,16 +9,16 @@ export function AppShell({ children }) {
   const showAdmin = canAccessAdmin(profile, user?.email);
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-950">
-      <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/85 backdrop-blur">
+    <main className="min-h-screen bg-background text-text-primary">
+      <header className="sticky top-0 z-20 border-b border-border bg-surface/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
            <NavLink to="/app" className="flex items-center gap-3">
-             <div className="h-10 w-10 overflow-hidden rounded-lg bg-indigo-900">
+             <div className="h-10 w-10 overflow-hidden rounded-lg bg-secondary">
                <img src="/assets/branding/logo-dark.svg" alt="LockOn Logo" className="h-full w-full object-contain" />
              </div>
              <div>
-               <p className="font-black tracking-tight text-indigo-950">LockOn Revision</p>
-               <p className="text-xs text-slate-500">{profile?.name || "Local Learner"}</p>
+               <p className="font-black tracking-tight text-text-primary">LockOn Revision</p>
+               <p className="text-xs text-text-secondary">{profile?.name || "Local Learner"}</p>
              </div>
            </NavLink>
 
@@ -26,7 +26,7 @@ export function AppShell({ children }) {
             <NavLink
               to="/app"
                className={({ isActive }) =>
-                 `rounded-lg px-3 py-2 text-sm font-bold ${isActive ? "bg-indigo-50 text-indigo-700" : "text-slate-600"}`
+                 `rounded-lg px-3 py-2 text-sm font-bold ${isActive ? "bg-accent text-primary" : "text-text-secondary"}`
                }
             >
               Dashboard
@@ -35,18 +35,18 @@ export function AppShell({ children }) {
                to="/forge"
                className={({ isActive }) =>
                  `inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold ${
-                   isActive ? "bg-indigo-50 text-indigo-700" : "text-slate-600"
+                   isActive ? "bg-accent text-primary" : "text-text-secondary"
                  }`
                }
-             >
-               <Hammer size={16} />
-               Forge
-             </NavLink>
+            >
+              <Hammer size={16} />
+              Forge
+            </NavLink>
             <NavLink
               to="/leaderboard"
               className={({ isActive }) =>
                 `inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold ${
-                  isActive ? "bg-blue-50 text-blue-700" : "text-slate-600"
+                  isActive ? "bg-accent text-primary" : "text-text-secondary"
                 }`
               }
             >
@@ -57,7 +57,7 @@ export function AppShell({ children }) {
               <NavLink
                 to="/admin"
                 className={({ isActive }) =>
-                  `rounded-lg px-3 py-2 text-sm font-bold ${isActive ? "bg-blue-50 text-blue-700" : "text-slate-600"}`
+                  `rounded-lg px-3 py-2 text-sm font-bold ${isActive ? "bg-accent text-primary" : "text-text-secondary"}`
                 }
               >
                 Admin
@@ -67,7 +67,7 @@ export function AppShell({ children }) {
               <button
                 type="button"
                 onClick={logout}
-                className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 shadow-sm"
+                className="rounded-lg border border-border bg-surface p-2 text-text-secondary shadow-sm"
                 aria-label="Log out"
               >
                 <LogOut size={18} />
