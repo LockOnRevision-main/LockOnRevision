@@ -136,8 +136,8 @@ export function AdminPage() {
 
   return (
     <div className="grid gap-6">
-      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="bg-gradient-to-r from-slate-900 to-blue-800 p-6 text-white">
+      <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+        <div className="bg-gradient-to-r from-secondary to-primary p-6 text-white">
           <div className="flex items-center gap-3">
             <ShieldCheck size={24} />
             <div>
@@ -152,30 +152,30 @@ export function AdminPage() {
       </section>
 
       {!isFirebaseConfigured ? (
-        <p className="rounded-lg border border-amber-100 bg-amber-50 p-3 text-sm font-bold text-amber-900">
+        <p className="rounded-lg border border-warning/20 bg-warning/10 p-3 text-sm font-bold text-warning">
           Firebase is required for admin actions.
         </p>
       ) : null}
 
-      {status ? <p className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm font-bold text-blue-800">{status}</p> : null}
+      {status ? <p className="rounded-lg border border-info/20 bg-info/10 p-3 text-sm font-bold text-info">{status}</p> : null}
 
       <section className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Users loaded" value={users.length} helper="Search results" tone="bg-white" />
-        <StatCard label="Forge subjects" value={forgeContent.length} helper="Across all users" tone="bg-blue-50" />
+        <StatCard label="Users loaded" value={users.length} helper="Search results" tone="bg-surface" />
+        <StatCard label="Forge subjects" value={forgeContent.length} helper="Across all users" tone="bg-info/10" />
         <StatCard
           label="Top score"
           value={overview?.topUsers?.[0]?.totalScore?.toLocaleString() || "-"}
           helper="Leaderboard leader"
-          tone="bg-amber-50"
+          tone="bg-warning/10"
         />
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-        <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-3">
-            <Users className="text-indigo-600" />
+            <Users className="text-primary" />
             <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-slate-500">User management</p>
+              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">User management</p>
               <h2 className="text-2xl font-black">Search users</h2>
             </div>
           </div>
@@ -185,20 +185,20 @@ export function AdminPage() {
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Search by name or email..."
-              className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400"
+              className="min-w-0 flex-1 rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-primary"
             />
             <button
               type="button"
               disabled={busy}
               onClick={runSearch}
-              className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-black text-white disabled:bg-slate-300"
+              className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-black text-white disabled:bg-text-muted"
             >
               <Search size={16} />
               Search
             </button>
           </div>
 
-          <div className="mt-4 max-h-72 overflow-auto rounded-lg border border-slate-200">
+          <div className="mt-4 max-h-72 overflow-auto rounded-lg border border-border">
             {users.length ? (
               users.map((item) => (
                 <button
@@ -208,15 +208,15 @@ export function AdminPage() {
                     setSelectedUserId(item.id);
                     setTotalScoreInput(String(item.totalScore || calculateTotalScore(item.xp, item.energy)));
                   }}
-                  className={`flex w-full items-center justify-between gap-3 border-b border-slate-100 px-3 py-3 text-left last:border-b-0 ${
-                    selectedUserId === item.id ? "bg-blue-50" : "bg-white"
+                  className={`flex w-full items-center justify-between gap-3 border-b border-border/50 px-3 py-3 text-left last:border-b-0 ${
+                    selectedUserId === item.id ? "bg-primary/10" : "bg-surface"
                   }`}
                 >
                   <span>
                     <span className="block font-black">{item.name || "Unnamed"}</span>
-                    <span className="block text-xs text-slate-500">{item.email}</span>
+                    <span className="block text-xs text-text-secondary">{item.email}</span>
                   </span>
-                  <span className="text-right text-xs font-bold text-slate-600">
+                  <span className="text-right text-xs font-bold text-text-secondary">
                     XP {item.xp || 0}
                     <br />
                     Energy {item.energy || 0}
@@ -229,71 +229,71 @@ export function AdminPage() {
           </div>
         </article>
 
-        <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-3">
-            <Zap className="text-amber-600" />
+            <Zap className="text-warning" />
             <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-slate-500">Rewards & progress</p>
+              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">Rewards & progress</p>
               <h2 className="text-2xl font-black">Adjust selected user</h2>
             </div>
           </div>
 
           {selectedUser ? (
-            <p className="mb-4 rounded-lg bg-slate-50 p-3 text-sm">
+            <p className="mb-4 rounded-lg bg-background p-3 text-sm">
               <strong>{selectedUser.name}</strong> - XP {selectedUser.xp || 0}, Energy {selectedUser.energy || 0},
               Total {selectedUser.totalScore || calculateTotalScore(selectedUser.xp, selectedUser.energy)}
             </p>
           ) : (
-            <p className="mb-4 text-sm text-slate-500">Select a user to adjust rewards.</p>
+            <p className="mb-4 text-sm text-text-secondary">Select a user to adjust rewards.</p>
           )}
 
           <div className="grid gap-4">
-            <div className="rounded-lg border border-slate-200 p-3">
+            <div className="rounded-lg border border-border p-3">
               <p className="text-sm font-black">XP</p>
               <div className="mt-2 flex items-center gap-2">
                 <input
                   type="number"
                   value={xpDelta}
                   onChange={(event) => setXpDelta(event.target.value)}
-                  className="w-24 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="w-24 rounded-lg border border-border px-3 py-2 text-sm"
                 />
-                <button type="button" disabled={busy} onClick={() => runXpAdjust(1)} className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-black text-white">
+                <button type="button" disabled={busy} onClick={() => runXpAdjust(1)} className="rounded-lg bg-primary px-3 py-2 text-sm font-black text-white">
                   Add XP
                 </button>
-                <button type="button" disabled={busy} onClick={() => runXpAdjust(-1)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold">
+                <button type="button" disabled={busy} onClick={() => runXpAdjust(-1)} className="rounded-lg border border-border px-3 py-2 text-sm font-bold">
                   Remove XP
                 </button>
               </div>
             </div>
 
-            <div className="rounded-lg border border-slate-200 p-3">
+            <div className="rounded-lg border border-border p-3">
               <p className="text-sm font-black">Energy</p>
               <div className="mt-2 flex items-center gap-2">
                 <input
                   type="number"
                   value={energyDelta}
                   onChange={(event) => setEnergyDelta(event.target.value)}
-                  className="w-24 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="w-24 rounded-lg border border-border px-3 py-2 text-sm"
                 />
-                <button type="button" disabled={busy} onClick={() => runEnergyAdjust(1)} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-black text-white">
+                <button type="button" disabled={busy} onClick={() => runEnergyAdjust(1)} className="rounded-lg bg-warning px-3 py-2 text-sm font-black text-white">
                   Add Energy
                 </button>
-                <button type="button" disabled={busy} onClick={() => runEnergyAdjust(-1)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold">
+                <button type="button" disabled={busy} onClick={() => runEnergyAdjust(-1)} className="rounded-lg border border-border px-3 py-2 text-sm font-bold">
                   Remove Energy
                 </button>
               </div>
             </div>
 
-            <div className="rounded-lg border border-slate-200 p-3">
+            <div className="rounded-lg border border-border p-3">
               <p className="text-sm font-black">Total score override</p>
               <div className="mt-2 flex items-center gap-2">
                 <input
                   type="number"
                   value={totalScoreInput}
                   onChange={(event) => setTotalScoreInput(event.target.value)}
-                  className="w-32 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="w-32 rounded-lg border border-border px-3 py-2 text-sm"
                 />
-                <button type="button" disabled={busy} onClick={runTotalScoreSet} className="rounded-lg bg-slate-950 px-3 py-2 text-sm font-black text-white">
+                <button type="button" disabled={busy} onClick={runTotalScoreSet} className="rounded-lg bg-secondary px-3 py-2 text-sm font-black text-white">
                   Set total score
                 </button>
               </div>
@@ -303,11 +303,11 @@ export function AdminPage() {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-        <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-3">
-            <Trophy className="text-indigo-600" />
+            <Trophy className="text-primary" />
             <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-slate-500">Leaderboard</p>
+              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">Leaderboard</p>
               <h2 className="text-2xl font-black">Reward events</h2>
             </div>
           </div>
@@ -317,27 +317,27 @@ export function AdminPage() {
               type="number"
               value={rewardXp}
               onChange={(event) => setRewardXp(event.target.value)}
-              className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              className="rounded-lg border border-border px-3 py-2 text-sm"
               placeholder="XP to grant"
             />
             <input
               type="number"
               value={rewardEnergy}
               onChange={(event) => setRewardEnergy(event.target.value)}
-              className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              className="rounded-lg border border-border px-3 py-2 text-sm"
               placeholder="Energy to grant"
             />
             <input
               value={rewardReason}
               onChange={(event) => setRewardReason(event.target.value)}
-              className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              className="rounded-lg border border-border px-3 py-2 text-sm"
               placeholder="Reason"
             />
             <button
               type="button"
               disabled={busy}
               onClick={runRewardEvent}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-amber-400 px-4 py-3 font-black text-white disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary to-warning px-4 py-3 font-black text-white disabled:opacity-50"
             >
               <Award size={18} />
               Grant reward event
@@ -346,14 +346,14 @@ export function AdminPage() {
 
           {overview?.topUsers?.length ? (
             <div className="mt-5">
-              <p className="text-sm font-bold uppercase tracking-widest text-slate-500">Top leaderboard</p>
+              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">Top leaderboard</p>
               <div className="mt-2 grid gap-2">
                 {overview.topUsers.slice(0, 5).map((entry) => (
-                  <div key={entry.id} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                  <div key={entry.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm">
                     <span className="font-black">
                       #{entry.rank} {entry.name}
                     </span>
-                    <span className="font-bold text-blue-700">{entry.totalScore?.toLocaleString()}</span>
+                    <span className="font-bold text-primary">{entry.totalScore?.toLocaleString()}</span>
                   </div>
                 ))}
               </div>
@@ -361,24 +361,24 @@ export function AdminPage() {
           ) : null}
         </article>
 
-        <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-3">
-            <BookOpen className="text-amber-600" />
+            <BookOpen className="text-warning" />
             <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-slate-500">Content</p>
+              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">Content</p>
               <h2 className="text-2xl font-black">Forge moderation</h2>
             </div>
           </div>
 
-          <div className="max-h-96 overflow-auto rounded-lg border border-slate-200">
+          <div className="max-h-96 overflow-auto rounded-lg border border-border">
             {forgeContent.length ? (
               forgeContent.map((entry) => (
-                <div key={`${entry.userId}-${entry.subject.id}`} className="border-b border-slate-100 px-3 py-3 last:border-b-0">
+                <div key={`${entry.userId}-${entry.subject.id}`} className="border-b border-border/50 px-3 py-3 last:border-b-0">
                   <p className="font-black">{entry.subject.title}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-text-secondary">
                     {entry.userName} &bull; {entry.userEmail}
                   </p>
-                  <p className="mt-1 text-sm text-slate-600">
+                  <p className="mt-1 text-sm text-text-secondary">
                     {entry.subject.units?.length || 0} units &bull;{" "}
                     {entry.subject.units?.reduce((acc, unit) => acc + (unit.subUnits?.length || 0), 0) || 0} sub-units
                   </p>
@@ -386,7 +386,7 @@ export function AdminPage() {
                     type="button"
                     disabled={busy}
                     onClick={() => removeForgeSubject(entry.userId, entry.subject.id)}
-                    className="mt-2 rounded-lg border border-red-200 px-3 py-1 text-xs font-bold text-red-600"
+                    className="mt-2 rounded-lg border border-error/20 px-3 py-1 text-xs font-bold text-error"
                   >
                     Remove subject
                   </button>

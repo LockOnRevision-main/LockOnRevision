@@ -17,68 +17,69 @@ export function EditProfileModal({ profile, onClose, onSave }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
-          <h3 className="text-xl font-black">Edit Profile</h3>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-900">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/60 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-3xl bg-surface border border-border shadow-2xl overflow-hidden transition-all animate-in fade-in zoom-in duration-200">
+        <div className="flex items-center justify-between p-6 border-b border-border bg-surface">
+          <h3 className="text-xl font-black text-text-primary tracking-tight">Edit Profile</h3>
+          <button onClick={onClose} className="p-2 rounded-full text-text-secondary hover:bg-background hover:text-text-primary transition-colors">
             <X size={20} />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Display Name</label>
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          <div className="space-y-1">
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">Display Name</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent outline-none focus:border-blue-500"
+              className="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary outline-none focus:border-primary transition-all"
               required
             />
           </div>
-          <div>
-            <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Username</label>
+          <div className="space-y-1">
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">Username</label>
             <input
               type="text"
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent outline-none focus:border-blue-500"
+              className="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary outline-none focus:border-primary transition-all"
             />
           </div>
-          <div>
-            <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Bio</label>
+          <div className="space-y-1">
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">Bio</label>
             <textarea
               value={formData.bio}
               onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-              className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent outline-none focus:border-blue-500 min-h-[100px]"
+              className="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary outline-none focus:border-primary transition-all min-h-[100px] resize-none"
             />
           </div>
-          <div>
-            <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Learning Goals</label>
+          <div className="space-y-1">
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">Learning Goals</label>
             <textarea
               value={formData.goals}
               onChange={(e) => setFormData({ ...formData, goals: e.target.value })}
-              className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent outline-none focus:border-blue-500 min-h-[100px]"
+              className="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary outline-none focus:border-primary transition-all min-h-[100px] resize-none"
             />
           </div>
-          <div>
-            <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Theme Preference</label>
+          <div className="space-y-1">
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">Theme Preference</label>
             <select
               value={formData.theme}
               onChange={(e) => setFormData({ ...formData, theme: e.target.value })}
-              className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent outline-none focus:border-blue-500"
+              className="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary outline-none focus:border-primary transition-all appearance-none"
             >
               <option value="light">Light Mode</option>
               <option value="dark">Dark Mode</option>
               <option value="system">System Default</option>
             </select>
           </div>
-          <button
-            type="submit"
-            className="w-full py-3 rounded-xl bg-indigo-600 text-white font-black hover:bg-indigo-700 transition-colors"
-          >
-            Save Changes
-          </button>
+           <button
+             type="submit"
+             className="w-full py-4 rounded-xl bg-primary text-white font-black transition-all hover:bg-primary-active shadow-lg shadow-primary/20 active:scale-95"
+           >
+             Save Changes
+           </button>
+
         </form>
       </div>
     </div>

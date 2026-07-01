@@ -4,32 +4,63 @@
 @tailwind utilities;
 
 :root {
-  --color-primary: #00A9C3;
+  /* Light Mode - Bright, Comfortable, Professional, Study-friendly */
+  --color-primary: #00BCD4;
   --color-primary-hover: #00BADD;
-  --color-primary-active: #008E9F;
-  --color-secondary: #004B7A;
-  --color-secondary-hover: #005A8C;
-  --color-secondary-active: #003A5F;
+  --color-primary-active: #0097A7;
+  --color-secondary: #004A86;
+  --color-secondary-hover: #005A9C;
+  --color-secondary-active: #003A6B;
   --color-accent: #E0F7FA;
-  --color-background: #004B7A;
-  --color-surface: #005A8C;
-  --color-card: #00689D;
-  --color-border: #0078AD;
-  --color-text-primary: #FFFFFF;
-  --color-text-secondary: #E0F7FA;
-  --color-text-muted: #B0DCE3;
+  --color-background: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-card: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94A3B8;
   --color-success: #10B981;
   --color-warning: #F59E0B;
   --color-error: #EF4444;
   --color-info: #3B82F6;
-  --color-chart-blue: #00A9C3;
+  --color-chart-blue: #00BCD4;
   --color-chart-indigo: #6366F1;
   --color-chart-violet: #8B5CF6;
   --color-chart-pink: #EC4899;
   --color-chart-orange: #F97316;
   --color-chart-green: #10B981;
-  --color-focus-ring: #00A9C3;
-  --color-skeleton: #005A8C;
+  --color-focus-ring: #00BCD4;
+  --color-skeleton: #F1F5F9;
+}
+
+.dark {
+  /* Dark Mode - Logo Inspired, Purpose-built, High Contrast */
+  --color-primary: #00D1FF;
+  --color-primary-hover: #33E0FF;
+  --color-primary-active: #00BADD;
+  --color-secondary: #005C9E;
+  --color-secondary-hover: #0070C0;
+  --color-secondary-active: #004B82;
+  --color-accent: #001B2E;
+  --color-background: #001B2E;
+  --color-surface: #002B5B;
+  --color-card: #003A75;
+  --color-border: #004A86;
+  --color-text-primary: #F0F9FF;
+  --color-text-secondary: #B0DCE3;
+  --color-text-muted: #64748B;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-info: #3B82F6;
+  --color-chart-blue: #00D1FF;
+  --color-chart-indigo: #818CF8;
+  --color-chart-violet: #A78BFA;
+  --color-chart-pink: #F472B6;
+  --color-chart-orange: #FB923C;
+  --color-chart-green: #34D399;
+  --color-focus-ring: #00D1FF;
+  --color-skeleton: #002B5B;
 }
 
 * {
@@ -39,6 +70,7 @@
 html {
   background: var(--color-background);
   color: var(--color-text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 
@@ -57,6 +89,6 @@ button:disabled {
 }
 
 ::selection {
-  background: #b8efd4;
-  color: #1f2933;
+  background: var(--color-primary);
+  color: var(--color-text-primary);
 }

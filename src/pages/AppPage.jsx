@@ -61,18 +61,18 @@ export function AppPage() {
   // Removed finishUnit function as it was unused
 
   return (
-    <div className="grid gap-6">
-      <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
-        <div className="bg-gradient-to-r from-primary to-secondary p-6 text-text-primary">
-          <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">Dashboard</p>
+    <div className="grid gap-8">
+      <section className="overflow-hidden rounded-3xl border border-border bg-surface shadow-sm">
+        <div className="bg-gradient-to-r from-secondary to-primary p-8 text-text-primary">
+          <p className="text-xs font-bold uppercase tracking-widest text-text-secondary">Dashboard</p>
           <div className="mt-2 flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
               <h1 className="text-4xl font-black tracking-tight text-text-primary">Welcome, {profile?.name || "Learner"}</h1>
-              <p className="mt-2 max-w-2xl text-text-primary/85">Gain XP, earn energy, and climb the leaderboard.</p>
+              <p className="mt-2 max-w-2xl text-text-primary/85 text-lg">Gain XP, earn energy, and climb the leaderboard.</p>
             </div>
             <Link
               to="/leaderboard"
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-text-primary px-4 py-3 font-black text-primary shadow-sm"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-secondary px-6 py-3 font-black text-white shadow-lg transition-all hover:scale-105 active:scale-95"
             >
               <Trophy size={18} />
               Leaderboard
@@ -82,12 +82,12 @@ export function AppPage() {
       </section>
 
       {!isFirebaseConfigured ? (
-        <p className="rounded-lg border border-border bg-card p-3 text-sm font-bold text-text-primary">
+        <p className="rounded-xl border border-border bg-card p-4 text-sm font-bold text-text-primary shadow-sm">
           Firebase is not configured. Add env values and restart the dev server to enable dashboard actions.
         </p>
       ) : null}
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="XP" value={score.xp.toLocaleString()} helper="Learning progress" tone="bg-surface" />
         <StatCard label="Energy" value={String(score.energy)} helper="1 Energy = 100 XP" tone="bg-card" />
         <StatCard label="Total Score" value={score.totalScore.toLocaleString()} helper="XP + Energy bonus" tone="bg-surface" />
@@ -99,44 +99,46 @@ export function AppPage() {
         />
       </section>
 
-      {status ? <p className="rounded-lg border border-border bg-surface p-3 text-sm font-bold text-text-primary">{status}</p> : null}
+      {status ? <p className="rounded-xl border border-border bg-surface p-4 text-sm font-bold text-text-primary shadow-sm">{status}</p> : null}
 
-      <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-        <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-3">
-            <Target className="text-primary" />
+      <section className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+        <article className="rounded-3xl border border-border bg-surface p-6 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+              <Target size={24} />
+            </div>
             <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">Mock tests</p>
-              <h2 className="text-2xl font-black text-text-primary">Earn controlled energy</h2>
+              <p className="text-xs font-bold uppercase tracking-widest text-text-secondary">Mock tests</p>
+              <h2 className="text-2xl font-black tracking-tight text-text-primary">Earn controlled energy</h2>
             </div>
           </div>
-          <div className="grid gap-3">
+          <div className="grid gap-4">
             {TESTS.map((test) => {
               const completed = profile?.completedTests?.includes(test.id);
               return (
-                <div key={test.id} className="rounded-lg border border-border p-4">
+                <div key={test.id} className="rounded-2xl border border-border bg-background p-4 transition-all duration-200 hover:border-primary/50 hover:bg-surface/50">
                   <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
                     <div>
-                      <p className="font-black text-text-primary">{test.title}</p>
+                      <p className="font-black text-text-primary text-lg tracking-tight">{test.title}</p>
                       <p className="mt-1 text-sm text-text-secondary">
                         {test.difficulty} &bull; +{test.energy} energy &bull; +{test.xp} XP &bull; requires 60%+
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <input
                         type="number"
                         min="0"
                         max="100"
                         value={scoreInputs[test.id]}
                         onChange={(event) => setScoreInputs({ ...scoreInputs, [test.id]: event.target.value })}
-                        className="w-20 rounded-lg border border-border px-3 py-2 text-sm font-bold outline-none focus:border-primary bg-transparent text-text-primary"
+                        className="w-20 rounded-xl border border-border px-3 py-2 text-sm font-bold outline-none focus:border-primary bg-transparent text-text-primary transition-all"
                         aria-label={`${test.title} score`}
                       />
                       <button
                         type="button"
                         disabled={completed || busyId === test.id}
                         onClick={() => runTest(test.id)}
-                        className="rounded-lg bg-secondary px-4 py-2 text-sm font-black text-text-primary disabled:bg-surface"
+                        className="rounded-xl bg-primary px-5 py-2 text-sm font-black text-white transition-all duration-150 active:scale-95 hover:bg-primary-active disabled:bg-background disabled:text-text-muted"
                       >
                         {completed ? "Done" : "Claim"}
                       </button>
@@ -146,39 +148,42 @@ export function AppPage() {
               );
             })}
           </div>
-          <div className="mt-4 flex items-center gap-2 rounded-lg bg-surface p-3 text-sm text-text-secondary">
-            <Clock size={16} />
+          <div className="mt-6 flex items-center gap-3 rounded-xl bg-background p-4 text-sm text-text-secondary border border-border">
+            <Clock size={16} className="text-primary" />
             Mock test energy has a 10 minute cooldown.
           </div>
         </article>
 
-        <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-3">
-            <Award className="text-primary" />
+        <article className="rounded-3xl border border-border bg-surface p-6 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+              <Award size={24} />
+            </div>
             <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">My Subjects</p>
-              <h2 className="text-2xl font-black text-text-primary">Continue learning</h2>
+              <p className="text-xs font-bold uppercase tracking-widest text-text-secondary">My Subjects</p>
+              <h2 className="text-2xl font-black tracking-tight text-text-primary">Continue learning</h2>
             </div>
           </div>
 
           {subjects.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="mb-4 rounded-full bg-surface p-4 text-text-muted">
+              <div className="mb-4 rounded-full bg-background p-4 text-text-muted border border-border">
                 <Target size={40} />
               </div>
               <h3 className="text-xl font-black text-text-primary">No Subjects Yet</h3>
-              <p className="mt-2 max-w-xs text-sm text-text-secondary">
+              <p className="mt-2 max-w-xs text-sm text-text-secondary leading-relaxed">
                 Generate your first AI-powered subject to begin learning.
               </p>
-              <Link
-                to="/forge"
-                className="mt-6 inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3 font-black text-text-primary shadow-sm transition hover:bg-secondary"
-              >
-                Open Forge
-              </Link>
+               <Link
+                 to="/forge"
+                 className="mt-6 inline-flex items-center justify-center rounded-xl bg-secondary px-6 py-3 font-black text-white shadow-lg transition-all hover:bg-primary hover:scale-105 active:scale-95"
+               >
+                 Open Forge
+               </Link>
+
             </div>
           ) : (
-            <div className="grid gap-3">
+            <div className="grid gap-4">
               {subjects.map((subject) => {
                 const subjectLessons = lessons.filter((l) => l.subjectId === subject.id);
                 const completedLessons = subjectLessons.filter((l) => l.completed);
@@ -195,27 +200,28 @@ export function AppPage() {
                   <Link
                     key={subject.id}
                     to="/forge"
-                    className="group flex items-center justify-between gap-3 rounded-lg border border-border p-4 text-left transition hover:border-primary hover:bg-surface/50"
+                    className="group flex items-center justify-between gap-3 rounded-2xl border border-border p-4 text-left transition-all hover:border-primary hover:bg-background shadow-sm"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="truncate font-black text-text-primary">{subject.title}</span>
+                        <span className="truncate font-black text-text-primary text-lg">{subject.title}</span>
                         {progress === 100 && (
                           <CheckCircle2 size={16} className="shrink-0 text-status-success" />
                         )}
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold text-text-secondary">
                         <span className="flex items-center gap-1">
-                          <Target size={12} /> {currentUnit}
+                          <Target size={12} className="text-primary" /> {currentUnit}
                         </span>
+                         <span className="flex items-center gap-1">
+                           <Zap size={12} className="text-warning" /> {xp} XP
+                         </span>
+
                         <span className="flex items-center gap-1">
-                          <Zap size={12} /> {xp} XP
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Award size={12} /> {progress}%
+                          <Award size={12} className="text-primary" /> {progress}%
                         </span>
                       </div>
-                      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-surface">
+                      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-background border border-border">
                         <div
                           className="h-full bg-primary transition-all duration-500"
                           style={{ width: `${progress}%` }}
@@ -223,24 +229,26 @@ export function AppPage() {
                       </div>
                     </div>
                     <div className="shrink-0">
-                      <button
-                        type="button"
-                        className="rounded-lg bg-secondary px-4 py-2 text-xs font-black text-text-primary transition group-hover:bg-primary"
-                      >
-                        Continue
-                      </button>
+                       <button
+                         type="button"
+                         className="rounded-xl bg-primary px-4 py-2 text-xs font-black text-white transition-all duration-150 active:scale-95 group-hover:bg-primary-active shadow-sm"
+                       >
+                         Continue
+                       </button>
+
                     </div>
                   </Link>
                 );
               })}
             </div>
           )}
-          <div className="mt-4 rounded-lg bg-gradient-to-r from-surface to-card p-4">
-            <div className="flex items-center gap-2 font-black text-text-primary">
-              <Zap size={18} />
-              Total score = XP + (Energy x 100)
-            </div>
-          </div>
+           <div className="mt-6 rounded-2xl bg-gradient-to-r from-surface to-card p-5 border border-border shadow-sm">
+             <div className="flex items-center gap-3 font-black text-text-primary">
+               <Zap size={20} className="text-warning" />
+               Total score = XP + (Energy x 100)
+             </div>
+           </div>
+
         </article>
       </section>
     </div>

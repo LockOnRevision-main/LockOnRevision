@@ -2,6 +2,7 @@ import { LockKeyhole, Mail, UserRound } from "lucide-react";
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { Logo } from "../components/Logo.jsx";
 
 export function LoginPage() {
   const { isFirebaseConfigured, login, register, user } = useAuth();
@@ -32,10 +33,10 @@ export function LoginPage() {
   return (
     <main className="grid min-h-screen place-items-center bg-gradient-to-br from-background via-surface to-secondary px-4 text-text-primary">
       <section className="w-full max-w-md rounded-xl border border-border bg-surface p-6 shadow-2xl shadow-primary/20 backdrop-blur">
-        <div className="mb-6">
-          <p className="text-sm font-bold uppercase tracking-widest text-primary">LockOn Revision</p>
+        <div className="mb-6 flex flex-col items-center">
+          <Logo variant="horizontal" className="mb-4 scale-90" />
           <h1 className="mt-2 text-3xl font-black text-text-primary">{mode === "register" ? "Create account" : "Welcome back"}</h1>
-          <p className="mt-2 text-sm text-text-secondary">
+          <p className="mt-2 text-sm text-text-secondary text-center">
             {isFirebaseConfigured ? "Sign in with your email and password." : "Firebase config is missing."}
           </p>
         </div>
@@ -89,7 +90,7 @@ export function LoginPage() {
 
           <button
             disabled={busy || !isFirebaseConfigured}
-            className="rounded-lg bg-secondary px-4 py-3 font-black text-text-primary disabled:bg-surface"
+            className="rounded-lg bg-primary px-4 py-3 font-black text-white disabled:bg-surface transition-all hover:bg-primary-active active:scale-95"
           >
             {busy ? "Working..." : mode === "register" ? "Create account" : "Log in"}
           </button>

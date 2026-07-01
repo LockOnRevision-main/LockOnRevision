@@ -60,34 +60,35 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
 
   if (completed) {
     return (
-      <div className="max-w-2xl mx-auto p-6 text-center">
-        <div className="w-24 h-24 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center">
-          <CheckCircle className="w-12 h-12 text-green-600" />
+      <div className="max-w-2xl mx-auto p-10 text-center">
+        <div className="w-24 h-24 mx-auto mb-6 bg-status-success/20 rounded-full flex items-center justify-center text-status-success shadow-inner">
+          <CheckCircle className="w-12 h-12" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Lesson Complete!</h2>
-        <p className="text-gray-600 mb-6">{lesson.title}</p>
-        <div className="flex justify-center gap-8 mb-8">
+        <h2 className="text-3xl font-black text-text-primary mb-2 tracking-tight">Lesson Complete!</h2>
+        <p className="text-text-secondary mb-8">{lesson.title}</p>
+        <div className="flex justify-center gap-12 mb-10">
           <div className="text-center">
-            <div className="text-3xl font-bold text-purple-600">
+            <div className="text-4xl font-black text-primary">
               {exercises.filter((ex) => userAnswers[ex.id] === ex.correctAnswer).length}/{exercises.length}
             </div>
-            <div className="text-sm text-gray-600">Correct</div>
+            <div className="text-xs font-bold uppercase tracking-widest text-text-muted">Correct</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-yellow-600 flex items-center gap-2">
-              <Zap className="w-6 h-6" />
+            <div className="text-4xl font-black text-warning flex items-center gap-2">
+              <Zap className="w-8 h-8" />
               {xpEarned}
             </div>
-            <div className="text-sm text-gray-600">XP Earned</div>
+            <div className="text-xs font-bold uppercase tracking-widest text-text-muted">XP Earned</div>
           </div>
         </div>
-        <button
-          onClick={handleComplete}
-          disabled={isSubmitting}
-          className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:bg-purple-400"
-        >
-          {isSubmitting ? "Saving..." : "Continue Learning"}
-        </button>
+         <button
+           onClick={handleComplete}
+           disabled={isSubmitting}
+           className="px-8 py-4 bg-primary text-white rounded-xl font-black transition-all hover:bg-primary-active hover:shadow-lg disabled:bg-surface disabled:text-text-muted"
+         >
+           {isSubmitting ? "Saving..." : "Continue Learning"}
+         </button>
+
       </div>
     );
   }
@@ -95,7 +96,7 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
   if (showResults) {
     return (
       <div className="max-w-2xl mx-auto p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Lesson Results</h2>
+        <h2 className="text-3xl font-black text-text-primary mb-8 tracking-tight">Lesson Results</h2>
         <div className="space-y-4">
           {exercises.map((exercise, index) => {
             const userAnswer = userAnswers[exercise.id];
@@ -104,30 +105,30 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
             return (
               <div
                 key={exercise.id}
-                className={`p-4 rounded-lg border-2 ${
+                className={`p-5 rounded-xl border-2 transition-all ${
                   status === "correct"
-                    ? "border-green-200 bg-green-50"
-                    : "border-red-200 bg-red-50"
+                    ? "border-status-success/30 bg-status-success/10 shadow-sm"
+                    : "border-status-error/30 bg-status-error/10 shadow-sm"
                 }`}
               >
                 <div className="flex items-start gap-3">
                   {status === "correct" ? (
-                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                    <CheckCircle className="w-5 h-5 text-status-success mt-0.5" />
                   ) : (
-                    <XCircle className="w-5 h-5 text-red-600 mt-0.5" />
+                    <XCircle className="w-5 h-5 text-status-error mt-0.5" />
                   )}
                   <div className="flex-1">
-                    <div className="font-medium text-gray-900 mb-2">
+                    <div className="font-bold text-text-primary mb-2">
                       {index + 1}. {exercise.question}
                     </div>
-                    <div className="text-sm text-gray-600 mb-2">
-                      Your answer: {userAnswer || "No answer"}
+                    <div className="text-sm text-text-secondary mb-2">
+                      Your answer: <span className="font-medium">{userAnswer || "No answer"}</span>
                     </div>
-                    <div className="text-sm text-gray-600">
-                      Correct answer: {exercise.correctAnswer}
+                    <div className="text-sm text-text-secondary">
+                      Correct answer: <span className="font-bold text-text-primary">{exercise.correctAnswer}</span>
                     </div>
                     {exercise.explanation && (
-                      <div className="mt-2 text-sm text-gray-700 bg-white p-3 rounded">
+                      <div className="mt-3 text-sm text-text-secondary bg-surface p-3 rounded-lg border border-border italic">
                         {exercise.explanation}
                       </div>
                     )}
@@ -137,12 +138,13 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
             );
           })}
         </div>
-        <button
-          onClick={handleComplete}
-          className="mt-6 w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-        >
-          Complete Lesson
-        </button>
+         <button
+           onClick={handleComplete}
+           className="mt-8 w-full px-6 py-4 bg-primary text-white rounded-xl font-black transition-all hover:bg-primary-active shadow-lg"
+         >
+           Complete Lesson
+         </button>
+
       </div>
     );
   }
@@ -150,8 +152,8 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
   if (!currentExercise) {
     return (
       <div className="max-w-2xl mx-auto p-6 text-center">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">No exercises available</h2>
-        <p className="text-gray-600">Please contact support or try generating the course again.</p>
+        <h2 className="text-xl font-black text-text-primary mb-4">No exercises available</h2>
+        <p className="text-text-secondary">Please contact support or try generating the course again.</p>
       </div>
     );
   }
@@ -159,44 +161,44 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
   return (
     <div className="max-w-2xl mx-auto p-6">
       {/* Progress Bar */}
-      <div className="mb-6">
-        <div className="flex justify-between text-sm text-gray-600 mb-2">
+      <div className="mb-8">
+        <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-text-muted mb-2">
           <span>Exercise {currentExerciseIndex + 1} of {exercises.length}</span>
           <span>{Math.round(progress)}%</span>
         </div>
-        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div className="w-full h-2 bg-background rounded-full overflow-hidden border border-border">
           <div
-            className="h-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all"
+            className="h-full bg-primary transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
       {/* Lesson Info */}
-      <div className="mb-6 space-y-4">
-        <div className="p-4 bg-purple-50 rounded-lg">
-          <h2 className="text-xl font-bold text-gray-900 mb-1">{lesson.title}</h2>
-          <p className="text-sm text-gray-600">{lesson.summary}</p>
+      <div className="mb-8 space-y-4">
+        <div className="p-6 bg-surface border border-border rounded-2xl shadow-sm">
+          <h2 className="text-2xl font-black text-text-primary mb-2 tracking-tight">{lesson.title}</h2>
+          <p className="text-text-secondary leading-relaxed">{lesson.summary}</p>
         </div>
         
         {lesson.explanation && (
-          <div className="p-4 bg-white border-2 border-purple-100 rounded-lg">
-            <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
-              <Zap className="w-4 h-4 text-purple-600" />
-              Explanation
+          <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
+            <h3 className="font-black text-text-primary mb-3 flex items-center gap-2 uppercase tracking-widest text-xs">
+              <Zap className="w-4 h-4 text-primary" />
+              Core Concept
             </h3>
-            <div className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+            <div className="text-text-secondary leading-relaxed whitespace-pre-wrap">
               {lesson.explanation}
             </div>
           </div>
         )}
 
         {lesson.examples && lesson.examples.length > 0 && (
-          <div className="p-4 bg-white border-2 border-purple-100 rounded-lg">
-            <h3 className="font-bold text-gray-900 mb-2">Examples</h3>
-            <ul className="list-disc pl-5 space-y-2 text-gray-700">
+          <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
+            <h3 className="font-black text-text-primary mb-3 uppercase tracking-widest text-xs">Examples</h3>
+            <ul className="list-disc pl-5 space-y-2 text-text-secondary">
               {lesson.examples.map((example, index) => (
-                <li key={index}>{example}</li>
+                <li key={index} className="pl-1">{example}</li>
               ))}
             </ul>
           </div>
@@ -204,7 +206,7 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
       </div>
 
       {/* Exercise */}
-      <div className="mb-6">
+      <div className="mb-8 p-6 bg-surface border border-border rounded-2xl shadow-sm">
         <ExerciseRenderer
           exercise={currentExercise}
           userAnswer={userAnswers[currentExercise.id]}
@@ -213,22 +215,23 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
       </div>
 
       {/* Navigation */}
-      <div className="flex justify-between">
+      <div className="flex justify-between gap-4">
         <button
           onClick={() => setCurrentExerciseIndex((prev) => Math.max(0, prev - 1))}
           disabled={currentExerciseIndex === 0}
-          className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-6 py-3 bg-surface text-text-primary rounded-xl font-bold transition-all hover:bg-card disabled:opacity-50 disabled:cursor-not-allowed border border-border"
         >
           Previous
         </button>
-        <button
-          onClick={handleNext}
-          disabled={!userAnswers[currentExercise.id]}
-          className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-        >
-          {currentExerciseIndex === exercises.length - 1 ? "Finish" : "Next"}
-          <ArrowRight className="w-4 h-4" />
-        </button>
+         <button
+           onClick={handleNext}
+           disabled={!userAnswers[currentExercise.id]}
+           className="px-6 py-3 bg-primary text-white rounded-xl font-black transition-all hover:bg-primary-active disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-primary/20"
+         >
+           {currentExerciseIndex === exercises.length - 1 ? "Finish" : "Next"}
+           <ArrowRight className="w-4 h-4" />
+         </button>
+
       </div>
     </div>
   );
@@ -254,16 +257,16 @@ function ExerciseRenderer({ exercise, userAnswer, onAnswer }) {
 function TrueFalse({ exercise, userAnswer, onAnswer }) {
   return (
     <div>
-      <h3 className="text-lg font-medium text-gray-900 mb-4">{exercise.question}</h3>
+      <h3 className="text-lg font-bold text-text-primary mb-4">{exercise.question}</h3>
       <div className="flex gap-4">
         {["True", "False"].map((option) => (
           <button
             key={option}
             onClick={() => onAnswer(option)}
-            className={`flex-1 p-4 text-center rounded-lg border-2 transition-all ${
+            className={`flex-1 p-4 text-center rounded-xl border-2 transition-all font-bold ${
               userAnswer === option
-                ? "border-purple-500 bg-purple-50"
-                : "border-gray-200 hover:border-purple-300"
+                ? "border-primary bg-primary/10 text-primary shadow-sm"
+                : "border-border bg-surface text-text-secondary hover:border-primary/50 hover:bg-surface/80"
             }`}
           >
             {option}
@@ -277,16 +280,16 @@ function TrueFalse({ exercise, userAnswer, onAnswer }) {
 function MultipleChoice({ exercise, userAnswer, onAnswer }) {
   return (
     <div>
-      <h3 className="text-lg font-medium text-gray-900 mb-4">{exercise.question}</h3>
+      <h3 className="text-lg font-bold text-text-primary mb-4">{exercise.question}</h3>
       <div className="space-y-3">
         {exercise.options.map((option, index) => (
           <button
             key={index}
             onClick={() => onAnswer(option)}
-            className={`w-full p-4 text-left rounded-lg border-2 transition-all ${
+            className={`w-full p-4 text-left rounded-xl border-2 transition-all font-medium ${
               userAnswer === option
-                ? "border-purple-500 bg-purple-50"
-                : "border-gray-200 hover:border-purple-300"
+                ? "border-primary bg-primary/10 text-primary shadow-sm"
+                : "border-border bg-surface text-text-secondary hover:border-primary/50 hover:bg-surface/80"
             }`}
           >
             {option}
@@ -300,13 +303,13 @@ function MultipleChoice({ exercise, userAnswer, onAnswer }) {
 function FillBlank({ exercise, userAnswer, onAnswer }) {
   return (
     <div>
-      <h3 className="text-lg font-medium text-gray-900 mb-4">{exercise.question}</h3>
+      <h3 className="text-lg font-bold text-text-primary mb-4">{exercise.question}</h3>
       <input
         type="text"
         value={userAnswer || ""}
         onChange={(e) => onAnswer(e.target.value)}
         placeholder="Type your answer..."
-        className="w-full p-4 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none"
+        className="w-full p-4 border-2 border-border bg-background rounded-xl focus:border-primary focus:outline-none text-text-primary transition-all"
       />
     </div>
   );
@@ -315,13 +318,13 @@ function FillBlank({ exercise, userAnswer, onAnswer }) {
 function TypeAnswer({ exercise, userAnswer, onAnswer }) {
   return (
     <div>
-      <h3 className="text-lg font-medium text-gray-900 mb-4">{exercise.question}</h3>
+      <h3 className="text-lg font-bold text-text-primary mb-4">{exercise.question}</h3>
       <textarea
         value={userAnswer || ""}
         onChange={(e) => onAnswer(e.target.value)}
         placeholder="Type your answer..."
         rows={4}
-        className="w-full p-4 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none resize-none"
+        className="w-full p-4 border-2 border-border bg-background rounded-xl focus:border-primary focus:outline-none resize-none text-text-primary transition-all"
       />
     </div>
   );
@@ -355,18 +358,18 @@ function MatchPairs({ exercise, userAnswer: _userAnswer, onAnswer }) {
 
   return (
     <div>
-      <h3 className="text-lg font-medium text-gray-900 mb-4">{exercise.question}</h3>
-      <p className="text-sm text-gray-600 mb-4">Click an item on the left, then click its match on the right.</p>
+      <h3 className="text-lg font-bold text-text-primary mb-4">{exercise.question}</h3>
+      <p className="text-sm text-text-secondary mb-4">Click an item on the left, then click its match on the right.</p>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           {leftItems.map((item) => (
             <button
               key={item.id}
               onClick={() => handleLeftClick(item)}
-              className={`w-full p-3 text-left rounded-lg border-2 transition-all ${
+              className={`w-full p-3 text-left rounded-xl border-2 transition-all font-medium ${
                 selectedLeft?.id === item.id
-                  ? "border-purple-500 bg-purple-50"
-                  : "border-gray-200 hover:border-purple-300"
+                  ? "border-primary bg-primary/10 text-primary shadow-sm"
+                  : "border-border bg-surface text-text-secondary hover:border-primary/50 hover:bg-surface/80"
               }`}
             >
               {item.text}
@@ -378,7 +381,7 @@ function MatchPairs({ exercise, userAnswer: _userAnswer, onAnswer }) {
             <button
               key={item.id}
               onClick={() => handleRightClick(item)}
-              className="w-full p-3 text-left rounded-lg border-2 border-gray-200 hover:border-purple-300 transition-all"
+              className="w-full p-3 text-left rounded-xl border-2 border-border bg-surface text-text-secondary hover:border-primary/50 hover:bg-surface/80 transition-all font-medium"
             >
               {item.text}
             </button>
@@ -386,8 +389,8 @@ function MatchPairs({ exercise, userAnswer: _userAnswer, onAnswer }) {
         </div>
       </div>
       {matchedPairs.length > 0 && (
-        <div className="mt-4 p-3 bg-green-50 rounded-lg">
-          <p className="text-sm text-green-700">{matchedPairs.length} / {pairs.length} matched</p>
+        <div className="mt-4 p-3 bg-status-success/10 border border-status-success/20 rounded-xl text-center">
+          <p className="text-sm font-bold text-status-success">{matchedPairs.length} / {pairs.length} matched</p>
         </div>
       )}
     </div>
@@ -409,30 +412,32 @@ function ArrangeOrder({ exercise, userAnswer: _userAnswer, onAnswer }) {
 
   return (
     <div>
-      <h3 className="text-lg font-medium text-gray-900 mb-4">{exercise.question}</h3>
-      <p className="text-sm text-gray-600 mb-4">Drag to reorder the items in the correct sequence.</p>
+      <h3 className="text-lg font-bold text-text-primary mb-4">{exercise.question}</h3>
+      <p className="text-sm text-text-secondary mb-4">Drag to reorder the items in the correct sequence.</p>
       <div className="space-y-2">
         {items.map((item, index) => (
           <div
             key={item.id}
-            className="flex items-center gap-2 p-3 bg-white border-2 border-gray-200 rounded-lg"
+            className="flex items-center gap-2 p-3 bg-surface border-2 border-border rounded-xl"
           >
-            <button
-              onClick={() => moveItem(index, Math.max(0, index - 1))}
-              disabled={index === 0}
-              className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
-            >
-              Up
-            </button>
-            <button
-              onClick={() => moveItem(index, Math.min(items.length - 1, index + 1))}
-              disabled={index === items.length - 1}
-              className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
-            >
-              Down
-            </button>
-            <span className="flex-1">{item.text}</span>
-            <span className="text-gray-400 text-sm">{index + 1}</span>
+            <div className="flex gap-1">
+              <button
+                onClick={() => moveItem(index, Math.max(0, index - 1))}
+                disabled={index === 0}
+                className="p-1 text-text-muted hover:text-primary disabled:opacity-30 transition-colors"
+              >
+                Up
+              </button>
+              <button
+                onClick={() => moveItem(index, Math.min(items.length - 1, index + 1))}
+                disabled={index === items.length - 1}
+                className="p-1 text-text-muted hover:text-primary disabled:opacity-30 transition-colors"
+              >
+                Down
+              </button>
+            </div>
+            <span className="flex-1 font-medium text-text-primary">{item.text}</span>
+            <span className="text-text-muted text-sm font-bold">{index + 1}</span>
           </div>
         ))}
       </div>

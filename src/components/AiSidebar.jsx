@@ -88,95 +88,98 @@ export function AiSidebar() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className={`fixed bottom-6 right-6 z-30 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-indigo-600 to-amber-400 text-white shadow-lg transition-all duration-300 hover:scale-105 ${
-          open ? "pointer-events-none scale-0 opacity-0" : "scale-100 opacity-100"
-        }`}
-        aria-label="Open AI assistant"
-      >
-        <Sparkles size={22} />
-      </button>
+    <button
+      type="button"
+      onClick={() => setOpen(true)}
+      className={`fixed bottom-6 right-6 z-30 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-secondary to-primary text-white shadow-xl transition-all duration-300 hover:scale-110 hover:shadow-primary/30 ${
+        open ? "pointer-events-none scale-0 opacity-0" : "scale-100 opacity-100"
+      }`}
+      aria-label="Open AI assistant"
+    >
+      <Sparkles size={22} />
+    </button>
+
 
        <aside
-         className={`fixed inset-y-0 right-0 z-40 flex w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
-           open ? "translate-x-0" : "translate-x-full"
-         }`}
-         inert={!open}
-         aria-hidden={!open}
-         style={{ visibility: open ? 'visible' : 'hidden' }}
-
-      >
-        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="text-indigo-600" size={18} />
-            <div>
-              <p className="text-sm font-black">AI Assistant</p>
-              <p className="text-xs text-slate-500">Context from your Forge subjects</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            className="rounded-lg border border-slate-200 p-2 text-slate-500"
-            aria-label="Close AI assistant"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto bg-slate-50 p-4">
-          {messages.length ? (
-            <div className="grid gap-3">
-              {messages.map((message, index) => (
-                <div
-                  key={`${message.role}-${index}`}
-                  className={`max-w-[90%] rounded-xl px-3 py-2 text-sm leading-6 ${
-                    message.role === "user"
-                      ? "ml-auto bg-indigo-600 text-white"
-                      : "border border-slate-200 bg-white text-slate-700"
-                  }`}
-                >
-                  {message.content}
-                </div>
-              ))}
-              {loading ? (
-                <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">
-                  <Loader2 size={16} className="animate-spin" />
-                  Thinking...
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <EmptyState
-              title="Ask about your notes"
-              copy="The assistant uses your Forge subjects, units, sub-units, lessons, and uploaded material whenever possible."
-            />
-          )}
-        </div>
-
-        {error ? <p className="border-t border-red-100 bg-red-50 px-4 py-2 text-xs font-bold text-red-700">{error}</p> : null}
-
-        <form onSubmit={handleSubmit} className="border-t border-slate-200 p-4">
-          <div className="flex gap-2">
-            <input
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              placeholder="Ask a study question..."
-              className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400"
-              disabled={loading}
-            />
+          className={`fixed inset-y-0 right-0 z-40 flex w-full max-w-md flex-col border-l border-border bg-surface shadow-2xl transition-transform duration-300 ease-in-out ${
+            open ? "translate-x-0" : "translate-x-full"
+          }`}
+          inert={!open}
+          aria-hidden={!open}
+          style={{ visibility: open ? 'visible' : 'hidden' }}
+       >
+        <div className="flex items-center justify-between border-b border-border px-4 py-4">
+           <div className="flex items-center gap-2">
+             <MessageSquare className="text-primary" size={18} />
+             <div>
+               <p className="text-sm font-black text-text-primary">AI Assistant</p>
+               <p className="text-xs text-text-secondary">Context from your Forge subjects</p>
+             </div>
+           </div>
             <button
-              type="submit"
-              disabled={loading || !input.trim()}
-              className="rounded-lg bg-slate-950 px-3 py-2 text-white disabled:bg-slate-300"
-              aria-label="Send message"
+              type="button"
+              onClick={() => setOpen(false)}
+              className="rounded-lg border border-border bg-surface p-2 text-text-secondary transition-colors hover:bg-primary hover:text-white"
+              aria-label="Close AI assistant"
             >
-              <Send size={18} />
+              <X size={18} />
             </button>
-          </div>
-        </form>
+
+         </div>
+
+         <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto bg-background p-4">
+           {messages.length ? (
+             <div className="grid gap-3">
+               {messages.map((message, index) => (
+                 <div
+                   key={`${message.role}-${index}`}
+                   className={`max-w-[90%] rounded-2xl px-4 py-2 text-sm leading-relaxed transition-all ${
+                      message.role === "user"
+                        ? "ml-auto bg-secondary text-white shadow-sm"
+                        : "border border-border bg-surface text-text-primary shadow-sm"
+
+                   }`}
+                 >
+                   {message.content}
+                 </div>
+               ))}
+               {loading ? (
+                 <div className="inline-flex items-center gap-2 rounded-2xl border border-border bg-surface px-4 py-2 text-sm text-text-secondary">
+                   <Loader2 size={16} className="animate-spin text-primary" />
+                   Thinking...
+                 </div>
+               ) : null}
+             </div>
+           ) : (
+             <EmptyState
+               title="Ask about your notes"
+               copy="The assistant uses your Forge subjects, units, sub-units, lessons, and uploaded material whenever possible."
+             />
+           )}
+         </div>
+
+         {error ? <p className="border-t border-status-error/20 bg-status-error/10 px-4 py-2 text-xs font-bold text-status-error">{error}</p> : null}
+
+         <form onSubmit={handleSubmit} className="border-t border-border p-4 bg-surface">
+           <div className="flex gap-2">
+             <input
+               value={input}
+               onChange={(event) => setInput(event.target.value)}
+               placeholder="Ask a study question..."
+               className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary outline-none focus:border-primary transition-all"
+               disabled={loading}
+             />
+              <button
+                type="submit"
+                disabled={loading || !input.trim()}
+                className="rounded-lg bg-primary px-3 py-2 text-white transition-all hover:bg-primary-active disabled:bg-background disabled:text-text-muted"
+                aria-label="Send message"
+              >
+                <Send size={18} />
+              </button>
+
+           </div>
+         </form>
       </aside>
     </>
   );

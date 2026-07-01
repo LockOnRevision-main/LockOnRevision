@@ -9,13 +9,13 @@ import {
   Lock,
   Medal,
   ShieldCheck,
-  Sparkles,
   Trophy,
   Users,
   Zap,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { Logo } from "../components/Logo.jsx";
 
 function IsoStack({ variant = "blue" }) {
   const palette =
@@ -85,10 +85,7 @@ export function LandingPage() {
         <div className="absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_50%_0%,var(--color-primary),transparent_60%)] opacity-20" />
         <nav className="relative mx-auto flex max-w-7xl items-center justify-between px-5 py-5">
           <Link to="/" className="flex items-center gap-3 font-black">
-            <span className="grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br from-primary to-secondary text-text-primary">
-              <Sparkles size={20} />
-            </span>
-            LockOn Revision
+            <Logo variant="horizontal" className="scale-110" />
           </Link>
           <div className="flex items-center gap-2">
             <Link to="/leaderboard" className="hidden rounded-lg px-3 py-2 text-sm font-bold text-text-secondary sm:inline-flex">
@@ -98,7 +95,7 @@ export function LandingPage() {
               type="button"
               onClick={getStarted}
               disabled={loading}
-              className="rounded-lg bg-secondary px-4 py-2 text-sm font-black text-text-primary disabled:opacity-60"
+              className="rounded-lg bg-secondary px-4 py-2 text-sm font-black text-text-primary transition-all duration-150 active:scale-95 disabled:opacity-60"
             >
               Get Started
             </button>
@@ -122,7 +119,7 @@ export function LandingPage() {
                 type="button"
                 onClick={getStarted}
                 disabled={loading}
-                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary to-secondary px-6 py-3 font-black text-text-primary shadow-xl shadow-primary/20 transition hover:-translate-y-0.5 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary to-secondary px-6 py-3 font-black text-text-primary shadow-xl shadow-primary/20 transition-all duration-300 hover:-translate-y-0.5 active:scale-95 disabled:opacity-60"
               >
                 Get Started
                 <ArrowRight size={18} />
@@ -146,13 +143,14 @@ export function LandingPage() {
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          {featureCards.map((feature) => (
-            <article key={feature.title} className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-              <feature.icon className="text-primary" size={24} />
-              <h3 className="mt-4 text-lg font-black text-text-primary">{feature.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-text-secondary">{feature.copy}</p>
-            </article>
-          ))}
+           {featureCards.map((feature) => (
+             <article key={feature.title} className="rounded-xl border border-border bg-surface p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+               <feature.icon className="text-primary" size={24} />
+               <h3 className="mt-4 text-lg font-black tracking-tight text-text-primary">{feature.title}</h3>
+               <p className="mt-2 text-sm leading-6 text-text-secondary">{feature.copy}</p>
+             </article>
+           ))}
+
         </div>
       </section>
 
@@ -163,17 +161,18 @@ export function LandingPage() {
             <h2 className="mt-3 text-4xl font-black tracking-tight text-text-primary">A revision platform built around action.</h2>
           </div>
           <div className="mt-10 grid gap-5 md:grid-cols-3">
-            {[
-              ["XP", "Tracks learning progress from completed work.", BookOpenCheck],
-              ["Energy", "Rewards high-quality performance and unit completion.", Zap],
-              ["Leaderboard", "Ranks students by total score, not vanity activity.", Medal],
-            ].map(([title, copy, Icon]) => (
-              <article key={title} className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                <Icon className="text-primary" size={28} />
-                <h3 className="mt-5 text-2xl font-black text-text-primary">{title}</h3>
-                <p className="mt-2 leading-7 text-text-secondary">{copy}</p>
-              </article>
-            ))}
+             {[
+               ["XP", "Tracks learning progress from completed work.", BookOpenCheck],
+               ["Energy", "Rewards high-quality performance and unit completion.", Zap],
+               ["Leaderboard", "Ranks students by total score, not vanity activity.", Medal],
+             ].map(([title, copy, Icon]) => (
+               <article key={title} className="rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+                 <Icon className="text-primary" size={28} />
+                 <h3 className="mt-5 text-2xl font-black tracking-tight text-text-primary">{title}</h3>
+                 <p className="mt-2 leading-7 text-text-secondary">{copy}</p>
+               </article>
+             ))}
+
           </div>
         </div>
       </section>
@@ -184,14 +183,15 @@ export function LandingPage() {
           <p className="text-sm font-bold uppercase tracking-widest text-primary">How It Works</p>
           <h2 className="mt-3 text-4xl font-black tracking-tight text-text-primary">XP + Energy creates a clearer score.</h2>
           <div className="mt-6 grid gap-3">
-            {steps.map((step, index) => (
-              <div key={step} className="flex gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface text-sm font-black text-primary">
-                  {index + 1}
-                </span>
-                <p className="font-bold text-text-primary">{step}</p>
-              </div>
-            ))}
+             {steps.map((step, index) => (
+               <div key={step} className="flex gap-3 rounded-xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:bg-surface">
+                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface text-sm font-black text-primary">
+                   {index + 1}
+                 </span>
+                 <p className="font-bold text-text-primary">{step}</p>
+               </div>
+             ))}
+
           </div>
           <p className="mt-5 rounded-xl bg-gradient-to-r from-surface to-card p-4 font-black text-text-primary">
             Total Score = XP + (Energy x 100)

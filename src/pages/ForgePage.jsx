@@ -4,6 +4,7 @@ import { ForgeStructureEditor } from "../components/ForgeStructureEditor.jsx";
 import { EmptyState } from "../components/EmptyState.jsx";
 import { ForgeCurriculumView } from "../components/ForgeCurriculumView.jsx";
 import { LessonPlayer } from "../components/LessonPlayer.jsx";
+import { Logo } from "../components/Logo.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { completeLesson } from "../services/learningService.js";
 import {
@@ -165,7 +166,7 @@ export function ForgePage() {
       <div className="max-w-4xl mx-auto p-6">
         <button
           onClick={() => setSelectedLesson(null)}
-          className="mb-4 text-gray-600 hover:text-gray-900 flex items-center gap-2"
+          className="mb-4 text-text-secondary hover:text-text-primary flex items-center gap-2"
         >
           &larr; Back to Curriculum
         </button>
@@ -180,14 +181,14 @@ export function ForgePage() {
   return (
     <div className="relative space-y-6">
       {busy && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface/80 backdrop-blur-sm">
              <div className="flex flex-col items-center gap-4 p-8 text-center">
-               <img src="/assets/branding/loading.svg" className="w-16 h-16" alt="Processing..." />
-               <div className="text-lg font-bold text-gray-900">{status || "Processing..."}</div>
+               <Logo variant="icon" className="w-16 h-16 animate-pulse" />
+               <div className="text-lg font-bold text-text-primary">{status || "Processing..."}</div>
                {progress > 0 && (
-                 <div className="w-64 h-2 bg-gray-200 rounded-full overflow-hidden">
+                 <div className="w-64 h-2 bg-background rounded-full overflow-hidden">
                    <div 
-                     className="h-full bg-indigo-600 transition-all duration-300" 
+                     className="h-full bg-primary transition-all duration-300" 
                      style={{ width: `${progress}%` }}
                    />
                  </div>
@@ -202,7 +203,7 @@ export function ForgePage() {
             <div className="flex items-center justify-between mb-6">
               <button
                 onClick={() => setSelectedId("")}
-                className="text-gray-600 hover:text-gray-900"
+                className="text-text-secondary hover:text-text-primary"
               >
                 &larr; All Subjects
               </button>
@@ -210,7 +211,7 @@ export function ForgePage() {
                 <button
                   onClick={handleRegenerate}
                   disabled={busy || !draft}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 bg-background text-text-secondary rounded-lg hover:bg-surface transition-colors disabled:opacity-50"
                 >
                   <RefreshCw className={`w-4 h-4 ${busy ? "animate-spin" : ""}`} />
                   Regenerate
@@ -228,13 +229,13 @@ export function ForgePage() {
         </div>
       ) : (
         <React.Fragment>
-          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-black text-slate-800">My Subjects</h2>
-                     <button
-                       onClick={() => setSelectedId("")}
-                       className="text-sm font-bold text-indigo-600 hover:text-indigo-800"
-                     >
+              <h2 className="text-xl font-black text-text-primary">My Subjects</h2>
+                       <button
+                        onClick={() => setSelectedId("")}
+                        className="text-sm font-bold text-primary hover:text-primary-active"
+                      >
                 View All
               </button>
             </div>
@@ -246,8 +247,8 @@ export function ForgePage() {
                   onClick={() => setSelectedId(subject.id)}
                   className={`rounded-full border px-4 py-2 text-sm font-bold transition ${
                      selectedId === subject.id
-                       ? "border-indigo-600 bg-indigo-600 text-white"
-                       : "border-slate-200 text-slate-700 hover:border-slate-300"
+                      ? "border-primary bg-primary text-white"
+                      : "border-border text-text-secondary hover:border-border"
                   }`}
                 >
                   {subject.title}
@@ -257,46 +258,46 @@ export function ForgePage() {
           </section>
 
           <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-sm font-bold uppercase tracking-widest text-slate-500">Forge New</p>
+            <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">Forge New</p>
               <h2 className="mt-1 text-2xl font-black">Study materials</h2>
 
-               <label className="mt-4 grid cursor-pointer place-items-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center transition hover:border-indigo-400">
-                 <FileUp size={32} className="text-indigo-600" />
-                <strong className="mt-3">Upload notes or documents</strong>
-                <span className="mt-1 text-sm text-slate-500">PDF, text, or images up to 20MB each</span>
-                <input
-                  className="hidden"
-                  type="file"
-                  multiple
-                  accept=".pdf,.txt,.md,.png,.jpg,.jpeg,.webp,.gif,.svg,.docx,.pptx"
-                  onChange={handleUpload}
-                  disabled={busy}
-                />
-              </label>
+               <label className="mt-4 grid cursor-pointer place-items-center rounded-xl border-2 border-dashed border-border bg-background p-8 text-center transition hover:border-primary">
+                  <FileUp size={32} className="text-primary" />
+                 <strong className="mt-3">Upload notes or documents</strong>
+                 <span className="mt-1 text-sm text-text-secondary">PDF, text, or images up to 20MB each</span>
+                 <input
+                   className="hidden"
+                   type="file"
+                   multiple
+                   accept=".pdf,.txt,.md,.png,.jpg,.jpeg,.webp,.gif,.svg,.docx,.pptx"
+                   onChange={handleUpload}
+                   disabled={busy}
+                 />
+               </label>
 
-              <textarea
-                value={pastedNotes}
-                onChange={(event) => setPastedNotes(event.target.value)}
-                 className="mt-4 min-h-40 w-full resize-y rounded-lg border border-slate-200 px-4 py-3 text-sm leading-6 outline-none focus:border-indigo-400"
-                placeholder="Or paste notes here..."
-                disabled={busy}
-              />
+               <textarea
+                 value={pastedNotes}
+                 onChange={(event) => setPastedNotes(event.target.value)}
+                  className="mt-4 min-h-40 w-full resize-y rounded-lg border border-border px-4 py-3 text-sm leading-6 outline-none focus:border-primary"
+                 placeholder="Or paste notes here..."
+                 disabled={busy}
+               />
 
-              <button
-                type="button"
-                disabled={busy}
-                onClick={handleGenerateFromPaste}
-                className="mt-3 w-full rounded-lg bg-slate-950 px-4 py-3 font-black text-white disabled:bg-slate-300"
-              >
-                Generate from pasted notes
-              </button>
+               <button
+                 type="button"
+                 disabled={busy}
+                 onClick={handleGenerateFromPaste}
+                 className="mt-3 w-full rounded-lg bg-secondary px-4 py-3 font-black text-white disabled:bg-text-muted"
+               >
+                 Generate from pasted notes
+               </button>
             </section>
 
-            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-bold uppercase tracking-widest text-slate-500">Structure</p>
+                  <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">Structure</p>
                   <h2 className="text-2xl font-black">Edit learning path</h2>
                 </div>
                 {draft ? (
@@ -305,17 +306,17 @@ export function ForgePage() {
                       type="button"
                       disabled={busy}
                       onClick={handleRegenerate}
-                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-bold text-text-secondary disabled:opacity-50"
                     >
                       <RefreshCw size={16} />
                       Regenerate
                     </button>
                      <button
-                       type="button"
-                       disabled={busy}
-                       onClick={handleSave}
-                       className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-black text-white disabled:bg-indigo-300"
-                     >
+                      type="button"
+                      disabled={busy}
+                      onClick={handleSave}
+                      className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-black text-white disabled:bg-primary-active"
+                    >
                       <Save size={16} />
                       Save changes
                     </button>
