@@ -107,13 +107,13 @@ export function LandingPage() {
 
         <div className="relative mx-auto grid min-h-[720px] max-w-7xl items-center gap-10 px-5 py-16 lg:grid-cols-[1fr_0.9fr]">
           <div>
-            <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/80 px-3 py-2 text-sm font-bold text-blue-700 shadow-sm">
-              <GraduationCap size={16} />
-              Competitive revision for students
+            <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-surface/80 px-3 py-2 text-sm font-bold text-primary shadow-sm">
+                <GraduationCap size={16} />
+                Competitive revision for students
             </p>
-            <h1 className="text-5xl font-black tracking-tight sm:text-7xl">LockOn Revision</h1>
-            <p className="mt-5 max-w-2xl text-xl font-medium leading-8 text-slate-600">Smarter revision starts here.</p>
-            <p className="mt-4 max-w-2xl text-slate-600">
+            <h1 className="text-5xl font-black tracking-tight sm:text-7xl text-text-primary">LockOn Revision</h1>
+            <p className="mt-5 max-w-2xl text-xl font-medium leading-8 text-text-secondary">Smarter revision starts here.</p>
+            <p className="mt-4 max-w-2xl text-text-secondary">
               LockOn Revision turns study consistency into a visible scoring system. Students complete units, attempt
               mock tests, gain XP, earn Energy, and compare progress through a focused leaderboard.
             </p>
@@ -122,12 +122,12 @@ export function LandingPage() {
                 type="button"
                 onClick={getStarted}
                 disabled={loading}
-                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-amber-500 px-6 py-3 font-black text-white shadow-xl shadow-amber-100 transition hover:-translate-y-0.5 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary to-secondary px-6 py-3 font-black text-text-primary shadow-xl shadow-primary/20 transition hover:-translate-y-0.5 disabled:opacity-60"
               >
                 Get Started
                 <ArrowRight size={18} />
               </button>
-              <Link to="/leaderboard" className="rounded-lg border border-slate-200 bg-white px-6 py-3 font-black text-slate-700 shadow-sm">
+              <Link to="/leaderboard" className="rounded-lg border border-border bg-surface px-6 py-3 font-black text-text-primary shadow-sm">
                 View Leaderboard
               </Link>
             </div>
@@ -138,29 +138,29 @@ export function LandingPage() {
 
       <section className="mx-auto grid max-w-7xl gap-8 px-5 py-20 lg:grid-cols-[0.8fr_1.2fr]">
         <div>
-          <p className="text-sm font-bold uppercase tracking-widest text-indigo-600">Why LockOn</p>
-          <h2 className="mt-3 text-4xl font-black tracking-tight">Revision needs feedback, not just effort.</h2>
-          <p className="mt-4 text-slate-600">
+          <p className="text-sm font-bold uppercase tracking-widest text-primary">Why LockOn</p>
+          <h2 className="mt-3 text-4xl font-black tracking-tight text-text-primary">Revision needs feedback, not just effort.</h2>
+          <p className="mt-4 text-text-secondary">
             Students often study without knowing whether the work is compounding. LockOn makes progress measurable and
             encourages better habits through simple, visible scoring.
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           {featureCards.map((feature) => (
-            <article key={feature.title} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <feature.icon className="text-indigo-600" size={24} />
-              <h3 className="mt-4 text-lg font-black">{feature.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{feature.copy}</p>
+            <article key={feature.title} className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+              <feature.icon className="text-primary" size={24} />
+              <h3 className="mt-4 text-lg font-black text-text-primary">{feature.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-text-secondary">{feature.copy}</p>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="bg-slate-50 py-20">
+      <section className="bg-surface py-20">
         <div className="mx-auto max-w-7xl px-5">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-sm font-bold uppercase tracking-widest text-indigo-600">Features</p>
-            <h2 className="mt-3 text-4xl font-black tracking-tight">A revision platform built around action.</h2>
+            <p className="text-sm font-bold uppercase tracking-widest text-primary">Features</p>
+            <h2 className="mt-3 text-4xl font-black tracking-tight text-text-primary">A revision platform built around action.</h2>
           </div>
           <div className="mt-10 grid gap-5 md:grid-cols-3">
             {[
@@ -168,10 +168,10 @@ export function LandingPage() {
               ["Energy", "Rewards high-quality performance and unit completion.", Zap],
               ["Leaderboard", "Ranks students by total score, not vanity activity.", Medal],
             ].map(([title, copy, Icon]) => (
-              <article key={title} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                <Icon className="text-amber-500" size={28} />
-                <h3 className="mt-5 text-2xl font-black">{title}</h3>
-                <p className="mt-2 leading-7 text-slate-600">{copy}</p>
+              <article key={title} className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                <Icon className="text-primary" size={28} />
+                <h3 className="mt-5 text-2xl font-black text-text-primary">{title}</h3>
+                <p className="mt-2 leading-7 text-text-secondary">{copy}</p>
               </article>
             ))}
           </div>
@@ -181,49 +181,49 @@ export function LandingPage() {
       <section className="mx-auto grid max-w-7xl items-center gap-10 px-5 py-20 lg:grid-cols-2">
         <IsoStack variant="green" />
         <div>
-          <p className="text-sm font-bold uppercase tracking-widest text-indigo-600">How It Works</p>
-          <h2 className="mt-3 text-4xl font-black tracking-tight">XP + Energy creates a clearer score.</h2>
+          <p className="text-sm font-bold uppercase tracking-widest text-primary">How It Works</p>
+          <h2 className="mt-3 text-4xl font-black tracking-tight text-text-primary">XP + Energy creates a clearer score.</h2>
           <div className="mt-6 grid gap-3">
             {steps.map((step, index) => (
-              <div key={step} className="flex gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-indigo-50 text-sm font-black text-blue-700">
+              <div key={step} className="flex gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface text-sm font-black text-primary">
                   {index + 1}
                 </span>
-                <p className="font-bold text-slate-700">{step}</p>
+                <p className="font-bold text-text-primary">{step}</p>
               </div>
             ))}
           </div>
-          <p className="mt-5 rounded-xl bg-gradient-to-r from-indigo-50 to-amber-50 p-4 font-black text-blue-800">
+          <p className="mt-5 rounded-xl bg-gradient-to-r from-surface to-card p-4 font-black text-text-primary">
             Total Score = XP + (Energy x 100)
           </p>
         </div>
       </section>
 
-      <section className="bg-gradient-to-br from-slate-950 to-blue-950 py-20 text-white">
+      <section className="bg-gradient-to-br from-background to-secondary py-20 text-text-primary">
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-5 lg:grid-cols-[1fr_0.9fr]">
           <div>
-            <p className="text-sm font-bold uppercase tracking-widest text-amber-300">Leaderboard Overview</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-primary">Leaderboard Overview</p>
             <h2 className="mt-3 text-4xl font-black tracking-tight">Competition that rewards consistency.</h2>
-            <p className="mt-4 leading-7 text-white/70">
+            <p className="mt-4 leading-7 text-text-secondary">
               The leaderboard is intentionally simple: students are ranked by total score. XP shows learning volume,
               Energy highlights high-value performance, and the formula keeps the system easy to understand.
             </p>
-            <p className="mt-5 inline-flex items-center gap-2 rounded-lg bg-white/10 px-4 py-3 font-black text-amber-100">
+            <p className="mt-5 inline-flex items-center gap-2 rounded-lg bg-surface/50 px-4 py-3 font-black text-text-primary">
               <Zap size={18} />
               1 Energy = 100 XP
             </p>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/10 p-5 shadow-2xl shadow-amber-950/40 backdrop-blur">
+          <div className="rounded-xl border border-border bg-surface/50 p-5 shadow-2xl shadow-secondary/40 backdrop-blur">
             {["Rank", "Name", "Total Score"].map((item) => (
-              <span key={item} className="mr-6 text-xs font-bold uppercase tracking-widest text-white/45">
+              <span key={item} className="mr-6 text-xs font-bold uppercase tracking-widest text-text-muted">
                 {item}
               </span>
             ))}
             <div className="mt-4 grid gap-3">
               {["Student profile", "XP breakdown", "Energy bonus"].map((item, index) => (
-                <div key={item} className="flex items-center justify-between rounded-lg bg-white/10 p-4">
-                  <span className="font-black">{index + 1}. {item}</span>
-                  <span className="text-amber-200">Firestore</span>
+                <div key={item} className="flex items-center justify-between rounded-lg bg-surface/50 p-4">
+                  <span className="font-black text-text-primary">{index + 1}. {item}</span>
+                  <span className="text-primary">Firestore</span>
                 </div>
               ))}
             </div>
@@ -233,9 +233,9 @@ export function LandingPage() {
 
       <section className="mx-auto grid max-w-7xl gap-8 px-5 py-20 lg:grid-cols-[0.9fr_1.1fr]">
         <div>
-          <p className="text-sm font-bold uppercase tracking-widest text-indigo-600">Admin Capabilities</p>
-          <h2 className="mt-3 text-4xl font-black tracking-tight">Designed for cohorts, moderation, and insight.</h2>
-          <p className="mt-4 text-slate-600">
+          <p className="text-sm font-bold uppercase tracking-widest text-primary">Admin Capabilities</p>
+          <h2 className="mt-3 text-4xl font-black tracking-tight text-text-primary">Designed for cohorts, moderation, and insight.</h2>
+          <p className="mt-4 text-text-secondary">
             Admin tooling gives authorized teams a focused place to review users, rewards, Forge content, and access
             decisions.
           </p>
@@ -247,31 +247,31 @@ export function LandingPage() {
             ["Energy rule tuning", Gauge],
             ["Access management", Lock],
           ].map(([title, Icon]) => (
-            <article key={title} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <Icon className="text-indigo-600" />
-              <h3 className="mt-4 font-black">{title}</h3>
-              <p className="mt-2 text-sm text-slate-500">Available through the authenticated admin workspace.</p>
+            <article key={title} className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+              <Icon className="text-primary" />
+              <h3 className="mt-4 font-black text-text-primary">{title}</h3>
+              <p className="mt-2 text-sm text-text-muted">Available through the authenticated admin workspace.</p>
             </article>
           ))}
         </div>
       </section>
-
-      <section className="px-5 pb-20">
-        <div className="mx-auto max-w-5xl rounded-2xl bg-gradient-to-r from-indigo-600 to-amber-500 p-10 text-center text-white shadow-2xl shadow-amber-100">
-          <CheckCircle2 className="mx-auto" size={36} />
-          <h2 className="mt-4 text-4xl font-black tracking-tight">Ready to lock in better revision?</h2>
-          <p className="mx-auto mt-3 max-w-2xl text-white/80">
-            Create an account, upload your notes, generate lessons, and keep momentum visible as you revise.
-          </p>
-          <button
-            type="button"
-            onClick={getStarted}
-            className="mt-7 rounded-lg bg-white px-6 py-3 font-black text-blue-700 shadow-sm"
-          >
-            Get Started
-          </button>
-        </div>
-      </section>
+    </section>
+    <section className="px-5 pb-20">
+      <div className="mx-auto max-w-5xl rounded-2xl bg-gradient-to-r from-primary to-secondary p-10 text-center text-text-primary shadow-2xl shadow-primary/20">
+        <CheckCircle2 className="mx-auto" size={36} />
+        <h2 className="mt-4 text-4xl font-black tracking-tight">Ready to lock in better revision?</h2>
+        <p className="mx-auto mt-3 max-w-2xl text-text-secondary">
+          Create an account, upload your notes, generate lessons, and keep momentum visible as you revise.
+        </p>
+        <button
+          type="button"
+          onClick={getStarted}
+          className="mt-7 rounded-lg bg-text-primary px-6 py-3 font-black text-primary shadow-sm"
+        >
+          Get Started
+        </button>
+      </div>
+    </section>
     </main>
   );
 }

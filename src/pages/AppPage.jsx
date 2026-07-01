@@ -62,17 +62,17 @@ export function AppPage() {
 
   return (
     <div className="grid gap-6">
-      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="bg-gradient-to-r from-indigo-600 to-amber-400 p-6 text-white">
-          <p className="text-sm font-bold uppercase tracking-widest text-white/75">Dashboard</p>
+      <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+        <div className="bg-gradient-to-r from-primary to-secondary p-6 text-text-primary">
+          <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">Dashboard</p>
           <div className="mt-2 flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
-              <h1 className="text-4xl font-black tracking-tight">Welcome, {profile?.name || "Learner"}</h1>
-              <p className="mt-2 max-w-2xl text-white/85">Gain XP, earn energy, and climb the leaderboard.</p>
+              <h1 className="text-4xl font-black tracking-tight text-text-primary">Welcome, {profile?.name || "Learner"}</h1>
+              <p className="mt-2 max-w-2xl text-text-primary/85">Gain XP, earn energy, and climb the leaderboard.</p>
             </div>
             <Link
               to="/leaderboard"
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 font-black text-blue-700 shadow-sm"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-text-primary px-4 py-3 font-black text-primary shadow-sm"
             >
               <Trophy size={18} />
               Leaderboard
@@ -82,43 +82,43 @@ export function AppPage() {
       </section>
 
       {!isFirebaseConfigured ? (
-        <p className="rounded-lg border border-amber-100 bg-amber-50 p-3 text-sm font-bold text-amber-900">
+        <p className="rounded-lg border border-border bg-card p-3 text-sm font-bold text-text-primary">
           Firebase is not configured. Add env values and restart the dev server to enable dashboard actions.
         </p>
       ) : null}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="XP" value={score.xp.toLocaleString()} helper="Learning progress" tone="bg-white" />
-        <StatCard label="Energy" value={String(score.energy)} helper="1 Energy = 100 XP" tone="bg-amber-50" />
-        <StatCard label="Total Score" value={score.totalScore.toLocaleString()} helper="XP + Energy bonus" tone="bg-indigo-50" />
+        <StatCard label="XP" value={score.xp.toLocaleString()} helper="Learning progress" tone="bg-surface" />
+        <StatCard label="Energy" value={String(score.energy)} helper="1 Energy = 100 XP" tone="bg-card" />
+        <StatCard label="Total Score" value={score.totalScore.toLocaleString()} helper="XP + Energy bonus" tone="bg-surface" />
         <StatCard
           label="Completed"
           value={`${profile?.completedTests?.length || 0}/${TESTS.length}`}
           helper="Mock tests awarded"
-          tone="bg-white"
+          tone="bg-surface"
         />
       </section>
 
-      {status ? <p className="rounded-lg border border-blue-100 bg-indigo-50 p-3 text-sm font-bold text-blue-800">{status}</p> : null}
+      {status ? <p className="rounded-lg border border-border bg-surface p-3 text-sm font-bold text-text-primary">{status}</p> : null}
 
       <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-        <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-3">
-            <Target className="text-indigo-600" />
+            <Target className="text-primary" />
             <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-slate-500">Mock tests</p>
-              <h2 className="text-2xl font-black">Earn controlled energy</h2>
+              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">Mock tests</p>
+              <h2 className="text-2xl font-black text-text-primary">Earn controlled energy</h2>
             </div>
           </div>
           <div className="grid gap-3">
             {TESTS.map((test) => {
               const completed = profile?.completedTests?.includes(test.id);
               return (
-                <div key={test.id} className="rounded-lg border border-slate-200 p-4">
+                <div key={test.id} className="rounded-lg border border-border p-4">
                   <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
                     <div>
-                      <p className="font-black">{test.title}</p>
-                      <p className="mt-1 text-sm text-slate-500">
+                      <p className="font-black text-text-primary">{test.title}</p>
+                      <p className="mt-1 text-sm text-text-secondary">
                         {test.difficulty} &bull; +{test.energy} energy &bull; +{test.xp} XP &bull; requires 60%+
                       </p>
                     </div>
@@ -129,14 +129,14 @@ export function AppPage() {
                         max="100"
                         value={scoreInputs[test.id]}
                         onChange={(event) => setScoreInputs({ ...scoreInputs, [test.id]: event.target.value })}
-                        className="w-20 rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold outline-none focus:border-blue-400"
+                        className="w-20 rounded-lg border border-border px-3 py-2 text-sm font-bold outline-none focus:border-primary bg-transparent text-text-primary"
                         aria-label={`${test.title} score`}
                       />
                       <button
                         type="button"
                         disabled={completed || busyId === test.id}
                         onClick={() => runTest(test.id)}
-                        className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-black text-white disabled:bg-slate-300"
+                        className="rounded-lg bg-secondary px-4 py-2 text-sm font-black text-text-primary disabled:bg-surface"
                       >
                         {completed ? "Done" : "Claim"}
                       </button>
@@ -146,33 +146,33 @@ export function AppPage() {
               );
             })}
           </div>
-          <div className="mt-4 flex items-center gap-2 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+          <div className="mt-4 flex items-center gap-2 rounded-lg bg-surface p-3 text-sm text-text-secondary">
             <Clock size={16} />
             Mock test energy has a 10 minute cooldown.
           </div>
         </article>
 
-        <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-3">
-            <Award className="text-amber-600" />
+            <Award className="text-primary" />
             <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-slate-500">My Subjects</p>
-              <h2 className="text-2xl font-black">Continue learning</h2>
+              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">My Subjects</p>
+              <h2 className="text-2xl font-black text-text-primary">Continue learning</h2>
             </div>
           </div>
 
           {subjects.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="mb-4 rounded-full bg-slate-100 p-4 text-slate-400">
+              <div className="mb-4 rounded-full bg-surface p-4 text-text-muted">
                 <Target size={40} />
               </div>
-              <h3 className="text-xl font-black text-slate-800">No Subjects Yet</h3>
-              <p className="mt-2 max-w-xs text-sm text-slate-500">
+              <h3 className="text-xl font-black text-text-primary">No Subjects Yet</h3>
+              <p className="mt-2 max-w-xs text-sm text-text-secondary">
                 Generate your first AI-powered subject to begin learning.
               </p>
               <Link
                 to="/forge"
-                className="mt-6 inline-flex items-center justify-center rounded-lg bg-indigo-600 px-6 py-3 font-black text-white shadow-sm transition hover:bg-blue-700"
+                className="mt-6 inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3 font-black text-text-primary shadow-sm transition hover:bg-secondary"
               >
                 Open Forge
               </Link>
@@ -195,16 +195,16 @@ export function AppPage() {
                   <Link
                     key={subject.id}
                     to="/forge"
-                    className="group flex items-center justify-between gap-3 rounded-lg border border-slate-200 p-4 text-left transition hover:border-blue-300 hover:bg-indigo-50/50"
+                    className="group flex items-center justify-between gap-3 rounded-lg border border-border p-4 text-left transition hover:border-primary hover:bg-surface/50"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="truncate font-black text-slate-800">{subject.title}</span>
+                        <span className="truncate font-black text-text-primary">{subject.title}</span>
                         {progress === 100 && (
-                          <CheckCircle2 size={16} className="shrink-0 text-green-500" />
+                          <CheckCircle2 size={16} className="shrink-0 text-status-success" />
                         )}
                       </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold text-slate-500">
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold text-text-secondary">
                         <span className="flex items-center gap-1">
                           <Target size={12} /> {currentUnit}
                         </span>
@@ -215,9 +215,9 @@ export function AppPage() {
                           <Award size={12} /> {progress}%
                         </span>
                       </div>
-                      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-surface">
                         <div
-                          className="h-full bg-indigo-600 transition-all duration-500"
+                          className="h-full bg-primary transition-all duration-500"
                           style={{ width: `${progress}%` }}
                         />
                       </div>
@@ -225,7 +225,7 @@ export function AppPage() {
                     <div className="shrink-0">
                       <button
                         type="button"
-                        className="rounded-lg bg-slate-950 px-4 py-2 text-xs font-black text-white transition group-hover:bg-indigo-600"
+                        className="rounded-lg bg-secondary px-4 py-2 text-xs font-black text-text-primary transition group-hover:bg-primary"
                       >
                         Continue
                       </button>
@@ -235,8 +235,8 @@ export function AppPage() {
               })}
             </div>
           )}
-          <div className="mt-4 rounded-lg bg-gradient-to-r from-indigo-50 to-amber-50 p-4">
-            <div className="flex items-center gap-2 font-black text-blue-800">
+          <div className="mt-4 rounded-lg bg-gradient-to-r from-surface to-card p-4">
+            <div className="flex items-center gap-2 font-black text-text-primary">
               <Zap size={18} />
               Total score = XP + (Energy x 100)
             </div>

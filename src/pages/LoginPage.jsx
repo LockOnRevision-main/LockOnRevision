@@ -30,25 +30,25 @@ export function LoginPage() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-gradient-to-br from-indigo-50 via-white to-amber-100 px-4 text-slate-950">
-      <section className="w-full max-w-md rounded-xl border border-white/80 bg-white/90 p-6 shadow-2xl shadow-blue-100 backdrop-blur">
+    <main className="grid min-h-screen place-items-center bg-gradient-to-br from-background via-surface to-secondary px-4 text-text-primary">
+      <section className="w-full max-w-md rounded-xl border border-border bg-surface p-6 shadow-2xl shadow-primary/20 backdrop-blur">
         <div className="mb-6">
-          <p className="text-sm font-bold uppercase tracking-widest text-indigo-600">LockOn Revision</p>
-          <h1 className="mt-2 text-3xl font-black">{mode === "register" ? "Create account" : "Welcome back"}</h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="text-sm font-bold uppercase tracking-widest text-primary">LockOn Revision</p>
+          <h1 className="mt-2 text-3xl font-black text-text-primary">{mode === "register" ? "Create account" : "Welcome back"}</h1>
+          <p className="mt-2 text-sm text-text-secondary">
             {isFirebaseConfigured ? "Sign in with your email and password." : "Firebase config is missing."}
           </p>
         </div>
 
         <form className="grid gap-4" onSubmit={handleSubmit}>
           {mode === "register" ? (
-            <label className="grid gap-2 text-sm font-bold">
+            <label className="grid gap-2 text-sm font-bold text-text-primary">
               Name
-              <span className="flex items-center gap-2 rounded-lg border border-slate-200 px-3">
-                <UserRound size={17} className="text-slate-400" />
+              <span className="flex items-center gap-2 rounded-lg border border-border px-3">
+                <UserRound size={17} className="text-text-muted" />
                 <input
                   required
-                  className="min-w-0 flex-1 py-3 outline-none"
+                  className="min-w-0 flex-1 py-3 outline-none bg-transparent text-text-primary"
                   value={form.name}
                   onChange={(event) => setForm({ ...form, name: event.target.value })}
                 />
@@ -56,40 +56,40 @@ export function LoginPage() {
             </label>
           ) : null}
 
-          <label className="grid gap-2 text-sm font-bold">
+          <label className="grid gap-2 text-sm font-bold text-text-primary">
             Email
-            <span className="flex items-center gap-2 rounded-lg border border-slate-200 px-3">
-              <Mail size={17} className="text-slate-400" />
+            <span className="flex items-center gap-2 rounded-lg border border-border px-3">
+              <Mail size={17} className="text-text-muted" />
               <input
                 required
                 type="email"
-                className="min-w-0 flex-1 py-3 outline-none"
+                className="min-w-0 flex-1 py-3 outline-none bg-transparent text-text-primary"
                 value={form.email}
                 onChange={(event) => setForm({ ...form, email: event.target.value })}
               />
             </span>
           </label>
 
-          <label className="grid gap-2 text-sm font-bold">
+          <label className="grid gap-2 text-sm font-bold text-text-primary">
             Password
-            <span className="flex items-center gap-2 rounded-lg border border-slate-200 px-3">
-              <LockKeyhole size={17} className="text-slate-400" />
+            <span className="flex items-center gap-2 rounded-lg border border-border px-3">
+              <LockKeyhole size={17} className="text-text-muted" />
               <input
                 required
                 minLength={8}
                 type="password"
-                className="min-w-0 flex-1 py-3 outline-none"
+                className="min-w-0 flex-1 py-3 outline-none bg-transparent text-text-primary"
                 value={form.password}
                 onChange={(event) => setForm({ ...form, password: event.target.value })}
               />
             </span>
           </label>
 
-          {error ? <p className="rounded-lg bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p> : null}
+          {error ? <p className="rounded-lg bg-status-error/20 p-3 text-sm font-bold text-status-error">{error}</p> : null}
 
           <button
             disabled={busy || !isFirebaseConfigured}
-            className="rounded-lg bg-slate-950 px-4 py-3 font-black text-white disabled:bg-slate-300"
+            className="rounded-lg bg-secondary px-4 py-3 font-black text-text-primary disabled:bg-surface"
           >
             {busy ? "Working..." : mode === "register" ? "Create account" : "Log in"}
           </button>
@@ -98,7 +98,7 @@ export function LoginPage() {
         <button
           type="button"
           onClick={() => setMode(mode === "register" ? "login" : "register")}
-          className="mt-5 w-full text-sm font-bold text-blue-700"
+          className="mt-5 w-full text-sm font-bold text-primary"
         >
           {mode === "register" ? "Already have an account? Log in" : "New here? Create an account"}
         </button>
