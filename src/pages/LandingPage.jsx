@@ -255,7 +255,6 @@ export function LandingPage() {
           ))}
         </div>
       </section>
-    </section>
     <section className="px-5 pb-20">
       <div className="mx-auto max-w-5xl rounded-2xl bg-gradient-to-r from-primary to-secondary p-10 text-center text-text-primary shadow-2xl shadow-primary/20">
         <CheckCircle2 className="mx-auto" size={36} />
