@@ -95,7 +95,7 @@ export function LandingPage() {
               type="button"
               onClick={getStarted}
               disabled={loading}
-              className="rounded-lg bg-secondary px-4 py-2 text-sm font-black text-text-primary transition-all duration-150 active:scale-95 disabled:opacity-60"
+              className="rounded-lg bg-secondary px-4 py-2 text-sm font-black text-text-primary transition-all duration-200 active:scale-95 disabled:opacity-60 hover:bg-secondary-hover"
             >
               Get Started
             </button>
@@ -115,18 +115,20 @@ export function LandingPage() {
               mock tests, gain XP, earn Energy, and compare progress through a focused leaderboard.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={getStarted}
-                disabled={loading}
-                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary to-secondary px-6 py-3 font-black text-text-primary shadow-xl shadow-primary/20 transition-all duration-300 hover:-translate-y-0.5 active:scale-95 disabled:opacity-60"
-              >
-                Get Started
-                <ArrowRight size={18} />
-              </button>
-              <Link to="/leaderboard" className="rounded-lg border border-border bg-surface px-6 py-3 font-black text-text-primary shadow-sm">
-                View Leaderboard
-              </Link>
+               <button
+                 type="button"
+                 onClick={getStarted}
+                 disabled={loading}
+                 className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary to-secondary px-6 py-3 font-black text-text-primary shadow-xl shadow-primary/20 transition-all duration-300 hover:-translate-y-0.5 active:scale-95 disabled:opacity-60 hover:shadow-primary/40"
+               >
+                 Get Started
+                 <ArrowRight size={18} />
+               </button>
+
+               <Link to="/leaderboard" className="rounded-lg border border-border bg-surface px-6 py-3 font-black text-text-primary shadow-sm transition-all hover:bg-background hover:border-primary/50 active:scale-95">
+                 View Leaderboard
+               </Link>
+
             </div>
           </div>
           <IsoStack />
@@ -256,20 +258,21 @@ export function LandingPage() {
         </div>
       </section>
     <section className="px-5 pb-20">
-      <div className="mx-auto max-w-5xl rounded-2xl bg-gradient-to-r from-primary to-secondary p-10 text-center text-text-primary shadow-2xl shadow-primary/20">
-        <CheckCircle2 className="mx-auto" size={36} />
-        <h2 className="mt-4 text-4xl font-black tracking-tight">Ready to lock in better revision?</h2>
-        <p className="mx-auto mt-3 max-w-2xl text-text-secondary">
-          Create an account, upload your notes, generate lessons, and keep momentum visible as you revise.
-        </p>
-        <button
-          type="button"
-          onClick={getStarted}
-          className="mt-7 rounded-lg bg-text-primary px-6 py-3 font-black text-primary shadow-sm"
-        >
-          Get Started
-        </button>
-      </div>
+       <div className="mx-auto max-w-5xl rounded-2xl bg-gradient-to-r from-primary to-secondary p-10 text-center text-text-primary shadow-2xl shadow-primary/20 transition-all duration-300 hover:shadow-primary/30">
+         <CheckCircle2 className="mx-auto" size={36} />
+         <h2 className="mt-4 text-4xl font-black tracking-tight">Ready to lock in better revision?</h2>
+         <p className="mx-auto mt-3 max-w-2xl text-text-secondary">
+           Create an account, upload your notes, generate lessons, and keep momentum visible as you revise.
+         </p>
+         <button
+           type="button"
+           onClick={getStarted}
+           className="mt-7 rounded-lg bg-text-primary px-6 py-3 font-black text-primary shadow-sm transition-all active:scale-95 hover:bg-text-primary/90"
+         >
+           Get Started
+         </button>
+       </div>
+
     </section>
     </main>
   );

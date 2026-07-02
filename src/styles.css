@@ -41,7 +41,7 @@
   --color-secondary: #005C9E;
   --color-secondary-hover: #0070C0;
   --color-secondary-active: #004B82;
-  --color-accent: #001B2E;
+  --color-accent: #E0F7FA;
   --color-background: #001B2E;
   --color-surface: #002B5B;
   --color-card: #003A75;
@@ -73,15 +73,16 @@ html {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-
 body {
   margin: 0;
   min-width: 320px;
 }
 
 button,
-input {
+input,
+a {
   font: inherit;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 button:disabled {

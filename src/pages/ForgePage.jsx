@@ -33,10 +33,25 @@ export function ForgePage() {
   const [status, setStatus] = useState("");
   const [progress, setProgress] = useState(0);
 
-  useEffect(() => subscribeForgeSubjects(user.uid, setSubjects), [user.uid]);
-  useEffect(() => subscribeForgeUnits(user.uid, setUnits), [user.uid]);
-  useEffect(() => subscribeForgeSubUnits(user.uid, setSubUnits), [user.uid]);
-  useEffect(() => subscribeForgeLessons(user.uid, setLessons), [user.uid]);
+  useEffect(() => {
+    const unsubscribe = subscribeForgeSubjects(user.uid, setSubjects);
+    return unsubscribe;
+  }, [user.uid]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeForgeUnits(user.uid, setUnits);
+    return unsubscribe;
+  }, [user.uid]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeForgeSubUnits(user.uid, setSubUnits);
+    return unsubscribe;
+  }, [user.uid]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeForgeLessons(user.uid, setLessons);
+    return unsubscribe;
+  }, [user.uid]);
 
   useEffect(() => {
     if (selectedId === null && subjects.length) {

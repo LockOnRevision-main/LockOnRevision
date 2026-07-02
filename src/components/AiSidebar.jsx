@@ -14,6 +14,17 @@ export function AiSidebar() {
   const [error, setError] = useState("");
   const [context, setContext] = useState(null);
   const scrollRef = useRef(null);
+  const triggerRef = useRef(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (open) {
+      // Small delay to ensure the element is visible and focusable
+      setTimeout(() => inputRef.current?.focus(), 100);
+    } else {
+      triggerRef.current?.focus();
+    }
+  }, [open]);
 
   useEffect(() => {
     async function loadContext() {
@@ -89,6 +100,7 @@ export function AiSidebar() {
   return (
     <>
     <button
+      ref={triggerRef}
       type="button"
       onClick={() => setOpen(true)}
       className={`fixed bottom-6 right-6 z-30 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-secondary to-primary text-white shadow-xl transition-all duration-300 hover:scale-110 hover:shadow-primary/30 ${
@@ -162,13 +174,15 @@ export function AiSidebar() {
 
          <form onSubmit={handleSubmit} className="border-t border-border p-4 bg-surface">
            <div className="flex gap-2">
-             <input
-               value={input}
-               onChange={(event) => setInput(event.target.value)}
-               placeholder="Ask a study question..."
-               className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary outline-none focus:border-primary transition-all"
-               disabled={loading}
-             />
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                placeholder="Ask a study question..."
+                className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary outline-none focus:border-primary transition-all"
+                disabled={loading}
+              />
+
               <button
                 type="submit"
                 disabled={loading || !input.trim()}

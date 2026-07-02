@@ -29,12 +29,12 @@ const PaperPlaneIcon = ({ className = "w-8 h-8" }) => (
     {/* Shadow/Back layer */}
     <path 
       d="M20 55 L80 15 L70 35 L45 60 L35 80 L20 55 Z" 
-      fill="#00A9C3" 
+      fill="var(--color-primary)" 
     />
     {/* Main layer */}
     <path 
       d="M30 60 L85 20 L75 40 L50 65 L40 85 L30 60 Z" 
-      fill="#E0F7FA" 
+      fill="var(--color-accent)" 
     />
   </svg>
 );
@@ -50,8 +50,8 @@ export const Logo = ({ variant = 'horizontal', className = '' }) => {
         Lock<span className="text-primary">On</span>Revision
       </h1>
       {(!isIcon) && (
-        <p className={`font-medium tracking-widest uppercase text-[10px] ${isStacked ? 'mt-1' : 'mt-0'} text-primary/80`}>
-          Learn more <span className="font-bold">Effectively</span>
+        <p className={`font-medium tracking-widest uppercase text-[10px] ${isStacked ? 'mt-1' : 'mt-0'} text-text-secondary`}>
+          Learn more <span className="font-bold text-primary">Effectively</span>
         </p>
       )}
     </div>

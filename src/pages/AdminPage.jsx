@@ -185,7 +185,7 @@ export function AdminPage() {
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Search by name or email..."
-              className="min-w-0 flex-1 rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-primary"
+              className="min-w-0 flex-1 rounded-lg border border-border px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
             />
             <button
               type="button"
@@ -255,7 +255,7 @@ export function AdminPage() {
                   type="number"
                   value={xpDelta}
                   onChange={(event) => setXpDelta(event.target.value)}
-                  className="w-24 rounded-lg border border-border px-3 py-2 text-sm"
+                  className="w-24 rounded-lg border border-border px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
                 />
                 <button type="button" disabled={busy} onClick={() => runXpAdjust(1)} className="rounded-lg bg-primary px-3 py-2 text-sm font-black text-white">
                   Add XP
@@ -273,7 +273,7 @@ export function AdminPage() {
                   type="number"
                   value={energyDelta}
                   onChange={(event) => setEnergyDelta(event.target.value)}
-                  className="w-24 rounded-lg border border-border px-3 py-2 text-sm"
+                  className="w-24 rounded-lg border border-border px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
                 />
                 <button type="button" disabled={busy} onClick={() => runEnergyAdjust(1)} className="rounded-lg bg-warning px-3 py-2 text-sm font-black text-white">
                   Add Energy
@@ -291,7 +291,7 @@ export function AdminPage() {
                   type="number"
                   value={totalScoreInput}
                   onChange={(event) => setTotalScoreInput(event.target.value)}
-                  className="w-32 rounded-lg border border-border px-3 py-2 text-sm"
+                  className="w-32 rounded-lg border border-border px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
                 />
                 <button type="button" disabled={busy} onClick={runTotalScoreSet} className="rounded-lg bg-secondary px-3 py-2 text-sm font-black text-white">
                   Set total score
@@ -317,20 +317,20 @@ export function AdminPage() {
               type="number"
               value={rewardXp}
               onChange={(event) => setRewardXp(event.target.value)}
-              className="rounded-lg border border-border px-3 py-2 text-sm"
+              className="rounded-lg border border-border px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
               placeholder="XP to grant"
             />
             <input
               type="number"
               value={rewardEnergy}
               onChange={(event) => setRewardEnergy(event.target.value)}
-              className="rounded-lg border border-border px-3 py-2 text-sm"
+              className="rounded-lg border border-border px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
               placeholder="Energy to grant"
             />
             <input
               value={rewardReason}
               onChange={(event) => setRewardReason(event.target.value)}
-              className="rounded-lg border border-border px-3 py-2 text-sm"
+              className="rounded-lg border border-border px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
               placeholder="Reason"
             />
             <button
