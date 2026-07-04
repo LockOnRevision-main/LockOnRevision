@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import { Logo } from "../components/Logo.jsx";
+import { logoLight } from "../assets/branding";
 
 function IsoStack({ variant = "blue" }) {
   const palette =
@@ -81,12 +81,13 @@ export function LandingPage() {
 
   return (
     <main className="min-h-screen bg-background text-text-primary">
-      <section className="relative overflow-hidden bg-gradient-to-br from-background via-surface to-secondary">
-        <div className="absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_50%_0%,var(--color-primary),transparent_60%)] opacity-20" />
+      <section className="relative overflow-hidden bg-background text-text-primary">
+        <div className="absolute inset-x-0 top-0 h-[600px] bg-[radial-gradient(circle_at_50%_0%,var(--color-primary),transparent_70%)] opacity-30" />
         <nav className="relative mx-auto flex max-w-7xl items-center justify-between px-5 py-5">
-          <Link to="/" className="flex items-center gap-3 font-black">
-            <Logo variant="horizontal" className="scale-110" />
-          </Link>
+            <Link to="/" className="flex items-center gap-3 font-black">
+              <img src={logoLight} alt="LockOn Revision Logo" className="h-10 w-auto scale-110" />
+            </Link>
+
           <div className="flex items-center gap-2">
             <Link to="/leaderboard" className="hidden rounded-lg px-3 py-2 text-sm font-bold text-text-secondary sm:inline-flex">
               Leaderboard
@@ -95,7 +96,7 @@ export function LandingPage() {
               type="button"
               onClick={getStarted}
               disabled={loading}
-              className="rounded-lg bg-secondary px-4 py-2 text-sm font-black text-text-primary transition-all duration-200 active:scale-95 disabled:opacity-60 hover:bg-secondary-hover"
+              className="rounded-lg bg-secondary px-4 py-2 text-sm font-bold text-text-primary transition-all duration-200 active:scale-95 disabled:opacity-60 hover:bg-secondary-hover"
             >
               Get Started
             </button>
@@ -108,26 +109,28 @@ export function LandingPage() {
                 <GraduationCap size={16} />
                 Competitive revision for students
             </p>
-            <h1 className="text-5xl font-black tracking-tight sm:text-7xl text-text-primary">LockOn Revision</h1>
-            <p className="mt-5 max-w-2xl text-xl font-medium leading-8 text-text-secondary">Smarter revision starts here.</p>
-            <p className="mt-4 max-w-2xl text-text-secondary">
+            <h1 className="text-5xl font-extrabold tracking-tight sm:text-7xl text-text-primary leading-[1.1]">LockOn Revision</h1>
+            <p className="mt-5 max-w-2xl text-xl font-semibold leading-relaxed text-text-secondary">Smarter revision starts here.</p>
+            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-text-secondary">
               LockOn Revision turns study consistency into a visible scoring system. Students complete units, attempt
               mock tests, gain XP, earn Energy, and compare progress through a focused leaderboard.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-               <button
-                 type="button"
-                 onClick={getStarted}
-                 disabled={loading}
-                 className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary to-secondary px-6 py-3 font-black text-text-primary shadow-xl shadow-primary/20 transition-all duration-300 hover:-translate-y-0.5 active:scale-95 disabled:opacity-60 hover:shadow-primary/40"
-               >
-                 Get Started
-                 <ArrowRight size={18} />
-               </button>
+                <button
+                  type="button"
+                  onClick={getStarted}
+                  disabled={loading}
+                  className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-br from-primary via-primary to-secondary px-6 py-3 font-bold text-text-primary shadow-xl shadow-primary/30 transition-all duration-300 hover:-translate-y-0.5 active:scale-95 disabled:opacity-60 hover:shadow-primary/50"
+                >
+                  Get Started
+                  <ArrowRight size={18} />
+                </button>
 
-               <Link to="/leaderboard" className="rounded-lg border border-border bg-surface px-6 py-3 font-black text-text-primary shadow-sm transition-all hover:bg-background hover:border-primary/50 active:scale-95">
-                 View Leaderboard
-               </Link>
+
+                <Link to="/leaderboard" className="rounded-lg border border-border bg-surface px-6 py-3 font-bold text-text-primary shadow-sm transition-all hover:bg-background hover:border-primary/50 active:scale-95">
+                  View Leaderboard
+                </Link>
+
 
             </div>
           </div>
@@ -138,19 +141,21 @@ export function LandingPage() {
       <section className="mx-auto grid max-w-7xl gap-8 px-5 py-20 lg:grid-cols-[0.8fr_1.2fr]">
         <div>
           <p className="text-sm font-bold uppercase tracking-widest text-primary">Why LockOn</p>
-          <h2 className="mt-3 text-4xl font-black tracking-tight text-text-primary">Revision needs feedback, not just effort.</h2>
-          <p className="mt-4 text-text-secondary">
-            Students often study without knowing whether the work is compounding. LockOn makes progress measurable and
-            encourages better habits through simple, visible scoring.
-          </p>
+            <h2 className="mt-3 text-4xl font-extrabold tracking-tight text-text-primary leading-tight">Revision needs feedback, not just effort.</h2>
+            <p className="mt-4 text-lg leading-relaxed text-text-secondary">
+              Students often study without knowing whether the work is compounding. LockOn makes progress measurable and
+              encourages better habits through simple, visible scoring.
+            </p>
+
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
            {featureCards.map((feature) => (
-             <article key={feature.title} className="rounded-xl border border-border bg-surface p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1">
-               <feature.icon className="text-primary" size={24} />
-               <h3 className="mt-4 text-lg font-black tracking-tight text-text-primary">{feature.title}</h3>
-               <p className="mt-2 text-sm leading-6 text-text-secondary">{feature.copy}</p>
-             </article>
+            <article key={feature.title} className="rounded-2xl border border-border bg-surface p-5 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-primary/30 bg-gradient-to-b from-surface to-background">
+                <feature.icon className="text-primary" size={24} />
+                <h3 className="mt-4 text-lg font-bold tracking-tight text-text-primary">{feature.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-text-secondary">{feature.copy}</p>
+              </article>
+
            ))}
 
         </div>
@@ -158,21 +163,23 @@ export function LandingPage() {
 
       <section className="bg-surface py-20">
         <div className="mx-auto max-w-7xl px-5">
-          <div className="mx-auto max-w-3xl text-center">
-            <p className="text-sm font-bold uppercase tracking-widest text-primary">Features</p>
-            <h2 className="mt-3 text-4xl font-black tracking-tight text-text-primary">A revision platform built around action.</h2>
-          </div>
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="text-sm font-bold uppercase tracking-widest text-primary">Features</p>
+              <h2 className="mt-3 text-4xl font-extrabold tracking-tight text-text-primary leading-tight">A revision platform built around action.</h2>
+            </div>
+
           <div className="mt-10 grid gap-5 md:grid-cols-3">
              {[
                ["XP", "Tracks learning progress from completed work.", BookOpenCheck],
                ["Energy", "Rewards high-quality performance and unit completion.", Zap],
                ["Leaderboard", "Ranks students by total score, not vanity activity.", Medal],
              ].map(([title, copy, Icon]) => (
-               <article key={title} className="rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1">
-                 <Icon className="text-primary" size={28} />
-                 <h3 className="mt-5 text-2xl font-black tracking-tight text-text-primary">{title}</h3>
-                 <p className="mt-2 leading-7 text-text-secondary">{copy}</p>
-               </article>
+                <article key={title} className="rounded-2xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-primary/30 bg-gradient-to-b from-card to-surface">
+                  <Icon className="text-primary" size={28} />
+                  <h3 className="mt-5 text-2xl font-bold tracking-tight text-text-primary">{title}</h3>
+                  <p className="mt-2 leading-relaxed text-text-secondary">{copy}</p>
+                </article>
+
              ))}
 
           </div>
@@ -182,31 +189,33 @@ export function LandingPage() {
       <section className="mx-auto grid max-w-7xl items-center gap-10 px-5 py-20 lg:grid-cols-2">
         <IsoStack variant="green" />
         <div>
-          <p className="text-sm font-bold uppercase tracking-widest text-primary">How It Works</p>
-          <h2 className="mt-3 text-4xl font-black tracking-tight text-text-primary">XP + Energy creates a clearer score.</h2>
-          <div className="mt-6 grid gap-3">
-             {steps.map((step, index) => (
-               <div key={step} className="flex gap-3 rounded-xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:bg-surface">
-                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface text-sm font-black text-primary">
-                   {index + 1}
-                 </span>
-                 <p className="font-bold text-text-primary">{step}</p>
-               </div>
-             ))}
+           <p className="text-sm font-bold uppercase tracking-widest text-primary">How It Works</p>
+           <h2 className="mt-3 text-4xl font-extrabold tracking-tight text-text-primary leading-tight">XP + Energy creates a clearer score.</h2>
+           <div className="mt-6 grid gap-3">
+              {steps.map((step, index) => (
+                <div key={step} className="flex gap-3 rounded-xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:bg-surface">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface text-sm font-bold text-primary">
+                    {index + 1}
+                  </span>
+                  <p className="font-semibold text-text-primary">{step}</p>
+                </div>
+              ))}
+
 
           </div>
-          <p className="mt-5 rounded-xl bg-gradient-to-r from-surface to-card p-4 font-black text-text-primary">
-            Total Score = XP + (Energy x 100)
-          </p>
+           <p className="mt-5 rounded-2xl bg-gradient-to-br from-surface to-card p-4 font-bold text-text-primary border border-border shadow-sm">
+             Total Score = XP + (Energy x 100)
+           </p>
+
         </div>
       </section>
 
-      <section className="bg-gradient-to-br from-background to-secondary py-20 text-text-primary">
+      <section className="bg-gradient-to-br from-background via-surface to-secondary/20 py-20 text-text-primary">
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-5 lg:grid-cols-[1fr_0.9fr]">
           <div>
             <p className="text-sm font-bold uppercase tracking-widest text-primary">Leaderboard Overview</p>
-            <h2 className="mt-3 text-4xl font-black tracking-tight">Competition that rewards consistency.</h2>
-            <p className="mt-4 leading-7 text-text-secondary">
+            <h2 className="mt-3 text-4xl font-extrabold tracking-tight leading-tight">Competition that rewards consistency.</h2>
+            <p className="mt-4 leading-relaxed text-text-secondary">
               The leaderboard is intentionally simple: students are ranked by total score. XP shows learning volume,
               Energy highlights high-value performance, and the formula keeps the system easy to understand.
             </p>
@@ -235,12 +244,13 @@ export function LandingPage() {
 
       <section className="mx-auto grid max-w-7xl gap-8 px-5 py-20 lg:grid-cols-[0.9fr_1.1fr]">
         <div>
-          <p className="text-sm font-bold uppercase tracking-widest text-primary">Admin Capabilities</p>
-          <h2 className="mt-3 text-4xl font-black tracking-tight text-text-primary">Designed for cohorts, moderation, and insight.</h2>
-          <p className="mt-4 text-text-secondary">
-            Admin tooling gives authorized teams a focused place to review users, rewards, Forge content, and access
-            decisions.
-          </p>
+            <p className="text-sm font-bold uppercase tracking-widest text-primary">Admin Capabilities</p>
+            <h2 className="mt-3 text-4xl font-extrabold tracking-tight text-text-primary leading-tight">Designed for cohorts, moderation, and insight.</h2>
+            <p className="mt-4 text-lg leading-relaxed text-text-secondary">
+              Admin tooling gives authorized teams a focused place to review users, rewards, Forge content, and access
+              decisions.
+            </p>
+
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           {[
@@ -249,28 +259,30 @@ export function LandingPage() {
             ["Energy rule tuning", Gauge],
             ["Access management", Lock],
           ].map(([title, Icon]) => (
-            <article key={title} className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+            <article key={title} className="rounded-2xl border border-border bg-surface p-5 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-primary/30 bg-gradient-to-b from-surface to-background">
               <Icon className="text-primary" />
-              <h3 className="mt-4 font-black text-text-primary">{title}</h3>
+              <h3 className="mt-4 font-bold text-text-primary">{title}</h3>
               <p className="mt-2 text-sm text-text-muted">Available through the authenticated admin workspace.</p>
             </article>
           ))}
         </div>
       </section>
     <section className="px-5 pb-20">
-       <div className="mx-auto max-w-5xl rounded-2xl bg-gradient-to-r from-primary to-secondary p-10 text-center text-text-primary shadow-2xl shadow-primary/20 transition-all duration-300 hover:shadow-primary/30">
-         <CheckCircle2 className="mx-auto" size={36} />
-         <h2 className="mt-4 text-4xl font-black tracking-tight">Ready to lock in better revision?</h2>
-         <p className="mx-auto mt-3 max-w-2xl text-text-secondary">
-           Create an account, upload your notes, generate lessons, and keep momentum visible as you revise.
-         </p>
-         <button
-           type="button"
-           onClick={getStarted}
-           className="mt-7 rounded-lg bg-text-primary px-6 py-3 font-black text-primary shadow-sm transition-all active:scale-95 hover:bg-text-primary/90"
-         >
-           Get Started
-         </button>
+        <div className="mx-auto max-w-5xl rounded-3xl bg-gradient-to-br from-primary via-primary to-secondary p-10 text-center text-text-primary shadow-2xl shadow-primary/30 transition-all duration-300 hover:shadow-primary/40">
+          <CheckCircle2 className="mx-auto" size={36} />
+          <h2 className="mt-4 text-4xl font-extrabold tracking-tight leading-tight">Ready to lock in better revision?</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-lg leading-relaxed text-text-secondary">
+            Create an account, upload your notes, generate lessons, and keep momentum visible as you revise.
+          </p>
+
+          <button
+            type="button"
+            onClick={getStarted}
+            className="mt-7 rounded-lg bg-text-primary px-6 py-3 font-bold text-primary shadow-sm transition-all active:scale-95 hover:bg-text-primary/90"
+          >
+            Get Started
+          </button>
+
        </div>
 
     </section>

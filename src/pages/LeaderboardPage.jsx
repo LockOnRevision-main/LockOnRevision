@@ -63,7 +63,8 @@ export function LeaderboardPage() {
         ) : null}
 
         <div className="divide-y divide-border">
-          {leaders.map((leader) => {
+          {leaders.map((leader, index) => {
+            const rank = index + 1;
             const xp = Number(leader.xp || 0);
             const energy = Number(leader.energy || 0);
             const total = Number(leader.totalScore || xp + energy * 100);
@@ -73,8 +74,8 @@ export function LeaderboardPage() {
                 className="grid grid-cols-[80px_1fr_160px] items-center gap-3 px-6 py-5 transition-all hover:bg-background/50"
               >
                  <div className="flex items-center gap-2 font-black text-text-primary">
-                   {leader.rank <= 3 ? <Medal className="text-warning" size={18} /> : <Trophy className="text-text-muted" size={18} />}
-                   {leader.rank}
+                   {rank <= 3 ? <Medal className="text-warning" size={18} /> : <Trophy className="text-text-muted" size={18} />}
+                   {rank}
                  </div>
 
                 <div>

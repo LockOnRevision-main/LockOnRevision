@@ -1,5 +1,5 @@
 import { db } from "../config/firebase.js";
-import { doc, updateDoc, increment, serverTimestamp, arrayUnion, getDocs, query, orderBy, collection } from "firebase/firestore";
+import { doc, updateDoc, increment, serverTimestamp, arrayUnion, getDocs, query, orderBy, collection, limit } from "firebase/firestore";
 
 export async function fetchLeaderboard(limit = 50) {
   if (!db) throw new Error("Firebase is not configured.");
