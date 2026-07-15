@@ -1,10 +1,10 @@
 import { db } from "../config/firebase.js";
 import { doc, updateDoc, increment, serverTimestamp, arrayUnion, getDocs, query, orderBy, collection, limit } from "firebase/firestore";
 
-export async function fetchLeaderboard(limit = 50) {
+export async function fetchLeaderboard(limitCount = 50) {
   if (!db) throw new Error("Firebase is not configured.");
   const usersSnap = await getDocs(
-    query(collection(db, "users"), orderBy("totalScore", "desc"), limit(limit))
+    query(collection(db, "users"), orderBy("totalScore", "desc"), limit(limitCount))
   );
   return usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
@@ -28,11 +28,13 @@ export async function completeMockTest(uid, testId, score) {
 
   const earnedEnergy = score >= 60 ? test.energy : 0;
   const earnedXp = score >= 60 ? test.xp : Math.round(test.xp * (score / 100));
+  const earnedTotal = earnedXp + earnedEnergy * 100;
   
   const userRef = doc(db, "users", uid);
   await updateDoc(userRef, {
     xp: increment(earnedXp),
     energy: increment(earnedEnergy),
+    totalScore: increment(earnedTotal),
     completedTests: arrayUnion(testId),
     updatedAt: serverTimestamp(),
   });
@@ -44,11 +46,13 @@ export async function completeUnit(uid, unitId) {
   if (!db) throw new Error("Firebase is not configured.");
   const earnedEnergy = 15;
   const earnedXp = 150;
+  const earnedTotal = earnedXp + earnedEnergy * 100;
   
   const userRef = doc(db, "users", uid);
   await updateDoc(userRef, {
     xp: increment(earnedXp),
     energy: increment(earnedEnergy),
+    totalScore: increment(earnedTotal),
     completedUnits: arrayUnion(unitId),
     updatedAt: serverTimestamp(),
   });

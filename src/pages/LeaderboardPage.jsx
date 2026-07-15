@@ -77,18 +77,19 @@ export function LeaderboardPage() {
                    {rank <= 3 ? <Medal className="text-warning" size={18} /> : <Trophy className="text-text-muted" size={18} />}
                    {rank}
                  </div>
-
-                <div>
-                  <p className="font-black text-text-primary text-lg">{leader.name || "LockOn Learner"}</p>
-                  <p className="mt-1 text-xs font-medium text-text-secondary">
-                    {xp.toLocaleString()} XP + {energy} energy
-                  </p>
-                </div>
-                <p className="text-right text-xl font-black text-primary">{total.toLocaleString()} pts</p>
+ 
+                 <div>
+                   <p className="font-black text-text-primary text-lg">{leader.name || "LockOn Learner"}</p>
+                   <p className="mt-1 text-xs font-medium text-text-secondary">
+                     {xp.toLocaleString()} XP + {energy} energy
+                   </p>
+                 </div>
+                 <p className="text-right text-xl font-black text-primary">{total.toLocaleString()} pts</p>
               </article>
             );
           })}
         </div>
+
       </section>
     </div>
   );
