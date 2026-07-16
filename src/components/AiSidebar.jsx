@@ -103,7 +103,7 @@ export function AiSidebar() {
       ref={triggerRef}
       type="button"
       onClick={() => setOpen(true)}
-      className={`fixed bottom-6 right-6 z-30 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-secondary to-primary text-white shadow-xl transition-all duration-300 hover:scale-110 hover:shadow-primary/30 ${
+      className={`fixed bottom-6 right-6 z-30 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-secondary to-primary text-white shadow-xl transition-all duration-300 hover:scale-110 hover:shadow-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
         open ? "pointer-events-none scale-0 opacity-0" : "scale-100 opacity-100"
       }`}
       aria-label="Open AI assistant"
@@ -131,7 +131,7 @@ export function AiSidebar() {
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded-lg border border-border bg-surface p-2 text-text-secondary transition-colors hover:bg-primary hover:text-white"
+              className="rounded-xl border border-border bg-surface p-2 text-text-secondary transition-colors hover:bg-primary hover:text-white"
               aria-label="Close AI assistant"
             >
               <X size={18} />
@@ -179,14 +179,14 @@ export function AiSidebar() {
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 placeholder="Ask a study question..."
-                className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary outline-none focus:border-primary transition-all"
+                className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm text-text-primary outline-none focus:border-primary transition-all"
                 disabled={loading}
               />
 
               <button
                 type="submit"
                 disabled={loading || !input.trim()}
-                className="rounded-lg bg-primary px-3 py-2 text-white transition-all hover:bg-primary-active disabled:bg-background disabled:text-text-muted"
+                className="rounded-xl bg-primary px-3 py-2 text-white transition-all hover:bg-primary-active disabled:bg-background disabled:text-text-muted"
                 aria-label="Send message"
               >
                 <Send size={18} />

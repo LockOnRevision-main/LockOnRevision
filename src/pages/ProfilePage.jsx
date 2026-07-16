@@ -74,7 +74,7 @@ export function ProfilePage() {
             </div>
             <div className="flex-1 mb-2 text-center md:text-left">
               <h1 className="text-4xl font-black text-text-primary tracking-tight">
-                {profile.name || 'LockOn Learner'}
+                {profile.name || profile.email?.split('@')[0] || 'Learner'}
               </h1>
               <p className="text-text-secondary font-medium">
                 @{profile.username || 'learner'} • Joined {profile.createdAt?.toDate ? profile.createdAt.toDate().toLocaleDateString() : 'Recently'}
@@ -191,7 +191,7 @@ export function ProfilePage() {
                Achievements
              </h3>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {badges.length > 0 ? (
                 badges.map(badge => (
                   <AchievementBadge key={badge.id} badge={badge} />

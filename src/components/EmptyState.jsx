@@ -2,7 +2,7 @@ import { Logo } from "./Logo.jsx";
 
 export function EmptyState({ title, copy, action }) {
   return (
-    <div className="rounded-xl border-2 border-dashed border-border bg-surface/50 p-10 text-center transition-colors hover:bg-surface">
+    <div className="rounded-3xl border-2 border-dashed border-border bg-surface/50 p-12 text-center transition-colors hover:bg-surface">
       <div className="flex justify-center mb-6">
         <Logo variant="stacked" className="scale-75 opacity-30" />
       </div>

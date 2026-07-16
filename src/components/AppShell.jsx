@@ -28,7 +28,7 @@ export function AppShell({ children }) {
               <NavLink
                 to="/app"
                 className={({ isActive }) =>
-                  `rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 ${isActive ? "bg-primary text-white shadow-md" : "text-text-secondary hover:bg-surface hover:text-text-primary"}`
+                  `rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${isActive ? "bg-primary text-white shadow-md" : "text-text-secondary hover:bg-surface hover:text-text-primary"}`
                 }
               >
                 Dashboard
@@ -36,7 +36,7 @@ export function AppShell({ children }) {
                <NavLink
                 to="/forge"
                 className={({ isActive }) =>
-                  `inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 ${
+                  `inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
                     isActive ? "bg-primary text-white shadow-md" : "text-text-secondary hover:bg-surface hover:text-text-primary"
                   }`
                 }
@@ -47,7 +47,7 @@ export function AppShell({ children }) {
               <NavLink
                 to="/leaderboard"
                 className={({ isActive }) =>
-                  `inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 ${
+                  `inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
                     isActive ? "bg-primary text-white shadow-md" : "text-text-secondary hover:bg-surface hover:text-text-primary"
                   }`
                 }
@@ -59,7 +59,7 @@ export function AppShell({ children }) {
                 <NavLink
                   to="/admin"
                   className={({ isActive }) =>
-                    `rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 ${isActive ? "bg-primary text-white shadow-md" : "text-text-secondary hover:bg-surface hover:text-text-primary"}`
+                    `rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${isActive ? "bg-primary text-white shadow-md" : "text-text-secondary hover:bg-surface hover:text-text-primary"}`
                   }
                 >
                   Admin
@@ -70,7 +70,7 @@ export function AppShell({ children }) {
                 <button
                   type="button"
                   onClick={logout}
-                  className="ml-2 rounded-lg border border-border bg-surface p-2 text-text-secondary shadow-sm transition-all hover:bg-primary hover:text-white"
+                  className="ml-2 rounded-lg border border-border bg-surface p-2 text-text-secondary shadow-sm transition-all hover:bg-primary hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                   aria-label="Log out"
                 >
                   <LogOut size={18} />

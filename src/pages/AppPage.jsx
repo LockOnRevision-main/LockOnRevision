@@ -72,7 +72,7 @@ export function AppPage() {
             </div>
             <Link
               to="/leaderboard"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-secondary px-6 py-3 font-black text-white shadow-lg transition-all hover:scale-105 active:scale-95"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-secondary px-6 py-3 font-black text-white shadow-lg transition-all hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               <Trophy size={18} />
               Leaderboard
@@ -134,12 +134,12 @@ export function AppPage() {
                          className="w-24 rounded-xl border border-border px-3 py-2 text-sm font-bold outline-none focus:border-primary bg-transparent text-text-primary transition-all"
                          aria-label={`${test.title} score`}
                        />
-                       <button
-                         type="button"
-                         disabled={completed || busyId === test.id}
-                         onClick={() => runTest(test.id)}
-                         className="rounded-xl bg-primary px-6 py-2 text-sm font-black text-white transition-all duration-150 active:scale-95 hover:bg-primary-active disabled:bg-background disabled:text-text-muted"
-                       >
+                      <button
+                        type="button"
+                        disabled={completed || busyId === test.id}
+                        onClick={() => runTest(test.id)}
+                        className="rounded-xl bg-primary px-6 py-2 text-sm font-black text-white transition-all duration-150 active:scale-95 hover:bg-primary-active disabled:bg-background disabled:text-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                      >
                          {completed ? "Done" : "Claim"}
                        </button>
                      </div>
@@ -232,7 +232,7 @@ export function AppPage() {
                      <div className="shrink-0">
                         <button
                           type="button"
-                          className="rounded-xl bg-primary px-5 py-2.5 text-xs font-black text-white transition-all duration-150 active:scale-95 group-hover:bg-primary-active shadow-sm"
+                          className="rounded-xl bg-primary px-5 py-2.5 text-xs font-black text-white transition-all duration-150 active:scale-95 group-hover:bg-primary-active shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                         >
                           Continue
                         </button>

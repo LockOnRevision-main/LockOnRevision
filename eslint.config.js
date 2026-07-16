@@ -10,8 +10,11 @@ const browserGlobals = {
   document: "readonly",
   fetch: "readonly",
   FileReader: "readonly",
+  IntersectionObserver: "readonly",
   localStorage: "readonly",
   navigator: "readonly",
+  setTimeout: "readonly",
+  requestAnimationFrame: "readonly",
   window: "readonly",
 };
 

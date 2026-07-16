@@ -32,9 +32,9 @@ export function LoginPage() {
 
   return (
     <main className="grid min-h-screen place-items-center bg-gradient-to-br from-background via-surface to-secondary px-4 text-text-primary">
-      <section className="w-full max-w-md rounded-xl border border-border bg-surface p-6 shadow-2xl shadow-primary/20 backdrop-blur">
+      <section className="w-full max-w-md rounded-3xl border border-border bg-surface p-8 shadow-2xl shadow-primary/20 backdrop-blur">
         <div className="mb-6 flex flex-col items-center">
-          <Logo variant="horizontal" className="mb-4 scale-90" />
+          <Logo variant="horizontal" theme="light" className="mb-4 scale-90" />
            <h1 className="mt-2 text-3xl font-black tracking-tight text-text-primary">{mode === "register" ? "Create account" : "Welcome back"}</h1>
 
           <p className="mt-2 text-sm text-text-secondary text-center">
@@ -46,8 +46,8 @@ export function LoginPage() {
           {mode === "register" ? (
             <label className="grid gap-2 text-sm font-bold text-text-primary">
               Name
-                <span className="flex items-center gap-2 rounded-lg border border-border px-3 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/50">
-                  <UserRound size={17} className="text-text-muted" />
+                <span className="flex items-center gap-2 rounded-xl border border-border px-3 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/50">
+                   <UserRound size={17} className="text-text-muted" />
                   <input
                     required
                     className="min-w-0 flex-1 py-3 outline-none bg-transparent text-text-primary"
@@ -61,8 +61,8 @@ export function LoginPage() {
 
           <label className="grid gap-2 text-sm font-bold text-text-primary">
             Email
-                <span className="flex items-center gap-2 rounded-lg border border-border px-3 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/50">
-                  <Mail size={17} className="text-text-muted" />
+                <span className="flex items-center gap-2 rounded-xl border border-border px-3 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/50">
+                   <Mail size={17} className="text-text-muted" />
                   <input
                     required
                     type="email"
@@ -76,8 +76,8 @@ export function LoginPage() {
 
           <label className="grid gap-2 text-sm font-bold text-text-primary">
             Password
-                <span className="flex items-center gap-2 rounded-lg border border-border px-3 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/50">
-                  <LockKeyhole size={17} className="text-text-muted" />
+                <span className="flex items-center gap-2 rounded-xl border border-border px-3 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/50">
+                   <LockKeyhole size={17} className="text-text-muted" />
                   <input
                     required
                     minLength={8}
@@ -90,11 +90,11 @@ export function LoginPage() {
 
           </label>
 
-          {error ? <p className="rounded-lg bg-status-error/20 p-3 text-sm font-bold text-status-error">{error}</p> : null}
+          {error ? <p className="rounded-xl bg-status-error/20 p-3 text-sm font-bold text-status-error">{error}</p> : null}
 
           <button
             disabled={busy || !isFirebaseConfigured}
-            className="rounded-lg bg-primary px-4 py-3 font-black text-white disabled:bg-surface transition-all hover:bg-primary-active active:scale-95"
+            className="rounded-xl bg-primary px-4 py-3 font-black text-white disabled:bg-surface transition-all hover:bg-primary-active active:scale-95"
           >
             {busy ? "Working..." : mode === "register" ? "Create account" : "Log in"}
           </button>

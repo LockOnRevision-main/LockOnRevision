@@ -226,7 +226,7 @@ export function ForgePage() {
                 <button
                   onClick={handleRegenerate}
                   disabled={busy || !draft}
-                  className="flex items-center gap-2 px-4 py-2 bg-background text-text-secondary rounded-lg hover:bg-surface transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 bg-background text-text-secondary rounded-xl hover:bg-surface transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
                   <RefreshCw className={`w-4 h-4 ${busy ? "animate-spin" : ""}`} />
                   Regenerate
@@ -244,7 +244,7 @@ export function ForgePage() {
         </div>
       ) : (
         <React.Fragment>
-          <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+          <section className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-black text-text-primary">My Subjects</h2>
                        <button
@@ -273,11 +273,11 @@ export function ForgePage() {
           </section>
 
           <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-            <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+            <section className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
               <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">Forge New</p>
               <h2 className="mt-1 text-2xl font-black">Study materials</h2>
 
-               <label className="mt-4 grid cursor-pointer place-items-center rounded-xl border-2 border-dashed border-border bg-background p-8 text-center transition hover:border-primary">
+               <label className="mt-4 grid cursor-pointer place-items-center rounded-2xl border-2 border-dashed border-border bg-background p-8 text-center transition hover:border-primary focus-within:ring-2 focus-within:ring-primary/50">
                   <FileUp size={32} className="text-primary" />
                  <strong className="mt-3">Upload notes or documents</strong>
                  <span className="mt-1 text-sm text-text-secondary">PDF, text, or images up to 20MB each</span>
@@ -294,22 +294,22 @@ export function ForgePage() {
                <textarea
                  value={pastedNotes}
                  onChange={(event) => setPastedNotes(event.target.value)}
-                  className="mt-4 min-h-40 w-full resize-y rounded-lg border border-border px-4 py-3 text-sm leading-6 outline-none focus:border-primary"
+                  className="mt-4 min-h-40 w-full resize-y rounded-xl border border-border px-4 py-3 text-sm leading-6 outline-none focus:border-primary"
                  placeholder="Or paste notes here..."
                  disabled={busy}
                />
 
-               <button
-                 type="button"
-                 disabled={busy}
-                 onClick={handleGenerateFromPaste}
-                 className="mt-3 w-full rounded-lg bg-secondary px-4 py-3 font-black text-white disabled:bg-text-muted"
-               >
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={handleGenerateFromPaste}
+                  className="mt-3 w-full rounded-xl bg-secondary px-4 py-3 font-black text-white disabled:bg-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                >
                  Generate from pasted notes
                </button>
             </section>
 
-            <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+            <section className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">Structure</p>
@@ -321,7 +321,7 @@ export function ForgePage() {
                       type="button"
                       disabled={busy}
                       onClick={handleRegenerate}
-                      className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-bold text-text-secondary disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-bold text-text-secondary disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                     >
                       <RefreshCw size={16} />
                       Regenerate
@@ -330,7 +330,7 @@ export function ForgePage() {
                       type="button"
                       disabled={busy}
                       onClick={handleSave}
-                      className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-black text-white disabled:bg-primary-active"
+                      className="inline-flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-sm font-black text-white disabled:bg-primary-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                     >
                       <Save size={16} />
                       Save changes

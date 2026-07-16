@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/AppShell.jsx";
+import { OnboardingWizard } from "./components/OnboardingWizard.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 import { AppPage } from "./pages/AppPage.jsx";
 import { AdminPage } from "./pages/AdminPage.jsx";
@@ -18,10 +19,12 @@ function LoadingScreen() {
 }
 
 function ProtectedRoute({ children }) {
-  const { isFirebaseConfigured, loading, user } = useAuth();
+  const { isFirebaseConfigured, loading, user, profile } = useAuth();
   if (loading) return <LoadingScreen />;
   if (!isFirebaseConfigured) return <Navigate to="/login" replace />;
   if (!user) return <Navigate to="/login" replace />;
+  if (!profile) return <LoadingScreen />;
+  if (!profile.onboardingCompleted) return <OnboardingWizard />;
   return <AppShell>{children}</AppShell>;
 }
 

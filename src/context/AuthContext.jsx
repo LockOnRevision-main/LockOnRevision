@@ -15,7 +15,7 @@ const AuthContext = createContext(null);
 function createUserProfile(user, name) {
   const role = resolveRole(null, user.email);
   return {
-    name: name || user.displayName || "LockOn Learner",
+    name: name || user.displayName || user.email?.split('@')[0] || "Learner",
     email: user.email,
     username: user.email?.split('@')[0] || "learner",
     bio: "",
@@ -33,6 +33,8 @@ function createUserProfile(user, name) {
     favoriteSubjects: [],
     theme: "system",
     activity: {},
+    onboardingCompleted: false,
+    referralSource: "",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -53,7 +55,7 @@ async function ensureUserDocument(user, name) {
   const patch = {};
   
   // Core Identity
-  if (!data.name) patch.name = name || user.displayName || "LockOn Learner";
+  if (!data.name) patch.name = name || user.displayName || user.email?.split('@')[0] || "Learner";
   if (!data.email) patch.email = user.email;
   if (!data.username) patch.username = user.email?.split('@')[0] || "learner";
   if (data.role === undefined) patch.role = resolveRole(data, user.email);
@@ -77,6 +79,10 @@ async function ensureUserDocument(user, name) {
   if (data.goals === undefined) patch.goals = "";
   if (data.theme === undefined) patch.theme = "system";
   if (data.avatarUrl === undefined) patch.avatarUrl = "";
+
+  // Onboarding
+  if (data.onboardingCompleted === undefined) patch.onboardingCompleted = false;
+  if (data.referralSource === undefined) patch.referralSource = "";
 
   if (Object.keys(patch).length) {
     patch.updatedAt = serverTimestamp();
