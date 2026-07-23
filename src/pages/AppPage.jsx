@@ -1,13 +1,12 @@
-import { Award, CheckCircle2, Clock, Target, Trophy, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Award, BookOpen, CalendarDays, CheckCircle2, Clock, ListChecks, Medal, Target, Trophy, Zap } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { StatCard } from "../components/StatCard.jsx";
+import { LeaderboardPreview } from "../components/LeaderboardPreview.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import { TESTS, completeMockTest } from "../services/userService.js";
-import { 
-  subscribeSubjects, 
-  subscribeUserCollection 
-} from "../services/learningService.js";
+import { subscribeSubjects, subscribeUserCollection } from "../services/learningService.js";
+import { getTopLeaderboardUsers } from "../services/leaderboardService.js";
+import { getTodaySessions, getUpcomingLessons, getWeeklyCompletion, getRemainingWorkload, subscribeTimetables } from "../services/timetableService.js";
 
 function scoreBreakdown(profile) {
   const xp = Number(profile?.xp || 0);
@@ -24,12 +23,17 @@ export function AppPage() {
   const [subjects, setSubjects] = useState([]);
   const [units, setUnits] = useState([]);
   const [lessons, setLessons] = useState([]);
-  const [scoreInputs, setScoreInputs] = useState(() =>
-    TESTS.reduce((acc, test) => ({ ...acc, [test.id]: 75 }), {}),
-  );
-  const [status, setStatus] = useState("");
-  const [busyId, setBusyId] = useState("");
+  const [timetables, setTimetables] = useState([]);
+  const [leaderboardUsers, setLeaderboardUsers] = useState([]);
+  const [leaderboardKey, setLeaderboardKey] = useState(0);
   const score = scoreBreakdown(profile);
+
+  const activeTimetable = timetables[0];
+
+  const todaySessions = useMemo(() => activeTimetable ? getTodaySessions(activeTimetable) : [], [activeTimetable]);
+  const upcomingLessons = useMemo(() => activeTimetable ? getUpcomingLessons(activeTimetable, 4) : [], [activeTimetable]);
+  const weeklyCompletion = useMemo(() => activeTimetable ? getWeeklyCompletion(activeTimetable) : { completed: 0, total: 0, percent: 0 }, [activeTimetable]);
+  const remainingWorkload = useMemo(() => activeTimetable ? getRemainingWorkload(activeTimetable) : { totalMinutes: 0, bySubject: [] }, [activeTimetable]);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -37,28 +41,24 @@ export function AppPage() {
     const subSubjects = subscribeSubjects(user.uid, setSubjects);
     const subUnits = subscribeUserCollection(user.uid, "units", setUnits);
     const subLessons = subscribeUserCollection(user.uid, "lessons", setLessons);
+    const subTts = subscribeTimetables(user.uid, setTimetables);
 
     return () => {
       subSubjects();
       subUnits();
       subLessons();
+      subTts();
     };
   }, [user?.uid]);
 
-  async function runTest(testId) {
-    setBusyId(testId);
-    setStatus("");
-    try {
-      const result = await completeMockTest(user.uid, testId, Number(scoreInputs[testId]));
-      setStatus(`Earned ${result.earnedEnergy} energy and ${result.earnedXp} XP.`);
-    } catch (error) {
-      setStatus(error.message);
-    } finally {
-      setBusyId("");
-    }
-  }
+  useEffect(() => {
+    getTopLeaderboardUsers().then((users) => setLeaderboardUsers(users)).catch(() => {});
+  }, [user?.uid, profile?.totalScore, leaderboardKey]);
 
-  // Removed finishUnit function as it was unused
+  useEffect(() => {
+    const interval = window.setInterval(() => setLeaderboardKey((k) => k + 1), 30000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   return (
     <div className="grid gap-8">
@@ -87,73 +87,197 @@ export function AppPage() {
         </p>
       ) : null}
 
-      <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard label="XP" value={score.xp.toLocaleString()} helper="Learning progress" tone="bg-surface" />
         <StatCard label="Energy" value={String(score.energy)} helper="1 Energy = 100 XP" tone="bg-card" />
         <StatCard label="Total Score" value={score.totalScore.toLocaleString()} helper="XP + Energy bonus" tone="bg-surface" />
+        <StatCard label="Streak" value={`${profile?.streak || 0} days`} helper="Lessons completed" tone="bg-card" />
         <StatCard
           label="Completed"
-          value={`${profile?.completedTests?.length || 0}/${TESTS.length}`}
-          helper="Mock tests awarded"
+          value={`${profile?.completedLessons || 0}`}
+          helper={`${profile?.completedLessons || 0} lessons`}
           tone="bg-surface"
         />
       </section>
 
-      {status ? <p className="rounded-xl border border-border bg-surface p-4 text-sm font-bold text-text-primary shadow-sm">{status}</p> : null}
+      {/* Timetable dashboard row */}
+      {activeTimetable ? (
+        <section className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+          {/* Today's Study */}
+          <article className="rounded-3xl border border-border bg-surface p-6 shadow-sm transition-all hover:shadow-md">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-xl bg-primary/10 p-2 text-primary">
+                <Clock size={20} />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-text-secondary">{`Today's Study`}</p>
+                <h3 className="text-lg font-black tracking-tight text-text-primary">Sessions</h3>
+              </div>
+            </div>
+            {todaySessions.length > 0 ? (
+              <div className="space-y-2">
+                {todaySessions.map((s) => (
+                  <div key={s.id} className="flex items-center justify-between rounded-xl border border-border bg-background px-3 py-2 text-sm">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-bold text-text-primary">{s.subject}</p>
+                      <p className="text-xs text-text-muted">{s.topic !== s.subject ? s.topic : ""} &middot; {s.duration}m</p>
+                    </div>
+                    <span className="shrink-0 text-xs font-medium text-text-muted">{s.timeSlot}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm italic text-text-muted">All done for today!</p>
+            )}
+            <div className="mt-4">
+              <Link to="/timetable" className="text-xs font-bold text-primary underline underline-offset-2 hover:text-secondary">
+                View full timetable &rarr;
+              </Link>
+            </div>
+          </article>
+
+          {/* Upcoming Lessons */}
+          <article className="rounded-3xl border border-border bg-surface p-6 shadow-sm transition-all hover:shadow-md">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-xl bg-primary/10 p-2 text-primary">
+                <ListChecks size={20} />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-text-secondary">Upcoming</p>
+                <h3 className="text-lg font-black tracking-tight text-text-primary">Lessons</h3>
+              </div>
+            </div>
+            {upcomingLessons.length > 0 ? (
+              <div className="space-y-2">
+                {upcomingLessons.map((s, i) => (
+                  <div key={s.id || i} className="flex items-center justify-between rounded-xl border border-border bg-background px-3 py-2 text-sm">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-bold text-text-primary">{s.subject}</p>
+                      <p className="text-xs text-text-muted">{s.date} &middot; {s.timeSlot}</p>
+                    </div>
+                    <span className="shrink-0 text-xs font-medium text-text-muted">{s.duration}m</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm italic text-text-muted">No upcoming sessions.</p>
+            )}
+            <div className="mt-4">
+              <Link to="/timetable" className="text-xs font-bold text-primary underline underline-offset-2 hover:text-secondary">
+                View full timetable &rarr;
+              </Link>
+            </div>
+          </article>
+
+          {/* Weekly Completion */}
+          <article className="rounded-3xl border border-border bg-surface p-6 shadow-sm transition-all hover:shadow-md">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-xl bg-primary/10 p-2 text-primary">
+                <CalendarDays size={20} />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-text-secondary">Weekly</p>
+                <h3 className="text-lg font-black tracking-tight text-text-primary">Completion</h3>
+              </div>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-4xl font-black tracking-tighter text-text-primary">{weeklyCompletion.percent}%</span>
+              <span className="text-sm text-text-muted">done</span>
+            </div>
+            <p className="mt-1 text-sm text-text-secondary">
+              {weeklyCompletion.completed}/{weeklyCompletion.total} sessions
+            </p>
+            <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-background border border-border">
+              <div
+                className="h-full rounded-full bg-primary transition-all duration-500"
+                style={{ width: `${weeklyCompletion.percent}%` }}
+              />
+            </div>
+          </article>
+
+          {/* Remaining Workload */}
+          <article className="rounded-3xl border border-border bg-surface p-6 shadow-sm transition-all hover:shadow-md">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-xl bg-primary/10 p-2 text-primary">
+                <BookOpen size={20} />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-text-secondary">Remaining</p>
+                <h3 className="text-lg font-black tracking-tight text-text-primary">Workload</h3>
+              </div>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-4xl font-black tracking-tighter text-text-primary">
+                {Math.round(remainingWorkload.totalMinutes / 60)}h
+              </span>
+              <span className="text-sm text-text-muted">{remainingWorkload.totalMinutes % 60}m left</span>
+            </div>
+            {remainingWorkload.bySubject.length > 0 ? (
+              <div className="mt-3 space-y-1">
+                {remainingWorkload.bySubject.slice(0, 3).map((s) => (
+                  <div key={s.subject} className="flex justify-between text-xs text-text-secondary">
+                    <span className="truncate">{s.subject}</span>
+                    <span className="font-medium">{Math.round(s.minutes / 60)}h {s.minutes % 60}m</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </article>
+        </section>
+      ) : (
+        <Link
+          to="/timetable"
+          className="group flex items-center justify-between rounded-3xl border-2 border-dashed border-border bg-surface/50 p-6 text-left transition-all hover:border-primary/50 hover:bg-surface"
+        >
+          <div className="flex items-center gap-4">
+            <div className="rounded-xl bg-primary/10 p-3 text-primary">
+              <CalendarDays size={24} />
+            </div>
+            <div>
+              <p className="text-lg font-black tracking-tight text-text-primary">Create a Study Timetable</p>
+              <p className="text-sm text-text-secondary">Plan your revision with a personalised weekly schedule.</p>
+            </div>
+          </div>
+          <span className="rounded-xl bg-primary px-5 py-2.5 text-xs font-black text-white transition-all group-hover:bg-primary-active">
+            Create
+          </span>
+        </Link>
+      )}
 
       <section className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
         <article className="rounded-3xl border border-border bg-surface p-8 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1">
-           <div className="mb-8 flex items-center gap-4">
-             <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
-               <Target size={24} />
-             </div>
-             <div>
-               <p className="text-xs font-bold uppercase tracking-widest text-text-secondary">Mock tests</p>
-               <h2 className="text-2xl font-black tracking-tight text-text-primary">Earn controlled energy</h2>
-             </div>
-           </div>
-           <div className="grid gap-5">
-             {TESTS.map((test) => {
-               const completed = profile?.completedTests?.includes(test.id);
-               return (
-                 <div key={test.id} className="rounded-2xl border border-border bg-background p-5 transition-all duration-200 hover:border-primary/50 hover:bg-surface/50">
-                   <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
-                     <div className="flex flex-col gap-1">
-                       <p className="font-black text-text-primary text-lg tracking-tight">{test.title}</p>
-                       <p className="text-sm text-text-secondary">
-                         {test.difficulty} &bull; +{test.energy} energy &bull; +{test.xp} XP &bull; requires 60%+
-                       </p>
-                     </div>
-                     <div className="flex items-center gap-4">
-                       <input
-                         type="number"
-                         min="0"
-                         max="100"
-                         value={scoreInputs[test.id]}
-                         onChange={(event) => setScoreInputs({ ...scoreInputs, [test.id]: event.target.value })}
-                         className="w-24 rounded-xl border border-border px-3 py-2 text-sm font-bold outline-none focus:border-primary bg-transparent text-text-primary transition-all"
-                         aria-label={`${test.title} score`}
-                       />
-                      <button
-                        type="button"
-                        disabled={completed || busyId === test.id}
-                        onClick={() => runTest(test.id)}
-                        className="rounded-xl bg-primary px-6 py-2 text-sm font-black text-white transition-all duration-150 active:scale-95 hover:bg-primary-active disabled:bg-background disabled:text-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                      >
-                         {completed ? "Done" : "Claim"}
-                       </button>
-                     </div>
-                   </div>
-                 </div>
-               );
-             })}
-           </div>
-           <div className="mt-8 flex items-center gap-3 rounded-xl bg-background p-4 text-sm text-text-secondary border border-border">
-             <Clock size={16} className="text-primary" />
-             Mock test energy has a 10 minute cooldown.
-           </div>
-         </article>
+          <div className="mb-6 flex items-center gap-4">
+            <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+              <Trophy size={24} />
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-text-secondary">Leaderboard</p>
+              <h2 className="text-2xl font-black tracking-tight text-text-primary">Top learners</h2>
+            </div>
+          </div>
 
+          {leaderboardUsers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Medal size={40} className="text-text-muted" />
+              <p className="mt-4 text-sm font-bold text-text-secondary">Loading leaderboard...</p>
+            </div>
+          ) : (
+            <LeaderboardPreview
+              users={leaderboardUsers}
+              currentUserId={user?.uid || profile?.id}
+            />
+          )}
+
+          <div className="mt-6">
+            <Link
+              to="/leaderboard"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-secondary px-6 py-3 font-black text-white shadow-lg transition-all hover:bg-secondary/90 active:scale-95"
+            >
+              <Trophy size={16} />
+              View Full Leaderboard
+            </Link>
+          </div>
+        </article>
 
         <article className="rounded-3xl border border-border bg-surface p-8 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1">
            <div className="mb-8 flex items-center gap-4">
@@ -165,7 +289,7 @@ export function AppPage() {
                <h2 className="text-2xl font-black tracking-tight text-text-primary">Continue learning</h2>
              </div>
            </div>
- 
+  
            {subjects.length === 0 ? (
              <div className="flex flex-col items-center justify-center py-16 text-center">
                <div className="mb-6 rounded-full bg-background p-6 text-text-muted border border-border">

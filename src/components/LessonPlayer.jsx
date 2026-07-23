@@ -6,10 +6,11 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
   const [userAnswers, setUserAnswers] = useState({});
   const [showResults, setShowResults] = useState(false);
   const [completed, setCompleted] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [xpEarned, setXpEarned] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const exercises = lesson.exercises || [];
+  const exercises = lesson?.exercises || [];
   const currentExercise = exercises[currentExerciseIndex];
   const progress = exercises.length ? ((currentExerciseIndex + 1) / exercises.length) * 100 : 0;
 
@@ -33,22 +34,24 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
   };
 
   const handleComplete = async () => {
+    if (saved) return;
     setIsSubmitting(true);
     const correctCount = exercises.filter((ex) => {
         const userAnswer = userAnswers[ex.id];
-        // Basic check, depends on exercise type
         return userAnswer === ex.correctAnswer;
     }).length;
-    
+
     const perfect = correctCount === exercises.length;
     const baseXP = Number(lesson.xpReward || 15);
-    const totalXP = perfect ? baseXP * 1.5 : baseXP * (correctCount / exercises.length);
+    const totalXP = perfect ? baseXP * 1.5 : baseXP * (correctCount / Math.max(exercises.length, 1));
 
     setXpEarned(Math.round(totalXP));
     setCompleted(true);
+
     if (onComplete) {
-      await onComplete(lesson.id, Math.round(totalXP), perfect);
+      await onComplete(lesson.id, Math.round(totalXP), perfect, correctCount, exercises.length);
     }
+    setSaved(true);
     setIsSubmitting(false);
   };
 
@@ -60,43 +63,36 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
 
   if (completed) {
     return (
-      <div className="max-w-2xl mx-auto p-10 text-center">
-        <div className="w-24 h-24 mx-auto mb-6 bg-status-success/20 rounded-full flex items-center justify-center text-status-success shadow-inner">
-          <CheckCircle className="w-12 h-12" />
+      <div className="max-w-2xl mx-auto p-6 sm:p-10 text-center">
+        <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-6 bg-status-success/20 rounded-full flex items-center justify-center text-status-success shadow-inner">
+          <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12" />
         </div>
-        <h2 className="text-3xl font-black text-text-primary mb-2 tracking-tight">Lesson Complete!</h2>
+        <h2 className="text-2xl sm:text-3xl font-black text-text-primary mb-2 tracking-tight">Lesson Complete!</h2>
         <p className="text-text-secondary mb-8">{lesson.title}</p>
-        <div className="flex justify-center gap-12 mb-10">
+        <div className="flex justify-center gap-8 sm:gap-12 mb-10">
           <div className="text-center">
-            <div className="text-4xl font-black text-primary">
+            <div className="text-3xl sm:text-4xl font-black text-primary">
               {exercises.filter((ex) => userAnswers[ex.id] === ex.correctAnswer).length}/{exercises.length}
             </div>
             <div className="text-xs font-bold uppercase tracking-widest text-text-muted">Correct</div>
           </div>
           <div className="text-center">
-            <div className="text-4xl font-black text-warning flex items-center gap-2">
-              <Zap className="w-8 h-8" />
+            <div className="text-3xl sm:text-4xl font-black text-warning flex items-center gap-2 justify-center">
+              <Zap className="w-6 h-6 sm:w-8 sm:h-8" />
               {xpEarned}
             </div>
             <div className="text-xs font-bold uppercase tracking-widest text-text-muted">XP Earned</div>
           </div>
         </div>
-         <button
-           onClick={handleComplete}
-           disabled={isSubmitting}
-           className="px-8 py-4 bg-primary text-white rounded-xl font-black transition-all hover:bg-primary-active hover:shadow-lg disabled:bg-surface disabled:text-text-muted"
-         >
-           {isSubmitting ? "Saving..." : "Continue Learning"}
-         </button>
-
+        <p className="text-sm text-text-muted">Your progress has been saved.</p>
       </div>
     );
   }
 
   if (showResults) {
     return (
-      <div className="max-w-2xl mx-auto p-6">
-        <h2 className="text-3xl font-black text-text-primary mb-8 tracking-tight">Lesson Results</h2>
+      <div className="max-w-2xl mx-auto p-4 sm:p-6">
+        <h2 className="text-2xl sm:text-3xl font-black text-text-primary mb-6 sm:mb-8 tracking-tight">Lesson Results</h2>
         <div className="space-y-4">
           {exercises.map((exercise, index) => {
             const userAnswer = userAnswers[exercise.id];
@@ -105,7 +101,7 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
             return (
               <div
                 key={exercise.id}
-                className={`p-5 rounded-xl border-2 transition-all ${
+                className={`p-4 sm:p-5 rounded-xl border-2 transition-all ${
                   status === "correct"
                     ? "border-status-success/30 bg-status-success/10 shadow-sm"
                     : "border-status-error/30 bg-status-error/10 shadow-sm"
@@ -113,11 +109,11 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
               >
                 <div className="flex items-start gap-3">
                   {status === "correct" ? (
-                    <CheckCircle className="w-5 h-5 text-status-success mt-0.5" />
+                    <CheckCircle className="w-5 h-5 text-status-success mt-0.5 shrink-0" />
                   ) : (
-                    <XCircle className="w-5 h-5 text-status-error mt-0.5" />
+                    <XCircle className="w-5 h-5 text-status-error mt-0.5 shrink-0" />
                   )}
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="font-bold text-text-primary mb-2">
                       {index + 1}. {exercise.question}
                     </div>
@@ -138,13 +134,13 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
             );
           })}
         </div>
-         <button
-           onClick={handleComplete}
-           className="mt-8 w-full px-6 py-4 bg-primary text-white rounded-xl font-black transition-all hover:bg-primary-active shadow-lg"
-         >
-           Complete Lesson
-         </button>
-
+        <button
+          onClick={handleComplete}
+          disabled={isSubmitting || saved}
+          className="mt-8 w-full px-6 py-4 bg-primary text-white rounded-xl font-black transition-all hover:bg-primary-active shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSubmitting ? "Saving..." : saved ? "Saved" : "Complete Lesson"}
+        </button>
       </div>
     );
   }
@@ -153,14 +149,20 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
     return (
       <div className="max-w-2xl mx-auto p-6 text-center">
         <h2 className="text-xl font-black text-text-primary mb-4">No exercises available</h2>
-        <p className="text-text-secondary">Please contact support or try generating the course again.</p>
+        <p className="text-text-secondary mb-6">This lesson has no exercises yet. Try generating the course again.</p>
+        <button
+          onClick={() => handleComplete()}
+          disabled={isSubmitting || saved}
+          className="px-8 py-3 bg-primary text-white rounded-xl font-black transition-all hover:bg-primary-active disabled:opacity-50"
+        >
+          {isSubmitting ? "Saving..." : saved ? "Saved" : "Mark as Complete"}
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      {/* Progress Bar */}
+    <div className="max-w-2xl mx-auto p-4 sm:p-6">
       <div className="mb-8">
         <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-text-muted mb-2">
           <span>Exercise {currentExerciseIndex + 1} of {exercises.length}</span>
@@ -174,13 +176,12 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
         </div>
       </div>
 
-      {/* Lesson Info */}
       <div className="mb-8 space-y-4">
         <div className="p-6 bg-surface border border-border rounded-2xl shadow-sm">
-          <h2 className="text-2xl font-black text-text-primary mb-2 tracking-tight">{lesson.title}</h2>
-          <p className="text-text-secondary leading-relaxed">{lesson.summary}</p>
+          <h2 className="text-xl sm:text-2xl font-black text-text-primary mb-2 tracking-tight">{lesson.title}</h2>
+          {lesson.summary && <p className="text-text-secondary leading-relaxed">{lesson.summary}</p>}
         </div>
-        
+
         {lesson.explanation && (
           <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
             <h3 className="font-black text-text-primary mb-3 flex items-center gap-2 uppercase tracking-widest text-xs">
@@ -205,16 +206,15 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
         )}
       </div>
 
-      {/* Exercise */}
       <div className="mb-8 p-6 bg-surface border border-border rounded-2xl shadow-sm">
         <ExerciseRenderer
+          key={currentExercise.id}
           exercise={currentExercise}
           userAnswer={userAnswers[currentExercise.id]}
           onAnswer={handleAnswer}
         />
       </div>
 
-      {/* Navigation */}
       <div className="flex justify-between gap-4">
         <button
           onClick={() => setCurrentExerciseIndex((prev) => Math.max(0, prev - 1))}
@@ -223,15 +223,14 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
         >
           Previous
         </button>
-         <button
-           onClick={handleNext}
-           disabled={!userAnswers[currentExercise.id]}
-           className="px-6 py-3 bg-primary text-white rounded-xl font-black transition-all hover:bg-primary-active disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-primary/20"
-         >
-           {currentExerciseIndex === exercises.length - 1 ? "Finish" : "Next"}
-           <ArrowRight className="w-4 h-4" />
-         </button>
-
+        <button
+          onClick={handleNext}
+          disabled={!userAnswers[currentExercise.id]}
+          className="px-6 py-3 bg-primary text-white rounded-xl font-black transition-all hover:bg-primary-active disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-primary/20"
+        >
+          {currentExerciseIndex === exercises.length - 1 ? "Finish" : "Next"}
+          <ArrowRight className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );
@@ -242,10 +241,12 @@ function ExerciseRenderer({ exercise, userAnswer, onAnswer }) {
     case "matchPairs":
       return <MatchPairs exercise={exercise} userAnswer={userAnswer} onAnswer={onAnswer} />;
     case "ordering":
+    case "arrangeOrder":
       return <ArrangeOrder exercise={exercise} userAnswer={userAnswer} onAnswer={onAnswer} />;
     case "fillBlank":
       return <FillBlank exercise={exercise} userAnswer={userAnswer} onAnswer={onAnswer} />;
     case "shortAnswer":
+    case "typeAnswer":
       return <TypeAnswer exercise={exercise} userAnswer={userAnswer} onAnswer={onAnswer} />;
     case "trueFalse":
       return <TrueFalse exercise={exercise} userAnswer={userAnswer} onAnswer={onAnswer} />;
@@ -345,7 +346,7 @@ function MatchPairs({ exercise, userAnswer: _userAnswer, onAnswer }) {
       const newMatches = [...matchedPairs, newMatch];
       setMatchedPairs(newMatches);
       setSelectedLeft(null);
-      
+
       if (newMatches.length === pairs.length) {
         const answer = newMatches.map(m => `${m.left.id}-${m.right.id}`).join(',');
         onAnswer(answer);
@@ -405,7 +406,7 @@ function ArrangeOrder({ exercise, userAnswer: _userAnswer, onAnswer }) {
     const [removed] = newItems.splice(fromIndex, 1);
     newItems.splice(toIndex, 0, removed);
     setItems(newItems);
-    
+
     const answer = newItems.map(i => i.id).join(',');
     onAnswer(answer);
   };
@@ -413,7 +414,7 @@ function ArrangeOrder({ exercise, userAnswer: _userAnswer, onAnswer }) {
   return (
     <div>
       <h3 className="text-lg font-bold text-text-primary mb-4">{exercise.question}</h3>
-      <p className="text-sm text-text-secondary mb-4">Drag to reorder the items in the correct sequence.</p>
+      <p className="text-sm text-text-secondary mb-4">Arrange items in the correct order.</p>
       <div className="space-y-2">
         {items.map((item, index) => (
           <div
@@ -444,9 +445,3 @@ function ArrangeOrder({ exercise, userAnswer: _userAnswer, onAnswer }) {
     </div>
   );
 }
-
-function TimelineOrder({ exercise, userAnswer: _userAnswer, onAnswer }) {
-  // ... logic
-}
-// Remove the unused TimelineOrder definition from imports if any, and it's defined below but not used in ExerciseRenderer
-

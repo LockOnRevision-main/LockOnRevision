@@ -43,107 +43,106 @@ export function ForgeCurriculumView({ subject, units, subUnits, lessons, onStart
     return Math.round((completed / subUnitLessons.length) * 100);
   };
 
-  const isLessonLocked = (lesson, allLessons) => {
-    // For production/demo, we want to ensure lessons are NOT incorrectly locked.
-    // Let's explicitly allow all lessons for now to ensure accessibility, 
-    // or improve the check to be more permissive.
-    
-    // Simple check: Is the lesson actually completed? If so, not locked.
+  const isLessonLocked = (lesson, subUnitLessons) => {
+    if (!lesson) return true;
     if (lesson.completed) return false;
-
-    // To prevent "erroneously grayed out", let's make the locking check
-    // strictly depend on previous lesson completion.
-    const lessonIndex = allLessons.findIndex((l) => l.id === lesson.id);
-    if (lessonIndex <= 0) return false; // First lesson is never locked
-
-    const previousLesson = allLessons[lessonIndex - 1];
-    
-    // If the previous lesson is NOT completed, lock this one.
-    // If you need to disable this entirely, return false here.
-    return !previousLesson?.completed;
+    const lessonIndex = subUnitLessons.findIndex((l) => l && l.id === lesson.id);
+    if (lessonIndex <= 0) return false;
+    const previousLesson = subUnitLessons[lessonIndex - 1];
+    return previousLesson ? !previousLesson.completed : false;
   };
 
-  const sortedUnits = [...units].sort((a, b) => a.order - b.order);
-  const sortedLessons = [...lessons].sort((a, b) => a.order - b.order);
+  const isLessonClickable = (lesson) => {
+    return lesson && !lesson.completed;
+  };
+
+  const sortedUnits = [...(units || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const sortedLessons = [...(lessons || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      {/* Subject Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-black text-text-primary mb-2 tracking-tight">{subject?.title}</h1>
-        <p className="text-text-secondary text-lg leading-relaxed">{subject?.description}</p>
-        {subject?.detectedSubject && (
-          <span className="inline-block mt-3 px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full text-xs font-bold uppercase tracking-widest">
-            {subject.detectedSubject}
-          </span>
-        )}
-      </div>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 pb-8">
+      {subject && (
+        <div className="mb-8">
+          <h1 className="text-3xl sm:text-4xl font-black text-text-primary mb-2 tracking-tight">{subject.title}</h1>
+          {subject.description && (
+            <p className="text-text-secondary text-base sm:text-lg leading-relaxed">{subject.description}</p>
+          )}
+          {subject.detectedSubject && (
+            <span className="inline-block mt-3 px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full text-xs font-bold uppercase tracking-widest">
+              {subject.detectedSubject}
+            </span>
+          )}
+        </div>
+      )}
 
-      {/* Stats Bar */}
-      <div className="flex gap-6 mb-8 p-6 bg-surface border border-border rounded-2xl shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10 text-primary">
-            <Zap className="w-5 h-5" />
+      {sortedLessons.length > 0 && (
+        <div className="flex flex-wrap gap-6 mb-8 p-6 bg-surface border border-border rounded-2xl shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+              <Zap className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-bold uppercase tracking-widest text-text-muted">Total XP</div>
+              <div className="font-black text-text-primary">
+                {sortedLessons.reduce((sum, l) => sum + (l.xpEarned || 0), 0)}
+              </div>
+            </div>
           </div>
-          <div>
-            <div className="text-xs font-bold uppercase tracking-widest text-text-muted">Total XP</div>
-            <div className="font-black text-text-primary">
-              {sortedLessons.reduce((sum, l) => sum + (l.xpEarned || 0), 0)}
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-secondary/10 text-secondary">
+              <Trophy className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-bold uppercase tracking-widest text-text-muted">Completed</div>
+              <div className="font-black text-text-primary">
+                {sortedLessons.filter((l) => l.completed).length} / {sortedLessons.length}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-warning/10 text-warning">
+              <Star className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-bold uppercase tracking-widest text-text-muted">Perfect Lessons</div>
+              <div className="font-black text-text-primary">
+                {sortedLessons.filter((l) => l.perfect).length}
+              </div>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-secondary/10 text-secondary">
-            <Trophy className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xs font-bold uppercase tracking-widest text-text-muted">Completed</div>
-            <div className="font-black text-text-primary">
-              {sortedLessons.filter((l) => l.completed).length} / {sortedLessons.length}
-            </div>
-          </div>
-        </div>
-         <div className="flex items-center gap-3">
-           <div className="p-2 rounded-lg bg-warning/10 text-warning">
-             <Star className="w-5 h-5" />
-           </div>
-           <div>
-             <div className="text-xs font-bold uppercase tracking-widest text-text-muted">Perfect Lessons</div>
-             <div className="font-black text-text-primary">
-               {sortedLessons.filter((l) => l.perfect).length}
-             </div>
-           </div>
-         </div>
+      )}
 
-      </div>
-
-      {/* Units */}
       <div className="space-y-6">
+        {sortedUnits.length === 0 && (
+          <div className="rounded-2xl border border-border bg-surface p-12 text-center">
+            <p className="text-text-muted font-medium">No units available for this subject.</p>
+          </div>
+        )}
         {sortedUnits.map((unit) => {
           const unitProgress = calculateUnitProgress(unit.id);
-          const unitSubUnits = subUnits.filter((su) => su.unitId === unit.id).sort((a, b) => a.order - b.order);
+          const unitSubUnits = subUnits.filter((su) => su.unitId === unit.id).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
           const isExpanded = expandedUnits.has(unit.id);
 
           return (
             <div key={unit.id} className="border border-border rounded-2xl overflow-hidden shadow-sm transition-all hover:shadow-md">
-              {/* Unit Header */}
               <button
                 onClick={() => toggleUnit(unit.id)}
                 className="w-full p-5 flex items-center justify-between bg-surface hover:bg-card transition-colors"
               >
-                <div className="flex items-center gap-4 flex-1">
+                <div className="flex items-center gap-4 flex-1 min-w-0">
                   {isExpanded ? (
-                    <ChevronDown className="w-5 h-5 text-text-muted" />
+                    <ChevronDown className="w-5 h-5 text-text-muted shrink-0" />
                   ) : (
-                    <ChevronRight className="w-5 h-5 text-text-muted" />
+                    <ChevronRight className="w-5 h-5 text-text-muted shrink-0" />
                   )}
-                  <div className="flex-1 text-left">
-                    <h3 className="font-black text-text-primary text-lg">{unit.title}</h3>
-                    <p className="text-sm text-text-secondary">{unit.summary}</p>
+                  <div className="flex-1 text-left min-w-0">
+                    <h3 className="font-black text-text-primary text-lg truncate">{unit.title}</h3>
+                    {unit.summary && <p className="text-sm text-text-secondary truncate">{unit.summary}</p>}
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className="text-right hidden sm:block">
                     <div className="text-sm font-black text-text-primary">{unitProgress}%</div>
                     <div className="text-xs text-text-muted">
                       {getUnitLessons(unit.id).filter((l) => l.completed).length} / {getUnitLessons(unit.id).length} lessons
@@ -158,34 +157,37 @@ export function ForgeCurriculumView({ subject, units, subUnits, lessons, onStart
                 </div>
               </button>
 
-              {/* Sub-Units */}
               {isExpanded && (
                 <div className="border-t border-border bg-background/50">
+                  {unitSubUnits.length === 0 && (
+                    <div className="p-6 text-center text-sm text-text-muted">
+                      No sub-units in this unit.
+                    </div>
+                  )}
                   {unitSubUnits.map((subUnit) => {
                     const subUnitProgress = calculateSubUnitProgress(subUnit.id);
-                    const subUnitLessons = getSubUnitLessons(subUnit.id).sort((a, b) => a.order - b.order);
+                    const subUnitLessons = getSubUnitLessons(subUnit.id).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
                     const isSubExpanded = expandedSubUnits.has(subUnit.id);
 
                     return (
                       <div key={subUnit.id} className="border-b border-border last:border-b-0">
-                        {/* Sub-Unit Header */}
                         <button
                           onClick={() => toggleSubUnit(subUnit.id)}
                           className="w-full p-4 flex items-center justify-between hover:bg-surface transition-colors"
                         >
-                          <div className="flex items-center gap-4 flex-1">
+                          <div className="flex items-center gap-4 flex-1 min-w-0">
                             {isSubExpanded ? (
-                              <ChevronDown className="w-4 h-4 text-text-muted" />
+                              <ChevronDown className="w-4 h-4 text-text-muted shrink-0" />
                             ) : (
-                              <ChevronRight className="w-4 h-4 text-text-muted" />
+                              <ChevronRight className="w-4 h-4 text-text-muted shrink-0" />
                             )}
-                            <div className="flex-1 text-left">
-                              <h4 className="font-bold text-text-primary">{subUnit.title}</h4>
-                              <p className="text-sm text-text-secondary">{subUnit.summary}</p>
+                            <div className="flex-1 text-left min-w-0">
+                              <h4 className="font-bold text-text-primary truncate">{subUnit.title}</h4>
+                              {subUnit.summary && <p className="text-sm text-text-secondary truncate">{subUnit.summary}</p>}
                             </div>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <div className="text-right">
+                          <div className="flex items-center gap-4 shrink-0">
+                            <div className="text-right hidden sm:block">
                               <div className="text-sm font-bold text-text-primary">{subUnitProgress}%</div>
                               <div className="text-xs text-text-muted">
                                 {subUnitLessons.filter((l) => l.completed).length} / {subUnitLessons.length}
@@ -200,57 +202,61 @@ export function ForgeCurriculumView({ subject, units, subUnits, lessons, onStart
                           </div>
                         </button>
 
-                        {/* Lessons */}
                         {isSubExpanded && (
                           <div className="border-t border-border bg-surface p-4">
-                            <div className="space-y-3">
-                              {subUnitLessons.map((lesson, index) => {
-                                const locked = isLessonLocked(lesson, sortedLessons);
-                                return (
-                                  <button
-                                    key={lesson.id}
-                                    onClick={() => !locked && onStartLesson(lesson)}
-                                    disabled={locked}
-                                    className={`w-full p-4 rounded-xl border-2 transition-all flex items-center gap-4 ${
-                                      locked
-                                        ? "border-border bg-background/50 cursor-not-allowed opacity-60"
-                                        : lesson.completed
-                                        ? "border-status-success/30 bg-status-success/10 hover:bg-status-success/20"
-                                        : "border-primary/20 bg-primary/5 hover:bg-primary/10"
-                                    }`}
-                                  >
-                                    <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0">
-                                      {locked ? (
-                                        <Lock className="w-6 h-6 text-text-muted" />
-                                      ) : lesson.completed ? (
-                                        <Star className="w-6 h-6 text-status-success fill-status-success" />
-                                      ) : (
-                                        <Play className="w-6 h-6 text-primary" />
+                            {subUnitLessons.length === 0 ? (
+                              <p className="text-center text-sm text-text-muted py-4">No lessons in this sub-unit.</p>
+                            ) : (
+                              <div className="space-y-3">
+                                {subUnitLessons.map((lesson, index) => {
+                                  const locked = isLessonLocked(lesson, subUnitLessons);
+                                  return (
+                                    <button
+                                      key={lesson.id}
+                                      onClick={() => isLessonClickable(lesson) && !locked && onStartLesson(lesson)}
+                                      disabled={locked || !isLessonClickable(lesson)}
+                                      className={`w-full p-4 rounded-xl border-2 transition-all flex items-center gap-4 text-left ${
+                                        locked
+                                          ? "border-border bg-background/50 cursor-not-allowed opacity-60"
+                                          : lesson.completed
+                                          ? "border-status-success/30 bg-status-success/10 hover:bg-status-success/20"
+                                          : "border-primary/20 bg-primary/5 hover:bg-primary/10"
+                                      }`}
+                                    >
+                                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0">
+                                        {locked ? (
+                                          <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-text-muted" />
+                                        ) : lesson.completed ? (
+                                          <Star className="w-5 h-5 sm:w-6 sm:h-6 text-status-success fill-status-success" />
+                                        ) : (
+                                          <Play className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                                        )}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="font-bold text-text-primary text-sm sm:text-base">
+                                          <span className="text-text-muted mr-2">Lesson {index + 1}</span>
+                                          <span className="truncate">{lesson.title}</span>
+                                        </div>
+                                        {lesson.concept && (
+                                          <div className="text-sm text-text-secondary truncate">{lesson.concept}</div>
+                                        )}
+                                        <div className="flex items-center gap-3 mt-1 text-xs font-medium text-text-muted flex-wrap">
+                                          <span>{lesson.durationMinutes || 3} min</span>
+                                          <span>&bull;</span>
+                                          <span>{lesson.xpReward || 15} XP</span>
+                                          {lesson.perfect && <span className="text-warning font-bold">&bull; Perfect!</span>}
+                                        </div>
+                                      </div>
+                                      {lesson.completed && (
+                                        <div className="text-status-success font-black text-sm shrink-0">
+                                          +{lesson.xpEarned || 0} XP
+                                        </div>
                                       )}
-                                    </div>
-                                    <div className="flex-1 text-left">
-                                      <div className="font-bold text-text-primary">
-                                        <span className="text-text-muted mr-2">Lesson {index + 1}</span>
-                                        {lesson.title}
-                                      </div>
-                                      <div className="text-sm text-text-secondary">{lesson.concept}</div>
-                                      <div className="flex items-center gap-3 mt-1 text-xs font-medium text-text-muted">
-                                         <span>{lesson.durationMinutes} min</span>
-                                         <span>&bull;</span>
-                                         <span>{lesson.xpReward} XP</span>
-                                         {lesson.perfect && <span className="text-warning font-bold">&bull; Perfect!</span>}
-                                       </div>
-
-                                    </div>
-                                    {lesson.completed && (
-                                      <div className="text-status-success font-black">
-                                        +{lesson.xpEarned} XP
-                                      </div>
-                                    )}
-                                  </button>
-                                );
-                              })}
-                            </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

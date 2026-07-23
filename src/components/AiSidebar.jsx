@@ -1,14 +1,30 @@
 /* global TextDecoder */
 import { Loader2, MessageSquare, Send, Sparkles, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { EmptyState } from "./EmptyState.jsx";
-import { getUserLearningContext } from "../services/learningService.js";
+import { MessageContent } from "./MessageContent.jsx";
+import { getAiContext } from "../services/aiContextService.js";
+
+const MESSAGES_KEY = "lockon-ai-messages";
+
+function loadMessages() {
+  try {
+    const raw = localStorage.getItem(MESSAGES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveMessages(messages) {
+  try {
+    localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages.slice(-50)));
+  } catch { /* noop */ }
+}
 
 export function AiSidebar() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(loadMessages);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -29,12 +45,25 @@ export function AiSidebar() {
   useEffect(() => {
     async function loadContext() {
       if (user) {
-        const ctx = await getUserLearningContext(user.uid);
-        setContext(ctx);
+        try {
+          const ctx = await getAiContext(user.uid, profile);
+          setContext(ctx);
+        } catch {
+          setContext(null);
+        }
       }
     }
     loadContext();
-  }, [user]);
+  }, [user, profile]);
+
+  // Persist messages to localStorage
+  const setMessagesAndPersist = useCallback((updater) => {
+    setMessages((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      saveMessages(next);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -42,13 +71,22 @@ export function AiSidebar() {
     }
   }, [messages, loading, open]);
 
+  const abortRef = useRef(null);
+
   async function handleSubmit(event) {
     event.preventDefault();
     if (!input.trim() || loading || !user) return;
 
-    const userMessage = { role: "user", content: input.trim() };
+    // Cancel any previous in-flight request
+    if (abortRef.current) {
+      abortRef.current.abort();
+    }
+    const abortController = new AbortController();
+    abortRef.current = abortController;
+
+    const userMessage = { role: "user", content: input.trim(), _id: `msg-${Date.now()}` };
     const nextMessages = [...messages, userMessage];
-    setMessages(nextMessages);
+    setMessagesAndPersist(nextMessages);
     setInput("");
     setError("");
     setLoading(true);
@@ -57,6 +95,7 @@ export function AiSidebar() {
       const response = await fetch('/api/ai-tutor-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: abortController.signal,
         body: JSON.stringify({ 
           messages: nextMessages,
           context: context
@@ -65,12 +104,14 @@ export function AiSidebar() {
 
       if (!response.ok) throw new Error(`API request failed: ${response.status}`);
 
+      if (!response.body) throw new Error("Response body is empty");
+
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let assistantReply = "";
 
       // Add the assistant message as a placeholder for streaming
-      setMessages([...nextMessages, { role: "assistant", content: "" }]);
+      setMessagesAndPersist([...nextMessages, { role: "assistant", content: "", _id: `msg-${Date.now()}-ai` }]);
 
       while (true) {
         const { done, value } = await reader.read();
@@ -79,21 +120,25 @@ export function AiSidebar() {
         const chunk = decoder.decode(value, { stream: true });
         assistantReply += chunk;
 
-        setMessages((prev) => {
+        setMessagesAndPersist((prev) => {
           const updated = [...prev];
           updated[updated.length - 1] = { role: "assistant", content: assistantReply };
           return updated;
         });
       }
     } catch (err) {
+      if (err.name === "AbortError") return;
       console.error("AI Assistant Error:", err);
       setError(err.message || "An unexpected error occurred.");
-      setMessages([
+      setMessagesAndPersist([
         ...nextMessages,
         { role: "assistant", content: "I'm having trouble connecting to my brain right now. Please try again in a moment!" },
       ]);
     } finally {
       setLoading(false);
+      if (abortRef.current === abortController) {
+        abortRef.current = null;
+      }
     }
   }
 
@@ -125,7 +170,7 @@ export function AiSidebar() {
              <MessageSquare className="text-primary" size={18} />
              <div>
                <p className="text-sm font-black text-text-primary">AI Assistant</p>
-               <p className="text-xs text-text-secondary">Context from your Forge subjects</p>
+                <p className="text-xs text-text-secondary">Personalized from your progress & subjects</p>
              </div>
            </div>
             <button
@@ -144,7 +189,7 @@ export function AiSidebar() {
              <div className="grid gap-3">
                {messages.map((message, index) => (
                  <div
-                   key={`${message.role}-${index}`}
+                   key={message._id || `${message.role}-${index}`}
                    className={`max-w-[90%] rounded-2xl px-4 py-2 text-sm leading-relaxed transition-all ${
                       message.role === "user"
                         ? "ml-auto bg-secondary text-white shadow-sm"
@@ -152,7 +197,7 @@ export function AiSidebar() {
 
                    }`}
                  >
-                   {message.content}
+                    <MessageContent content={message.content} />
                  </div>
                ))}
                {loading ? (

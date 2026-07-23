@@ -66,8 +66,8 @@ const featureCards = [
 
 const steps = [
   "Create an account when Firebase is re-enabled.",
-  "Complete mock tests and revision units.",
-  "Earn XP and Energy under controlled rules.",
+  "Complete revision units and lessons.",
+  "Earn XP and Energy through consistent study.",
   "Climb a leaderboard powered by total score.",
 ];
 
@@ -160,8 +160,8 @@ export function LandingPage() {
               Smarter revision starts here.
             </p>
             <p className="max-w-2xl text-base leading-relaxed text-text-secondary/90 sm:text-lg">
-              LockOn Revision turns study consistency into a visible scoring system. Students complete units, attempt
-              mock tests, gain XP, earn Energy, and compare progress through a focused leaderboard.
+              LockOn Revision turns study consistency into a visible scoring system. Students complete lessons, gain XP,
+              earn Energy, and compare progress through a focused leaderboard.
             </p>
             <div className="mt-2 flex flex-wrap gap-4">
               <button

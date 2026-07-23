@@ -1,31 +1,148 @@
-import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Camera, X } from 'lucide-react';
+import { uploadToCloudinary, isCloudinaryConfigured } from '../../utils/cloudinary';
+
+const GRADE_OPTIONS = [
+  "Grade 1", "Grade 2", "Grade 3", "Grade 4",
+  "Grade 5", "Grade 6", "Grade 7", "Grade 8",
+  "Grade 9", "Grade 10", "Grade 11", "Grade 12",
+];
+
+const CURRICULUM_OPTIONS = [
+  "IGCSE", "A-Level", "GCSE", "IB", "AP",
+  "Cambridge", "National", "CBSE", "ICSE",
+  "South African CAPS",
+];
 
 export function EditProfileModal({ profile, onClose, onSave }) {
+  const fileInputRef = useRef(null);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: profile?.name || '',
-    bio: profile?.bio || '',
     username: profile?.username || '',
+    bio: profile?.bio || '',
+    grade: profile?.grade || '',
+    curriculum: profile?.curriculum || '',
     goals: profile?.goals || '',
-    theme: profile?.theme || 'light',
+    theme: profile?.theme || 'system',
+    favoriteSubjects: profile?.favoriteSubjects || [],
+    avatarUrl: profile?.avatarUrl || '',
   });
+  const [newSubject, setNewSubject] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [saveError, setSaveError] = useState('');
+
+  const addSubject = () => {
+    const sub = newSubject.trim();
+    if (sub && !formData.favoriteSubjects.includes(sub)) {
+      setFormData({ ...formData, favoriteSubjects: [...formData.favoriteSubjects, sub] });
+      setNewSubject('');
+    }
+  };
+
+  const removeSubject = (subject) => {
+    setFormData({
+      ...formData,
+      favoriteSubjects: formData.favoriteSubjects.filter((s) => s !== subject),
+    });
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      window.alert('Please select an image file.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      window.alert('Image must be smaller than 5MB.');
+      return;
+    }
+    setUploadingAvatar(true);
+    setSaveError('');
+    try {
+      if (isCloudinaryConfigured()) {
+        const result = await uploadToCloudinary(file, {
+          folder: `lockon-revision/${profile.id || 'user'}/avatar`,
+        });
+        setFormData({ ...formData, avatarUrl: result.url });
+      } else {
+        const dataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        setFormData({ ...formData, avatarUrl: dataUrl });
+      }
+    } catch (error) {
+      console.error("Avatar upload error:", error);
+      window.alert('Failed to upload avatar. Please try again.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await onSave(formData);
-    onClose();
+    setSaveError('');
+    if (!formData.name?.trim()) {
+      setSaveError('Display name is required.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await onSave(formData);
+      onClose();
+    } catch (error) {
+      setSaveError(error?.message || 'Failed to save. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/60 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-3xl bg-surface border border-border shadow-2xl overflow-hidden transition-all animate-in fade-in zoom-in duration-200">
-        <div className="flex items-center justify-between p-6 border-b border-border bg-surface">
+      <div className="w-full max-w-lg rounded-3xl bg-surface border border-border shadow-2xl overflow-hidden transition-all animate-in fade-in zoom-in duration-200 max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-6 border-b border-border bg-surface shrink-0">
           <h3 className="text-xl font-black text-text-primary tracking-tight">Edit Profile</h3>
           <button onClick={onClose} className="p-2 rounded-full text-text-secondary hover:bg-background hover:text-text-primary transition-colors">
             <X size={20} />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto">
+          {/* Avatar Upload */}
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <img
+                src={formData.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`}
+                alt="Avatar preview"
+                className="w-20 h-20 rounded-2xl border-4 border-border bg-background object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-primary text-white shadow-lg hover:scale-110 transition-transform border-2 border-surface"
+              >
+                <Camera size={14} />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                className="hidden"
+              />
+            </div>
+            <div className="text-sm">
+              <p className="font-bold text-text-primary">Profile Picture</p>
+              <p className="text-text-muted text-xs mt-0.5">
+                {uploadingAvatar ? 'Uploading...' : 'Click the camera to upload'}
+              </p>
+            </div>
+          </div>
+
           <div className="space-y-1">
             <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">Display Name</label>
             <input
@@ -43,14 +160,86 @@ export function EditProfileModal({ profile, onClose, onSave }) {
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               className="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary outline-none focus:border-primary transition-all"
+              pattern="[a-zA-Z0-9_-]+"
+              title="Letters, numbers, underscores, and hyphens only"
             />
           </div>
+
+          {/* Grade */}
+          <div className="space-y-1">
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">Grade / Year</label>
+            <select
+              value={formData.grade}
+              onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary outline-none focus:border-primary transition-all appearance-none"
+            >
+              <option value="">Select your grade...</option>
+              {GRADE_OPTIONS.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Curriculum */}
+          <div className="space-y-1">
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">Curriculum</label>
+            <select
+              value={formData.curriculum}
+              onChange={(e) => setFormData({ ...formData, curriculum: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary outline-none focus:border-primary transition-all appearance-none"
+            >
+              <option value="">Select your curriculum...</option>
+              {CURRICULUM_OPTIONS.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Favorite Subjects */}
+          <div className="space-y-1">
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">Favorite Subjects</label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {formData.favoriteSubjects.map((sub, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20"
+                >
+                  {sub}
+                  <button
+                    type="button"
+                    onClick={() => removeSubject(sub)}
+                    className="hover:text-error transition-colors"
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newSubject}
+                onChange={(e) => setNewSubject(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSubject(); } }}
+                placeholder="Add a subject..."
+                className="flex-1 px-4 py-3 rounded-xl border border-border bg-background text-text-primary outline-none focus:border-primary transition-all"
+              />
+              <button
+                type="button"
+                onClick={addSubject}
+                className="px-4 py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary-active transition-all"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+
           <div className="space-y-1">
             <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">Bio</label>
             <textarea
               value={formData.bio}
               onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary outline-none focus:border-primary transition-all min-h-[100px] resize-none"
+              className="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary outline-none focus:border-primary transition-all min-h-[80px] resize-none"
             />
           </div>
           <div className="space-y-1">
@@ -58,7 +247,7 @@ export function EditProfileModal({ profile, onClose, onSave }) {
             <textarea
               value={formData.goals}
               onChange={(e) => setFormData({ ...formData, goals: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary outline-none focus:border-primary transition-all min-h-[100px] resize-none"
+              className="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary outline-none focus:border-primary transition-all min-h-[80px] resize-none"
             />
           </div>
           <div className="space-y-1">
@@ -73,12 +262,18 @@ export function EditProfileModal({ profile, onClose, onSave }) {
               <option value="system">System Default</option>
             </select>
           </div>
+          {saveError && (
+            <p className="text-sm font-bold text-error bg-error/10 p-3 rounded-xl border border-error/20 text-center">
+              {saveError}
+            </p>
+          )}
            <button
-             type="submit"
-             className="w-full py-4 rounded-xl bg-primary text-white font-black transition-all hover:bg-primary-active shadow-lg shadow-primary/20 active:scale-95"
-           >
-             Save Changes
-           </button>
+               type="submit"
+               disabled={uploadingAvatar || saving}
+               className="w-full py-4 rounded-xl bg-primary text-white font-black transition-all hover:bg-primary-active shadow-lg shadow-primary/20 active:scale-95 disabled:opacity-50"
+             >
+               {uploadingAvatar ? 'Uploading...' : saving ? 'Saving...' : 'Save Changes'}
+             </button>
 
         </form>
       </div>

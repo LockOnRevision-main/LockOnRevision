@@ -212,7 +212,7 @@ function flattenStructure(subjectInput, sourceFileIds = [], sourceText = "") {
     };
     units.push(unit);
 
-    unitInput.subUnits.forEach((subUnitInput, subOrder) => {
+    (unitInput.subUnits || []).forEach((subUnitInput, subOrder) => {
       const subUnit = {
         id: makeId("subunit"),
         subjectId: subject.id,
@@ -226,7 +226,7 @@ function flattenStructure(subjectInput, sourceFileIds = [], sourceText = "") {
       };
       subUnits.push(subUnit);
 
-      subUnitInput.lessons.forEach((lessonInput, lessonOrder) => {
+      (subUnitInput.lessons || []).forEach((lessonInput, lessonOrder) => {
         const lesson = {
           ...lessonInput,
           title: lessonInput.title || `Lesson ${lessonOrder + 1}`,
@@ -252,7 +252,7 @@ function flattenStructure(subjectInput, sourceFileIds = [], sourceText = "") {
           keyPoints: lesson.keyPoints,
           order: lessonOrder,
           mastery: 0,
-          difficulty: "medium",
+          difficulty: lessonInput.difficulty || "medium",
           completed: false,
           xpEarned: 0,
           sourceFileIds,
@@ -318,10 +318,14 @@ export function subscribeForgeSubjects(uid, callback) {
     return subscribeLocalState(() => callback(localForgeSubjects(uid)));
   }
 
-  return onSnapshot(query(collection(db, "users", uid, "subjects"), orderBy("updatedAt", "desc")), async () => {
-    const trees = await fetchForgeSubjects(uid);
-    callback(trees);
-  });
+  let cancelled = false;
+  const unsub = onSnapshot(
+    query(collection(db, "users", uid, "subjects"), orderBy("updatedAt", "desc")),
+    () => {
+      if (!cancelled) fetchForgeSubjects(uid).then(callback).catch(() => {});
+    },
+  );
+  return () => { cancelled = true; unsub(); };
 }
 
 export function subscribeForgeUnits(uid, callback) {
@@ -525,9 +529,10 @@ export async function generateForgeStructure(uid, sourceText, sourceFileIds = []
   });
 
     flat.lessons.forEach((lesson) => {
+      const { id: _lessonId, ...lessonData } = lesson;
       const lessonRef = doc(collection(db, "users", uid, "lessons"));
       batch.set(lessonRef, {
-        ...lesson,
+        ...lessonData,
         subjectId: subjectRef.id,
         unitId: unitIdMap.get(lesson.unitId),
         subUnitId: subUnitIdMap.get(lesson.subUnitId),

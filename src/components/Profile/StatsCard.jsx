@@ -3,11 +3,11 @@ import React from 'react';
 export function StatsCard({ label, value, icon: Icon, color = "blue" }) {
   const colorClasses = {
     blue: "bg-primary/10 text-primary border-primary/20",
-    green: "bg-status-success/10 text-status-success border-status-success/20",
+    green: "bg-success/10 text-success border-success/20",
     purple: "bg-secondary/10 text-secondary border-secondary/20",
      orange: "bg-warning/10 text-warning border-warning/20",
 
-    red: "bg-status-error/10 text-status-error border-status-error/20",
+    red: "bg-error/10 text-error border-error/20",
     slate: "bg-surface/50 text-text-secondary border-border",
   };
 

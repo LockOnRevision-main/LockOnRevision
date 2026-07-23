@@ -1,7 +1,9 @@
-import { BookOpen, ChevronRight, Flame, Hammer, Sparkles, Trophy } from "lucide-react";
+import { AlertCircle, BookOpen, ChevronRight, Flame, Hammer, Sparkles, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { updateUserProfile } from "../services/userService.js";
+
+const PLACEHOLDER_NAME = "Lock-on Learner";
 
 const REFERRAL_OPTIONS = [
   "Friend", "School", "Teacher", "Discord",
@@ -46,10 +48,12 @@ export function OnboardingWizard() {
   const [referral, setReferral] = useState("");
   const [saving, setSaving] = useState(false);
   const [welcomeVisible, setWelcomeVisible] = useState(false);
+  const [nameError, setNameError] = useState("");
 
   useEffect(() => {
     const emailPrefix = user?.email?.split('@')[0] || "";
-    const existingName = profile?.name && profile.name !== "LockOn Learner" ? profile.name : "";
+    const isPlaceholder = profile?.name === PLACEHOLDER_NAME;
+    const existingName = profile?.name && !isPlaceholder ? profile.name : "";
     setName(existingName || emailPrefix);
   }, [profile?.name, user?.email]);
 
@@ -72,7 +76,13 @@ export function OnboardingWizard() {
 
   async function handleContinue() {
     if (step === "name") {
-      await saveToProfile({ name: name.trim() || user?.email?.split('@')[0] || "Learner" });
+      const displayName = name.trim() || user?.email?.split('@')[0] || "Learner";
+      if (displayName === PLACEHOLDER_NAME) {
+        setNameError("Please enter a different display name.");
+        return;
+      }
+      setNameError("");
+      await saveToProfile({ name: displayName });
       setStep("referral");
     } else if (step === "referral") {
       if (referral) {
@@ -83,10 +93,22 @@ export function OnboardingWizard() {
   }
 
   async function handleSkip() {
+    const displayName = profile?.name || name.trim() || user?.email?.split('@')[0] || "";
+    if (displayName === PLACEHOLDER_NAME) {
+      const fallbackName = user?.email?.split('@')[0] || "Learner";
+      await saveToProfile({ name: fallbackName, onboardingCompleted: true });
+      return;
+    }
     await saveToProfile({ onboardingCompleted: true });
   }
 
   async function handleStart() {
+    const displayName = profile?.name || name.trim() || user?.email?.split('@')[0] || "";
+    if (displayName === PLACEHOLDER_NAME) {
+      const fallbackName = user?.email?.split('@')[0] || "Learner";
+      await saveToProfile({ name: fallbackName, onboardingCompleted: true });
+      return;
+    }
     await saveToProfile({ onboardingCompleted: true });
   }
 
@@ -147,9 +169,15 @@ export function OnboardingWizard() {
                 autoFocus
                 onKeyDown={(e) => e.key === "Enter" && !saving && handleContinue()}
               />
-              <p className="mt-2 text-xs text-text-muted">
-                Leave empty to use &ldquo;{emailPrefix}&rdquo;
-              </p>
+              {nameError ? (
+                <p className="mt-2 flex items-center gap-1.5 text-xs font-bold text-status-error">
+                  <AlertCircle size={12} /> {nameError}
+                </p>
+              ) : (
+                <p className="mt-2 text-xs text-text-muted">
+                  Leave empty to use &ldquo;{emailPrefix}&rdquo;
+                </p>
+              )}
             </div>
 
             <div className="mt-8 flex items-center justify-between">
@@ -224,7 +252,7 @@ export function OnboardingWizard() {
           <div className="animate-fadeIn">
             <div className="mb-6 text-center">
               <h2 className="text-3xl font-black tracking-tight text-text-primary">
-                Welcome, {profile?.name || name || emailPrefix}
+                Welcome, {(profile?.name && profile.name !== PLACEHOLDER_NAME ? profile.name : name) || emailPrefix}
               </h2>
               <p className="mt-2 text-text-secondary">Here&apos;s what you can do with LockOn Revision</p>
             </div>

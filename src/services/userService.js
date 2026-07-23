@@ -1,7 +1,22 @@
-import { db } from "../config/firebase.js";
-import { doc, updateDoc, increment, serverTimestamp, arrayUnion, getDocs, query, orderBy, collection, limit } from "firebase/firestore";
+import { db, isFirebaseConfigured } from "../config/firebase.js";
+import { emitScoreChanged } from "./forgeEvents.js";
+import { calculateUnitReward } from "./energyService.js";
+
+import { doc, updateDoc, increment, serverTimestamp, arrayUnion, arrayRemove, getDocs, getDoc, query, orderBy, collection, limit } from "firebase/firestore";
 
 export async function fetchLeaderboard(limitCount = 50) {
+  if (!isFirebaseConfigured) {
+    const { readLocalState } = await import("./localStore.js");
+    const state = readLocalState();
+    const users = Object.entries(state.users || {}).map(([uid, data]) => ({
+      id: uid,
+      ...data.profile,
+      xp: data.xp ?? data.profile?.xp ?? 0,
+      energy: data.energy ?? data.profile?.energy ?? 0,
+      totalScore: data.totalScore ?? data.profile?.totalScore ?? 0,
+    }));
+    return users.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0)).slice(0, limitCount);
+  }
   if (!db) throw new Error("Firebase is not configured.");
   const usersSnap = await getDocs(
     query(collection(db, "users"), orderBy("totalScore", "desc"), limit(limitCount))
@@ -39,16 +54,25 @@ export async function completeMockTest(uid, testId, score) {
     updatedAt: serverTimestamp(),
   });
   
+  emitScoreChanged({ uid, reason: "mock-test", totalChange: earnedTotal });
   return { earnedEnergy, earnedXp };
 }
 
-export async function completeUnit(uid, unitId) {
+export async function completeUnit(uid, unitId, profile = {}) {
   if (!db) throw new Error("Firebase is not configured.");
-  const earnedEnergy = 15;
+  
+  const userRef = doc(db, "users", uid);
+  const userSnap = await getDoc(userRef);
+  const userData = userSnap.exists() ? userSnap.data() : {};
+  const completedUnits = userData.completedUnits || [];
+  if (completedUnits.includes(unitId)) {
+    return { earnedEnergy: 0, earnedXp: 0, alreadyCompleted: true };
+  }
+  
+  const earnedEnergy = calculateUnitReward(profile);
   const earnedXp = 150;
   const earnedTotal = earnedXp + earnedEnergy * 100;
   
-  const userRef = doc(db, "users", uid);
   await updateDoc(userRef, {
     xp: increment(earnedXp),
     energy: increment(earnedEnergy),
@@ -57,14 +81,32 @@ export async function completeUnit(uid, unitId) {
     updatedAt: serverTimestamp(),
   });
   
+  emitScoreChanged({ uid, reason: "complete-unit", totalChange: earnedTotal });
   return { earnedEnergy, earnedXp };
 }
 
+const PROFILE_ALLOWED_FIELDS = [
+  "name", "username", "bio", "avatarUrl",
+  "grade", "curriculum", "goals", "theme",
+  "favoriteSubjects", "referralSource", "onboardingCompleted",
+];
+
 export async function updateUserProfile(uid, updates) {
+  if (!isFirebaseConfigured) {
+    const { updateLocalUser } = await import("./localStore.js");
+    updateLocalUser(uid, (userData) => ({
+      ...userData,
+      profile: { ...userData.profile, ...updates, updatedAt: new Date().toISOString() },
+    }));
+    return;
+  }
   if (!db) throw new Error("Firebase is not configured.");
   const userRef = doc(db, "users", uid);
+  const safeUpdates = Object.fromEntries(
+    Object.entries(updates).filter(([key]) => PROFILE_ALLOWED_FIELDS.includes(key)),
+  );
   return updateDoc(userRef, {
-    ...updates,
+    ...safeUpdates,
     updatedAt: serverTimestamp(),
   });
 }
@@ -91,9 +133,14 @@ export async function updateGoal(uid, goalId, goalData) {
   });
 }
 
-export async function toggleFavoriteSubject(uid, _subjectId) {
+export async function toggleFavoriteSubject(uid, subjectName, currentlyFavorites) {
   if (!db) throw new Error("Firebase is not configured.");
-  const _userRef = doc(db, "users", uid);
+  const userRef = doc(db, "users", uid);
+  const isFavorited = currentlyFavorites?.includes(subjectName);
+  return updateDoc(userRef, {
+    favoriteSubjects: isFavorited ? arrayRemove(subjectName) : arrayUnion(subjectName),
+    updatedAt: serverTimestamp(),
+  });
 }
 
 export function calculateLevel(xp) {

@@ -8,6 +8,8 @@ import { ForgePage } from "./pages/ForgePage.jsx";
 import { LandingPage } from "./pages/LandingPage.jsx";
 import { LeaderboardPage } from "./pages/LeaderboardPage.jsx";
 import { LoginPage } from "./pages/LoginPage.jsx";
+import { ProfilePage } from "./pages/ProfilePage.jsx";
+import { TimetablePage } from "./pages/TimetablePage.jsx";
 import { canAccessAdmin } from "./utils/permissions.js";
 
 function LoadingScreen() {
@@ -24,7 +26,7 @@ function ProtectedRoute({ children }) {
   if (!isFirebaseConfigured) return <Navigate to="/login" replace />;
   if (!user) return <Navigate to="/login" replace />;
   if (!profile) return <LoadingScreen />;
-  if (!profile.onboardingCompleted) return <OnboardingWizard />;
+  if (!profile.onboardingCompleted || profile.name === "Lock-on Learner") return <OnboardingWizard />;
   return <AppShell>{children}</AppShell>;
 }
 
@@ -63,6 +65,22 @@ export default function App() {
         element={
           <ProtectedRoute>
             <LeaderboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/timetable"
+        element={
+          <ProtectedRoute>
+            <TimetablePage />
           </ProtectedRoute>
         }
       />

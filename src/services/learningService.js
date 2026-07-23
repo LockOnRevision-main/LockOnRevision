@@ -12,10 +12,14 @@ import {
   serverTimestamp,
   updateDoc,
   where,
+  writeBatch,
 } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "../config/firebase.js";
 import { getLocalUser, makeId, subscribeLocalState, updateLocalUser } from "./localStore.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
+import { emitLessonCompleted } from "./forgeEvents.js";
+import { emitScoreChanged } from "./forgeEvents.js";
+import { calculateLessonReward } from "./energyService.js";
 
 function localList(uid, name) {
   return getLocalUser(uid)?.[name] || [];
@@ -704,7 +708,9 @@ export async function recordAnswer(uid, question, selectedAnswer) {
         ...userData.answers,
       ],
       xp: userData.xp + (isCorrect ? 10 : 0),
+      totalScore: (userData.totalScore || 0) + (isCorrect ? 10 : 0),
     }));
+    emitScoreChanged({ uid, reason: "answer", xpEarned: isCorrect ? 10 : 0 });
     return { isCorrect, xpEarned: isCorrect ? 10 : 0 };
   }
 
@@ -726,54 +732,99 @@ export async function recordAnswer(uid, question, selectedAnswer) {
 
   await updateDoc(doc(db, "users", uid), {
     xp: increment(xpEarned),
+    totalScore: increment(xpEarned),
     "dailyUsage.answersCount": increment(1),
     updatedAt: now,
   });
 
+  emitScoreChanged({ uid, reason: "answer", xpEarned });
   return { isCorrect, xpEarned };
 }
 
-export async function completeLesson(uid, lessonId, xpEarned, perfectLesson = false) {
-  if (!isFirebaseConfigured) {
-    updateLocalUser(uid, (userData) => {
-      const lesson = userData.lessons?.find(l => l.id === lessonId);
-      if (lesson) {
-        lesson.completed = true;
-        lesson.completedAt = new Date().toISOString();
-        lesson.xpEarned = xpEarned;
-        lesson.perfect = perfectLesson;
-      }
-      return {
-        ...userData,
-        xp: userData.xp + xpEarned + (perfectLesson ? 5 : 0),
-        streak: perfectLesson ? userData.streak + 1 : userData.streak,
-      };
-    });
-    return { success: true, totalXP: xpEarned + (perfectLesson ? 5 : 0) };
-  }
-
-  const now = serverTimestamp();
+export async function completeLesson(uid, lessonId, xpEarned, perfectLesson = false, options = {}) {
   const bonusXP = perfectLesson ? 5 : 0;
   const totalXP = xpEarned + bonusXP;
 
-  await updateDoc(doc(db, "users", uid, "lessons", lessonId), {
+  const difficulty = options.difficulty || "medium";
+  const grade = options.grade;
+  const curriculum = options.curriculum;
+  const subjectName = options.subjectName;
+
+  const lessonRef = doc(db, "users", uid, "lessons", lessonId);
+  const lessonSnap = await getDoc(lessonRef);
+  const alreadyCompleted = lessonSnap.exists() && lessonSnap.data()?.completed === true;
+
+  const accuracy = options.accuracy !== undefined ? options.accuracy : 100;
+
+  const energyAward = calculateLessonReward(
+    { difficulty, accuracy, perfect: perfectLesson, subjectName },
+    { grade, curriculum },
+  );
+
+  if (!isFirebaseConfigured) {
+    const localState = JSON.parse(localStorage.getItem("lockon-revision-local-state") || "{}");
+    const localUser = localState.users?.[uid];
+    const localLesson = (localUser?.lessons || []).find((l) => l.id === lessonId);
+    if (localLesson?.completed) {
+      return { success: false, totalXP: 0, energyAward: 0, reason: "already-completed" };
+    }
+    const today = new Date().toISOString().split("T")[0];
+    updateLocalUser(uid, (userData) => {
+      const now = new Date().toISOString();
+      const existing = userData.activity?.[today] || 0;
+      return {
+        ...userData,
+        lessons: (userData.lessons || []).map((l) =>
+          l.id === lessonId
+            ? { ...l, completed: true, completedAt: now, xpEarned: totalXP, perfect: perfectLesson }
+            : l,
+        ),
+        xp: (userData.xp || 0) + totalXP,
+        energy: (userData.energy || 0) + energyAward,
+        totalScore: (userData.totalScore || 0) + totalXP + energyAward * 100,
+        streak: (userData.streak || 0) + 1,
+        totalStudyHours: (userData.totalStudyHours || 0) + 0.25,
+        completedLessons: ((userData.completedLessons || 0)) + 1,
+        activity: { ...(userData.activity || {}), [today]: existing + 0.25 },
+      };
+    });
+    emitLessonCompleted({ lessonId, uid, xpEarned: totalXP, energyAward, perfect: perfectLesson });
+    return { success: true, totalXP, energyAward };
+  }
+
+  if (alreadyCompleted) {
+    return { success: false, totalXP: 0, energyAward: 0, reason: "already-completed" };
+  }
+
+  const now = serverTimestamp();
+  const today = new Date().toISOString().split("T")[0];
+
+  const batch = writeBatch(db);
+
+  batch.set(lessonRef, {
     completed: true,
     completedAt: now,
     xpEarned: totalXP,
     perfect: perfectLesson,
     updatedAt: now,
+  }, { merge: true });
+
+  batch.update(doc(db, "users", uid), {
+    xp: increment(totalXP),
+    energy: increment(energyAward),
+    totalScore: increment(totalXP + energyAward * 100),
+    streak: increment(1),
+    totalStudyHours: increment(0.25),
+    completedLessons: increment(1),
+    [`activity.${today}`]: increment(0.25),
+    updatedAt: now,
   });
 
-  const userPatch = {
-    xp: increment(totalXP),
-    "dailyUsage.lessonsCompleted": increment(1),
-    updatedAt: now,
-  };
-  if (perfectLesson) userPatch.streak = increment(1);
+  await batch.commit();
 
-  await updateDoc(doc(db, "users", uid), userPatch);
+  emitLessonCompleted({ lessonId, uid, xpEarned: totalXP, energyAward, perfect: perfectLesson });
 
-  return { success: true, totalXP };
+  return { success: true, totalXP, energyAward };
 }
 
 export async function submitExerciseAnswer(uid, lessonId, exerciseId, answer) {
@@ -815,10 +866,11 @@ export async function submitExerciseAnswer(uid, lessonId, exerciseId, answer) {
     lessonId,
     exerciseId,
     answer,
+    correctAnswer: "",
     answeredAt: now,
   });
 
-  throw new Error("Exercise answer submission requires client-side lesson exercise data.");
+  return { isCorrect: false, explanation: "Exercise validation is handled client-side." };
 }
 
 export function findNextLesson(lessons = [], questions = []) {

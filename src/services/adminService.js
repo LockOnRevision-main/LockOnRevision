@@ -11,6 +11,8 @@ import {
 import { db, isFirebaseConfigured } from "../config/firebase.js";
 import { deleteForgeSubject, fetchForgeSubjects } from "./forgeService.js";
 import { calculateTotalScore } from "./userService.js";
+import { emitScoreChanged } from "./forgeEvents.js";
+import { applyCompetitionRanking, mapUserData } from "./leaderboardService.js";
 
 export async function searchUsers(searchTerm = "", max = 50) {
   if (!db) throw new Error("Firebase is not configured.");
@@ -38,7 +40,7 @@ export async function adjustUserXp(uid, delta) {
 
     const data = snapshot.data();
     const nextXp = Math.max(0, Number(data.xp || 0) + Number(delta || 0));
-    const nextTotal = calculateTotalScore(nextXp, data.energy || 0);
+    const nextTotal = calculateTotalScore({ xp: nextXp, energy: data.energy || 0 });
 
     transaction.update(userRef, {
       xp: nextXp,
@@ -46,6 +48,7 @@ export async function adjustUserXp(uid, delta) {
       updatedAt: serverTimestamp(),
     });
 
+    emitScoreChanged({ uid, reason: "admin-xp-adjust", totalChange: nextTotal - calculateTotalScore({ xp: data.xp || 0, energy: data.energy || 0 }) });
     return { xp: nextXp, energy: data.energy || 0, totalScore: nextTotal };
   });
 }
@@ -60,7 +63,7 @@ export async function adjustUserEnergy(uid, delta) {
 
     const data = snapshot.data();
     const nextEnergy = Math.max(0, Number(data.energy || 0) + Number(delta || 0));
-    const nextTotal = calculateTotalScore(data.xp || 0, nextEnergy);
+    const nextTotal = calculateTotalScore({ xp: data.xp || 0, energy: nextEnergy });
 
     transaction.update(userRef, {
       energy: nextEnergy,
@@ -68,6 +71,7 @@ export async function adjustUserEnergy(uid, delta) {
       updatedAt: serverTimestamp(),
     });
 
+    emitScoreChanged({ uid, reason: "admin-energy-adjust", totalChange: nextTotal - calculateTotalScore({ xp: data.xp || 0, energy: data.energy || 0 }) });
     return { xp: data.xp || 0, energy: nextEnergy, totalScore: nextTotal };
   });
 }
@@ -85,6 +89,7 @@ export async function setUserTotalScore(uid, totalScore) {
       updatedAt: serverTimestamp(),
     });
 
+    emitScoreChanged({ uid, reason: "admin-set-score", totalChange: 0 });
     return { totalScore: Math.max(0, Number(totalScore || 0)) };
   });
 }
@@ -100,7 +105,7 @@ export async function grantLeaderboardReward(uid, { xp = 0, energy = 0, reason =
     const data = snapshot.data();
     const nextXp = Math.max(0, Number(data.xp || 0) + Number(xp || 0));
     const nextEnergy = Math.max(0, Number(data.energy || 0) + Number(energy || 0));
-    const nextTotal = calculateTotalScore(nextXp, nextEnergy);
+    const nextTotal = calculateTotalScore({ xp: nextXp, energy: nextEnergy });
     const rewards = Array.isArray(data.adminRewards) ? data.adminRewards : [];
 
     transaction.update(userRef, {
@@ -114,6 +119,7 @@ export async function grantLeaderboardReward(uid, { xp = 0, energy = 0, reason =
       updatedAt: serverTimestamp(),
     });
 
+    emitScoreChanged({ uid, reason: "admin-reward", totalChange: nextTotal - calculateTotalScore({ xp: data.xp || 0, energy: data.energy || 0 }) });
     return { xp: nextXp, energy: nextEnergy, totalScore: nextTotal };
   });
 }
@@ -153,12 +159,14 @@ export async function getAdminOverview() {
   }
 
   const usersSnap = await getDocs(query(collection(db, "users"), orderBy("totalScore", "desc"), limit(10)));
+  const rawUsers = usersSnap.docs.map(mapUserData);
+  const ranked = applyCompetitionRanking(rawUsers);
   return {
     available: true,
-    topUsers: usersSnap.docs.map((item, index) => ({
+    topUsers: ranked.map((item) => ({
       id: item.id,
-      rank: index + 1,
-      ...item.data(),
+      rank: item._rank,
+      ...item,
     })),
   };
 }

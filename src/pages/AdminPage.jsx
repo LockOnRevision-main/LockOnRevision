@@ -206,7 +206,7 @@ export function AdminPage() {
                   type="button"
                   onClick={() => {
                     setSelectedUserId(item.id);
-                    setTotalScoreInput(String(item.totalScore || calculateTotalScore(item.xp, item.energy)));
+                    setTotalScoreInput(String(item.totalScore || calculateTotalScore(item)));
                   }}
                   className={`flex w-full items-center justify-between gap-3 border-b border-border/50 px-3 py-3 text-left last:border-b-0 ${
                     selectedUserId === item.id ? "bg-primary/10" : "bg-surface"
@@ -241,7 +241,7 @@ export function AdminPage() {
           {selectedUser ? (
             <p className="mb-4 rounded-lg bg-background p-3 text-sm">
               <strong>{selectedUser.name}</strong> - XP {selectedUser.xp || 0}, Energy {selectedUser.energy || 0},
-              Total {selectedUser.totalScore || calculateTotalScore(selectedUser.xp, selectedUser.energy)}
+              Total {selectedUser.totalScore || calculateTotalScore(selectedUser)}
             </p>
           ) : (
             <p className="mb-4 text-sm text-text-secondary">Select a user to adjust rewards.</p>

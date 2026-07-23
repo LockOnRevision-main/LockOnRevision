@@ -1,4 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
+@import "katex/dist/katex.min.css";
+@import "highlight.js/styles/github.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -101,4 +103,12 @@ button:disabled {
 
 .animate-fadeIn {
   animation: fadeIn 0.4s ease-out forwards;
+}
+
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
