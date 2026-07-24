@@ -30,6 +30,8 @@ export function calculateTotalScore(profile) {
   return xp + energy * 100;
 }
 
+// PRESERVED for future development — Mock Tests backend logic
+// Currently no user-facing UI; may be re-enabled in a later roadmap release.
 export const TESTS = [
   { id: 'test-1', title: 'Foundations of Knowledge', difficulty: 'Easy', energy: 10, xp: 100 },
   { id: 'test-2', title: 'Intermediate Concepts', difficulty: 'Medium', energy: 20, xp: 250 },
@@ -44,7 +46,7 @@ export async function completeMockTest(uid, testId, score) {
   const earnedEnergy = score >= 60 ? test.energy : 0;
   const earnedXp = score >= 60 ? test.xp : Math.round(test.xp * (score / 100));
   const earnedTotal = earnedXp + earnedEnergy * 100;
-  
+
   const userRef = doc(db, "users", uid);
   await updateDoc(userRef, {
     xp: increment(earnedXp),
@@ -53,7 +55,7 @@ export async function completeMockTest(uid, testId, score) {
     completedTests: arrayUnion(testId),
     updatedAt: serverTimestamp(),
   });
-  
+
   emitScoreChanged({ uid, reason: "mock-test", totalChange: earnedTotal });
   return { earnedEnergy, earnedXp };
 }

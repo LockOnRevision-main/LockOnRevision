@@ -1,50 +1,72 @@
-const DIFFICULTY_WEIGHTS = {
-  easy: 0.7,
-  medium: 1.0,
-  hard: 1.3,
+const BASE_RANGES = {
+  lesson: { min: 1, max: 2 },
+  level: { min: 3, max: 4 },
+  unit: { min: 5, max: 6 },
+  term: { min: 10, max: 20 },
 };
 
-const BASE_ENERGY = {
-  lesson: 1.5,
-  level: 3.5,
-  unit: 5.5,
-  term: 15,
+const DIFFICULTY_FACTORS = {
+  easy: 0.3,
+  medium: 0.55,
+  hard: 0.8,
 };
 
-const GRADE_MULTIPLIERS = {
-  "Grade 1": 0.4,
-  "Grade 2": 0.45,
-  "Grade 3": 0.5,
-  "Grade 4": 0.6,
-  "Grade 5": 0.7,
-  "Grade 6": 0.8,
-  "Grade 7": 0.9,
-  "Grade 8": 1.0,
-  "Grade 9": 1.1,
-  "Grade 10": 1.2,
-  "Grade 11": 1.35,
-  "Grade 12": 1.5,
+const GRADE_PROFILES = {
+  "Grade 1": { level: 1, weight: 0.4 },
+  "Grade 2": { level: 2, weight: 0.45 },
+  "Grade 3": { level: 3, weight: 0.5 },
+  "Grade 4": { level: 4, weight: 0.6 },
+  "Grade 5": { level: 5, weight: 0.7 },
+  "Grade 6": { level: 6, weight: 0.8 },
+  "Grade 7": { level: 7, weight: 0.9 },
+  "Grade 8": { level: 8, weight: 1.0 },
+  "Grade 9": { level: 9, weight: 1.1 },
+  "Grade 10": { level: 10, weight: 1.2 },
+  "Grade 11": { level: 11, weight: 1.35 },
+  "Grade 12": { level: 12, weight: 1.5 },
 };
 
-const CURRICULUM_MULTIPLIERS = {
-  IGCSE: 1.0,
-  "A-Level": 1.3,
-  GCSE: 1.0,
-  IB: 1.2,
-  AP: 1.1,
-  Cambridge: 1.0,
-  National: 0.9,
-  CBSE: 0.95,
-  ICSE: 0.9,
-  "South African CAPS": 0.85,
+const CURRICULUM_PROFILES = {
+  IGCSE: { weight: 1.0, difficultyOffset: 0 },
+  "A-Level": { weight: 1.3, difficultyOffset: 0.15 },
+  GCSE: { weight: 1.0, difficultyOffset: 0 },
+  IB: { weight: 1.2, difficultyOffset: 0.1 },
+  AP: { weight: 1.1, difficultyOffset: 0.05 },
+  Cambridge: { weight: 1.0, difficultyOffset: 0 },
+  National: { weight: 0.9, difficultyOffset: -0.05 },
+  CBSE: { weight: 0.95, difficultyOffset: -0.02 },
+  ICSE: { weight: 0.9, difficultyOffset: -0.05 },
+  "South African CAPS": { weight: 0.85, difficultyOffset: -0.08 },
 };
+
+const ACHIEVEMENT_BONUSES = [
+  { id: "fast-learner", amount: 0.3 },
+  { id: "no-hints", amount: 0.3 },
+  { id: "first-try", amount: 0.2 },
+];
+
+export function getGradeProfile(grade) {
+  return GRADE_PROFILES[grade] || { level: 0, weight: 1.0 };
+}
+
+export function getCurriculumProfile(curriculum) {
+  return CURRICULUM_PROFILES[curriculum] || { weight: 1.0, difficultyOffset: 0 };
+}
+
+export function getGradeWeight(grade) {
+  return getGradeProfile(grade).weight;
+}
 
 export function getGradeMultiplier(grade) {
-  return GRADE_MULTIPLIERS[grade] || 1.0;
+  return getGradeProfile(grade).weight;
+}
+
+export function getCurriculumWeight(curriculum) {
+  return getCurriculumProfile(curriculum).weight;
 }
 
 export function getCurriculumMultiplier(curriculum) {
-  return CURRICULUM_MULTIPLIERS[curriculum] || 1.0;
+  return getCurriculumProfile(curriculum).weight;
 }
 
 export function calculateEnergyReward({
@@ -56,57 +78,53 @@ export function calculateEnergyReward({
   curriculum,
   subject: _subject,
   topicDifficulty,
+  achievements = [],
 }) {
-  const base = BASE_ENERGY[type] || 1.5;
-  const difficultyWeight = DIFFICULTY_WEIGHTS[difficulty] || 1.0;
-  const gradeMult = getGradeMultiplier(grade);
-  const curriculumMult = getCurriculumMultiplier(curriculum);
+  const range = BASE_RANGES[type] || BASE_RANGES.lesson;
+  const difficultyFactor = DIFFICULTY_FACTORS[difficulty] || 0.55;
+  const gradeProfile = getGradeProfile(grade);
+  const curriculumProfile = getCurriculumProfile(curriculum);
 
-  const accuracyMult =
-    accuracy !== undefined
-      ? 0.5 + (Math.min(100, Math.max(0, accuracy)) / 100) * 0.5
-      : 1.0;
+  const gradeScaledDifficulty = difficultyFactor * (0.4 + gradeProfile.weight * 0.6);
 
-  const topicWeight = topicDifficulty !== undefined
-    ? 0.8 + topicDifficulty * 0.4
+  const curriculumDifficulty = 1 + curriculumProfile.difficultyOffset;
+
+  const topicScaler = topicDifficulty !== undefined
+    ? 0.8 + Math.min(topicDifficulty, 1) * 0.4
+    : 1.0;
+
+  const accuracyFactor = accuracy !== undefined
+    ? 0.5 + (Math.min(100, Math.max(0, accuracy)) / 100) * 0.5
     : 1.0;
 
   const perfectBonus = perfect ? 1.25 : 1.0;
 
-  let energy =
-    base *
-    difficultyWeight *
-    gradeMult *
-    curriculumMult *
-    accuracyMult *
-    topicWeight *
-    perfectBonus;
+  let challenge = gradeScaledDifficulty * curriculumDifficulty * topicScaler * accuracyFactor * perfectBonus;
+  challenge = Math.max(0, Math.min(1, challenge * 0.6 + 0.2));
+
+  let energy = range.min + (range.max - range.min) * challenge;
 
   if (perfect) energy += 0.5;
-
   if (accuracy !== undefined && accuracy >= 100) energy += 0.5;
+
+  ACHIEVEMENT_BONUSES.forEach((bonus) => {
+    if (achievements.includes(bonus.id)) energy += bonus.amount;
+  });
 
   return Math.max(0.5, Math.round(energy * 10) / 10);
 }
 
-export function calculateLessonReward(lesson, profile) {
-  const difficulty = lesson.difficulty || "medium";
-  const accuracy = lesson.accuracy;
-  const perfect = lesson.perfect || false;
-  const grade = profile?.grade;
-  const curriculum = profile?.curriculum;
-  const subject = lesson.subjectName;
-  const topicDifficulty = lesson.topicDifficulty;
-
+export function calculateLessonReward(lesson = {}, profile = {}) {
   return calculateEnergyReward({
     type: "lesson",
-    difficulty,
-    accuracy,
-    perfect,
-    grade,
-    curriculum,
-    subject,
-    topicDifficulty,
+    difficulty: lesson.difficulty || "medium",
+    accuracy: lesson.accuracy,
+    perfect: lesson.perfect || false,
+    grade: profile?.grade,
+    curriculum: profile?.curriculum,
+    subject: lesson.subjectName,
+    topicDifficulty: lesson.topicDifficulty,
+    achievements: lesson.achievements || [],
   });
 }
 
