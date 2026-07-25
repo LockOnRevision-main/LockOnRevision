@@ -10,15 +10,27 @@ import {
 initializeApp();
 const db = getFirestore();
 
-const geminiApiKey = process.env.GEMINI_API_KEY;
-const geminiModel = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+let geminiApiKey;
+let genAI;
+let model;
 
-if (!geminiApiKey) {
-  console.warn("GEMINI_API_KEY not set. AI functions will fail.");
+try {
+  geminiApiKey = process.env.GEMINI_API_KEY;
+  const geminiModel = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+
+  if (!geminiApiKey) {
+    console.warn("[functions] GEMINI_API_KEY not set. AI functions will fail.");
+  } else {
+    genAI = new GoogleGenerativeAI(geminiApiKey);
+    model = genAI.getGenerativeModel({ model: geminiModel });
+  }
+} catch (initError) {
+  console.error("[functions] Module initialization error:", initError.message);
 }
 
-const genAI = geminiApiKey ? new GoogleGenerativeAI(geminiApiKey) : null;
-const model = genAI ? genAI.getGenerativeModel({ model: geminiModel }) : null;
+function isConfigured() {
+  return !!model;
+}
 
 function parseGeminiJson(text) {
   const cleaned = text
@@ -30,9 +42,9 @@ function parseGeminiJson(text) {
 }
 
 async function callGeminiJson(prompt, fallbackValue = null) {
-  if (!model) {
+  if (!isConfigured()) {
     if (fallbackValue !== null) return fallbackValue;
-    throw new HttpsError("unavailable", "Gemini API is not configured.");
+    throw new HttpsError("unavailable", "Gemini API is not configured. Set GEMINI_API_KEY in Firebase config.");
   }
 
   try {

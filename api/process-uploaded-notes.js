@@ -5,16 +5,41 @@ import fs from 'fs';
 import path from 'path';
 import { pipeline } from 'stream/promises';
 
-const geminiApiKey = process.env.GEMINI_API_KEY;
-const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
 
-if (!geminiApiKey) {
-  console.warn('GEMINI_API_KEY not set. AI functions will fail.');
+function setCorsHeaders(res) {
+  for (const [key, value] of Object.entries(corsHeaders)) {
+    res.setHeader(key, value);
+  }
 }
 
-const genAI = geminiApiKey ? new GoogleGenerativeAI(geminiApiKey) : null;
-const model = genAI ? genAI.getGenerativeModel({ model: geminiModel }) : null;
-const fileManager = geminiApiKey ? new GoogleAIFileManager(geminiApiKey) : null;
+let geminiApiKey;
+let genAI;
+let model;
+let fileManager;
+
+try {
+  geminiApiKey = process.env.GEMINI_API_KEY;
+  const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+
+  if (!geminiApiKey) {
+    console.warn('[process-uploaded-notes] GEMINI_API_KEY not set. AI functions will fail.');
+  } else {
+    genAI = new GoogleGenerativeAI(geminiApiKey);
+    model = genAI.getGenerativeModel({ model: geminiModel });
+    fileManager = new GoogleAIFileManager(geminiApiKey);
+  }
+} catch (initError) {
+  console.error('[process-uploaded-notes] Module initialization error:', initError.message);
+}
+
+function isConfigured() {
+  return !!model;
+}
 
 function validateGeminiResponse(data) {
   if (!data || !data.subject || !data.subject.units) {
@@ -47,7 +72,7 @@ function parseGeminiJson(text) {
 }
 
 async function callGeminiWithFiles(files, prompt) {
-  if (!model) throw new Error('Gemini API is not configured.');
+  if (!isConfigured()) throw new Error('Gemini API is not configured.');
 
   const contents = files.map(f => ({
     fileData: {
@@ -66,6 +91,12 @@ async function callGeminiWithFiles(files, prompt) {
 }
 
 export default async function handler(req, res) {
+  setCorsHeaders(res);
+
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -172,6 +203,6 @@ Return ONLY valid JSON with this structure:
     return res.status(200).json({ ok: true, data: generated });
   } catch (error) {
     console.error('Error in process-uploaded-notes:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Failed to process uploaded notes. Please try again.' });
   }
 }

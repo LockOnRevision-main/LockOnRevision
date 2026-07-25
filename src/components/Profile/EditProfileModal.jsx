@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Camera, X } from 'lucide-react';
+import { Camera, X, Palette } from 'lucide-react';
 import { uploadToCloudinary, isCloudinaryConfigured } from '../../utils/cloudinary';
+import { ProfileIconPicker, ProfileIconRenderer } from './ProfileIconPicker';
 
 const GRADE_OPTIONS = [
   "Grade 1", "Grade 2", "Grade 3", "Grade 4",
@@ -27,10 +28,12 @@ export function EditProfileModal({ profile, onClose, onSave }) {
     theme: profile?.theme || 'system',
     favoriteSubjects: profile?.favoriteSubjects || [],
     avatarUrl: profile?.avatarUrl || '',
+    avatarIcon: profile?.avatarIcon || '',
   });
   const [newSubject, setNewSubject] = useState('');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [showIconPicker, setShowIconPicker] = useState(false);
 
   const addSubject = () => {
     const sub = newSubject.trim();
@@ -45,6 +48,11 @@ export function EditProfileModal({ profile, onClose, onSave }) {
       ...formData,
       favoriteSubjects: formData.favoriteSubjects.filter((s) => s !== subject),
     });
+  };
+
+  const handleSelectIcon = (iconId) => {
+    setFormData({ ...formData, avatarIcon: iconId, avatarUrl: '' });
+    setShowIconPicker(false);
   };
 
   const handleAvatarUpload = async (e) => {
@@ -65,7 +73,7 @@ export function EditProfileModal({ profile, onClose, onSave }) {
         const result = await uploadToCloudinary(file, {
           folder: `lockon-revision/${profile.id || 'user'}/avatar`,
         });
-        setFormData({ ...formData, avatarUrl: result.url });
+        setFormData({ ...formData, avatarUrl: result.url, avatarIcon: '' });
       } else {
         const dataUrl = await new Promise((resolve, reject) => {
           const reader = new FileReader();
@@ -73,7 +81,7 @@ export function EditProfileModal({ profile, onClose, onSave }) {
           reader.onerror = reject;
           reader.readAsDataURL(file);
         });
-        setFormData({ ...formData, avatarUrl: dataUrl });
+        setFormData({ ...formData, avatarUrl: dataUrl, avatarIcon: '' });
       }
     } catch (error) {
       console.error("Avatar upload error:", error);
@@ -111,36 +119,61 @@ export function EditProfileModal({ profile, onClose, onSave }) {
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto">
-          {/* Avatar Upload */}
+          {/* Avatar */}
           <div className="flex items-center gap-4">
             <div className="relative">
-              <img
-                src={formData.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`}
-                alt="Avatar preview"
-                className="w-20 h-20 rounded-2xl border-4 border-border bg-background object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadingAvatar}
-                className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-primary text-white shadow-lg hover:scale-110 transition-transform border-2 border-surface"
-              >
-                <Camera size={14} />
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarUpload}
-                className="hidden"
-              />
+              {formData.avatarIcon ? (
+                <div className="w-20 h-20 rounded-2xl border-4 border-border bg-background overflow-hidden p-2">
+                  <ProfileIconRenderer iconId={formData.avatarIcon} className="w-full h-full" />
+                </div>
+              ) : (
+                <img
+                  src={formData.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`}
+                  alt="Avatar preview"
+                  className="w-20 h-20 rounded-2xl border-4 border-border bg-background object-cover"
+                />
+              )}
             </div>
-            <div className="text-sm">
-              <p className="font-bold text-text-primary">Profile Picture</p>
-              <p className="text-text-muted text-xs mt-0.5">
-                {uploadingAvatar ? 'Uploading...' : 'Click the camera to upload'}
+            <div className="flex flex-col gap-1.5">
+              <p className="font-bold text-text-primary text-sm">Profile Picture</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    formData.avatarIcon
+                      ? 'bg-background text-text-muted border border-border opacity-60'
+                      : 'bg-primary text-white hover:bg-primary-active shadow-sm active:scale-95'
+                  }`}
+                >
+                  <Camera size={12} />
+                  Photo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowIconPicker(true)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    formData.avatarIcon
+                      ? 'bg-primary text-white shadow-sm hover:bg-primary-active active:scale-95'
+                      : 'bg-background text-text-secondary border border-border hover:bg-surface hover:border-primary'
+                  }`}
+                >
+                  <Palette size={12} />
+                  Icon
+                </button>
+              </div>
+              <p className="text-text-muted text-xs">
+                {uploadingAvatar ? 'Uploading...' : formData.avatarIcon ? 'Icon selected' : 'Photo or icon'}
               </p>
             </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+            />
           </div>
 
           <div className="space-y-1">
@@ -276,6 +309,13 @@ export function EditProfileModal({ profile, onClose, onSave }) {
              </button>
 
         </form>
+        {showIconPicker && (
+          <ProfileIconPicker
+            currentId={formData.avatarIcon}
+            onSelect={handleSelectIcon}
+            onClose={() => setShowIconPicker(false)}
+          />
+        )}
       </div>
     </div>
   );

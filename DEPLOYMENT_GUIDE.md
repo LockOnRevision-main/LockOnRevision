@@ -23,11 +23,30 @@ VITE_CLOUDINARY_UPLOAD_PRESET=your_unsigned_upload_preset
 
 ## Server Environment
 
-Set these in Vercel project settings:
+Set these in Vercel project settings (Settings → Environment Variables):
 
 ```bash
 GEMINI_API_KEY=your_gemini_api_key
 GEMINI_MODEL=gemini-1.5-flash
+```
+
+**⚠️ Required:** The AI Assistant and all AI features require `GEMINI_API_KEY` to be set. Without it, the AI Assistant will show a friendly message indicating it's not configured, and Forge generation will use fallback local content generation.
+
+## Development
+
+### Running locally
+
+```bash
+npm install
+npm run dev
+```
+
+In development mode, API routes are proxied to `http://127.0.0.1:3000`. To test AI features locally, you need a local server on port 3000 that handles the API routes.
+
+Alternatively, deploy to Vercel and test against production:
+
+```bash
+vercel --prod
 ```
 
 ## Deploy

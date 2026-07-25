@@ -5,6 +5,7 @@ import { useAuth } from "./context/AuthContext.jsx";
 import { AppPage } from "./pages/AppPage.jsx";
 import { AdminPage } from "./pages/AdminPage.jsx";
 import { ForgePage } from "./pages/ForgePage.jsx";
+import { AboutPage } from "./pages/AboutPage.jsx";
 import { LandingPage } from "./pages/LandingPage.jsx";
 import { LeaderboardPage } from "./pages/LeaderboardPage.jsx";
 import { LoginPage } from "./pages/LoginPage.jsx";
@@ -43,6 +44,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/about" element={<AboutPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route
         path="/app"

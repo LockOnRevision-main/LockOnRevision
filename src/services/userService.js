@@ -88,7 +88,7 @@ export async function completeUnit(uid, unitId, profile = {}) {
 }
 
 const PROFILE_ALLOWED_FIELDS = [
-  "name", "username", "bio", "avatarUrl",
+  "name", "username", "bio", "avatarUrl", "avatarIcon",
   "grade", "curriculum", "goals", "theme",
   "favoriteSubjects", "referralSource", "onboardingCompleted",
 ];

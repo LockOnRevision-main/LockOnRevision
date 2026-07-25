@@ -25,6 +25,7 @@ function createUserProfile(user, name) {
     username: user.email?.split('@')[0] || "learner",
     bio: "",
     avatarUrl: "",
+    avatarIcon: "",
     role,
     xp: 0,
     energy: 0,
@@ -96,6 +97,7 @@ async function ensureUserDocument(user, name) {
   if (data.curriculum === undefined) patch.curriculum = "";
   if (data.theme === undefined) patch.theme = "system";
   if (data.avatarUrl === undefined) patch.avatarUrl = "";
+  if (data.avatarIcon === undefined) patch.avatarIcon = "";
 
   // Onboarding
   if (data.onboardingCompleted === undefined) patch.onboardingCompleted = false;

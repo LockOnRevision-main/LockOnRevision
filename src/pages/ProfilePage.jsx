@@ -39,6 +39,7 @@ import { StatsCard } from '../components/Profile/StatsCard';
 import { ActivityHeatmap } from '../components/Profile/ActivityHeatmap';
 import { AchievementBadge } from '../components/Profile/AchievementBadge';
 import { EditProfileModal } from '../components/Profile/EditProfileModal';
+import { ProfileIconRenderer } from '../components/Profile/ProfileIconPicker';
 import { PasswordInput } from '../components/PasswordInput';
 
 export function ProfilePage() {
@@ -190,11 +191,17 @@ export function ProfilePage() {
         <div className="px-8 pb-8">
           <div className="relative flex flex-col md:flex-row items-end gap-6 -mt-12">
             <div className="relative">
-              <img 
-                src={profile.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} 
-                alt="Avatar"
-                className="w-32 h-32 rounded-3xl border-4 border-surface bg-background object-cover shadow-xl"
-              />
+              {profile.avatarIcon ? (
+                <div className="w-32 h-32 rounded-3xl border-4 border-surface bg-background shadow-xl overflow-hidden p-3">
+                  <ProfileIconRenderer iconId={profile.avatarIcon} className="w-full h-full" />
+                </div>
+              ) : (
+                <img 
+                  src={profile.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} 
+                  alt="Avatar"
+                  className="w-32 h-32 rounded-3xl border-4 border-surface bg-background object-cover shadow-xl"
+                />
+              )}
               <button 
                 onClick={() => setIsEditing(true)}
                 className="absolute bottom-2 right-2 p-2 rounded-full bg-surface text-primary shadow-lg hover:scale-110 transition-transform border border-border"

@@ -106,6 +106,17 @@ export function AiSidebar() {
 
       if (!response.body) throw new Error("Response body is empty");
 
+      // Check if the response is JSON (fallback) or stream (normal)
+      const contentType = response.headers.get('content-type') || '';
+      
+      if (contentType.includes('application/json')) {
+        const data = await response.json();
+        const reply = data.reply || data.error || "I'm having trouble responding right now.";
+        setMessagesAndPersist([...nextMessages, { role: "assistant", content: reply }]);
+        setLoading(false);
+        return;
+      }
+
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let assistantReply = "";
@@ -129,10 +140,13 @@ export function AiSidebar() {
     } catch (err) {
       if (err.name === "AbortError") return;
       console.error("AI Assistant Error:", err);
+      const userMessage = err.message?.includes("500")
+        ? "My brain is having a moment. Let me know if it persists!"
+        : "I'm having trouble connecting to my brain right now. Please try again in a moment!";
       setError(err.message || "An unexpected error occurred.");
       setMessagesAndPersist([
         ...nextMessages,
-        { role: "assistant", content: "I'm having trouble connecting to my brain right now. Please try again in a moment!" },
+        { role: "assistant", content: userMessage },
       ]);
     } finally {
       setLoading(false);

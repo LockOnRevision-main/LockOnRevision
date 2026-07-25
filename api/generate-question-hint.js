@@ -1,14 +1,38 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const geminiApiKey = process.env.GEMINI_API_KEY;
-const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
 
-if (!geminiApiKey) {
-  console.warn('GEMINI_API_KEY not set. AI functions will fail.');
+function setCorsHeaders(res) {
+  for (const [key, value] of Object.entries(corsHeaders)) {
+    res.setHeader(key, value);
+  }
 }
 
-const genAI = geminiApiKey ? new GoogleGenerativeAI(geminiApiKey) : null;
-const model = genAI ? genAI.getGenerativeModel({ model: geminiModel }) : null;
+let geminiApiKey;
+let genAI;
+let model;
+
+try {
+  geminiApiKey = process.env.GEMINI_API_KEY;
+  const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+
+  if (!geminiApiKey) {
+    console.warn('[generate-question-hint] GEMINI_API_KEY not set. AI functions will fail.');
+  } else {
+    genAI = new GoogleGenerativeAI(geminiApiKey);
+    model = genAI.getGenerativeModel({ model: geminiModel });
+  }
+} catch (initError) {
+  console.error('[generate-question-hint] Module initialization error:', initError.message);
+}
+
+function isConfigured() {
+  return !!model;
+}
 
 function parseGeminiJson(text) {
   const cleaned = text
@@ -20,7 +44,7 @@ function parseGeminiJson(text) {
 }
 
 async function callGeminiJson(prompt, fallbackValue = null) {
-  if (!model) {
+  if (!isConfigured()) {
     if (fallbackValue !== null) return fallbackValue;
     throw new Error('Gemini API is not configured.');
   }
@@ -44,6 +68,12 @@ async function callGeminiJson(prompt, fallbackValue = null) {
 }
 
 export default async function handler(req, res) {
+  setCorsHeaders(res);
+
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -67,6 +97,6 @@ ${JSON.stringify(question)}`;
     return res.status(200).json(result);
   } catch (error) {
     console.error('Error in generate-question-hint:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Failed to generate hint. Please try again.' });
   }
 }

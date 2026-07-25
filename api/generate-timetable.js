@@ -1,14 +1,38 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const geminiApiKey = process.env.GEMINI_API_KEY;
-const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
 
-if (!geminiApiKey) {
-  console.warn('GEMINI_API_KEY not set. AI functions will fail.');
+function setCorsHeaders(res) {
+  for (const [key, value] of Object.entries(corsHeaders)) {
+    res.setHeader(key, value);
+  }
 }
 
-const genAI = geminiApiKey ? new GoogleGenerativeAI(geminiApiKey) : null;
-const model = genAI ? genAI.getGenerativeModel({ model: geminiModel }) : null;
+let geminiApiKey;
+let genAI;
+let model;
+
+try {
+  geminiApiKey = process.env.GEMINI_API_KEY;
+  const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+
+  if (!geminiApiKey) {
+    console.warn('[generate-timetable] GEMINI_API_KEY not set. AI functions will fail.');
+  } else {
+    genAI = new GoogleGenerativeAI(geminiApiKey);
+    model = genAI.getGenerativeModel({ model: geminiModel });
+  }
+} catch (initError) {
+  console.error('[generate-timetable] Module initialization error:', initError.message);
+}
+
+function isConfigured() {
+  return !!model;
+}
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -96,12 +120,18 @@ function generateAlgorithmicTimetable(prefs) {
 }
 
 async function callGemini(prompt) {
-  if (!model) throw new Error("Gemini API is not configured.");
+  if (!isConfigured()) throw new Error("Gemini API is not configured.");
   const result = await model.generateContent(prompt);
   return result.response.text();
 }
 
 export default async function handler(req, res) {
+  setCorsHeaders(res);
+
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }

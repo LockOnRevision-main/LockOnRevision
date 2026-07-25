@@ -15,6 +15,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Logo } from "../components/Logo";
+import { Footer } from "../components/Footer";
 import { useAuth } from "../context/AuthContext.jsx";
 
 function IsoStack({ variant = "blue" }) {
@@ -117,6 +118,7 @@ export function LandingPage() {
   }
 
   return (
+    <>
     <main className="min-h-screen bg-background text-text-primary overflow-x-hidden">
       {/* ───── HERO ───── */}
       <Section className="relative overflow-hidden bg-background text-text-primary">
@@ -130,6 +132,12 @@ export function LandingPage() {
           </Link>
 
           <div className="flex items-center gap-3">
+            <Link
+              to="/about"
+              className="hidden rounded-xl px-4 py-2.5 text-sm font-bold text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:inline-flex"
+            >
+              About
+            </Link>
             <Link
               to="/leaderboard"
               className="hidden rounded-xl px-4 py-2.5 text-sm font-bold text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:inline-flex"
@@ -361,5 +369,7 @@ export function LandingPage() {
         </div>
       </Section>
     </main>
+      <Footer />
+    </>
   );
 }

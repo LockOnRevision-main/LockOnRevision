@@ -1,25 +1,60 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const geminiApiKey = process.env.GEMINI_API_KEY;
-const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
 
-if (!geminiApiKey) {
-  console.warn('GEMINI_API_KEY not set. AI functions will fail.');
+function setCorsHeaders(res) {
+  for (const [key, value] of Object.entries(corsHeaders)) {
+    res.setHeader(key, value);
+  }
 }
 
-const genAI = geminiApiKey ? new GoogleGenerativeAI(geminiApiKey) : null;
-const model = genAI ? genAI.getGenerativeModel({ model: geminiModel }) : null;
+let geminiApiKey;
+let genAI;
+let model;
+
+try {
+  geminiApiKey = process.env.GEMINI_API_KEY;
+  const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+
+  if (!geminiApiKey) {
+    console.warn('[ai-tutor-chat] GEMINI_API_KEY not set. AI functions will fail.');
+  } else {
+    genAI = new GoogleGenerativeAI(geminiApiKey);
+    model = genAI.getGenerativeModel({ model: geminiModel });
+  }
+} catch (initError) {
+  console.error('[ai-tutor-chat] Module initialization error:', initError.message);
+}
+
+function isConfigured() {
+  return !!model;
+}
 
 async function callGeminiStream(prompt) {
-  if (!model) throw new Error('Gemini API is not configured.');
-  
   const result = await model.generateContentStream(prompt);
   return result.stream;
 }
 
 export default async function handler(req, res) {
+  setCorsHeaders(res);
+
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  if (!isConfigured()) {
+    console.error('[ai-tutor-chat] Gemini API not configured — missing or invalid GEMINI_API_KEY');
+    return res.status(200).json({
+      reply: "I'm not fully configured yet. Ask an administrator to set the GEMINI_API_KEY environment variable so I can start helping you study!",
+    });
   }
 
   try {
@@ -98,7 +133,6 @@ ${conversation}
 Please provide your response in plain text (Markdown). Do not wrap it in JSON.`;
 
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Transfer-Encoding', 'chunked');
 
     const stream = await callGeminiStream(prompt);
     for await (const chunk of stream) {
@@ -107,11 +141,16 @@ Please provide your response in plain text (Markdown). Do not wrap it in JSON.`;
     }
     res.end();
   } catch (error) {
-    console.error('Error in ai-tutor-chat:', error);
+    console.error('[ai-tutor-chat] Error:', error.message);
+    if (error.message?.includes('API_KEY_INVALID') || error.message?.includes('API key not valid')) {
+      console.error('[ai-tutor-chat] The GEMINI_API_KEY is invalid or expired.');
+    }
     if (!res.headersSent) {
-      res.status(500).json({ error: error.message });
+      res.status(200).json({
+        reply: "I hit a temporary snag. Please try again in a moment!",
+      });
     } else {
-      res.write(`\n\n[Error: ${error.message}]`);
+      res.write(`\n\n_I hit a snag responding. Please try again._`);
       res.end();
     }
   }

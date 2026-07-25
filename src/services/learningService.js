@@ -602,30 +602,6 @@ export async function getUserLearningContext(uid) {
   }
 }
 
-export async function askTutor(messages, context) {
-  if (!isFirebaseConfigured) {
-    throw new Error("AI Tutor is only available with Firebase configured.");
-  }
-  // ... rest of the function
-
-  try {
-    const response = await fetch('/api/ai-tutor-chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages, context }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Vercel API error:", error);
-    throw error;
-  }
-}
-
 export async function getHint(questionId) {
   if (!isFirebaseConfigured) {
     const state = JSON.parse(localStorage.getItem("lockon-revision-local-state") || "{}");

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { Logo } from "../components/Logo.jsx";
+import { Footer } from "../components/Footer.jsx";
 import { PasswordInput } from "../components/PasswordInput.jsx";
 
 export function LoginPage() {
@@ -44,6 +45,7 @@ export function LoginPage() {
   }
 
   return (
+    <>
     <main className="grid min-h-screen place-items-center bg-gradient-to-br from-background via-surface to-secondary px-4 text-text-primary">
       <section className="w-full max-w-md rounded-3xl border border-border bg-surface p-8 shadow-2xl shadow-primary/20 backdrop-blur">
         <div className="mb-6 flex flex-col items-center">
@@ -164,5 +166,7 @@ export function LoginPage() {
         </div>
       </section>
     </main>
+      <Footer />
+    </>
   );
 }
