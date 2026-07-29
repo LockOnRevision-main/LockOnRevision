@@ -109,12 +109,8 @@ function Section({ children, className = "" }) {
   );
 }
 
-export function LandingPage() {
-  const { loading, user } = useAuth();
+function LandingPageContent() {
   const navigate = useNavigate();
-
-  if (loading) return null;
-  if (user) return <Navigate to="/app" replace />;
 
   function getStarted() {
     navigate("/login");
@@ -150,7 +146,6 @@ export function LandingPage() {
             <button
               type="button"
               onClick={getStarted}
-              disabled={loading}
               className="rounded-xl bg-secondary px-5 py-2.5 text-sm font-bold text-white transition-all duration-200 hover:bg-secondary-hover active:scale-95 disabled:opacity-60 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               Get Started
@@ -178,7 +173,6 @@ export function LandingPage() {
               <button
                 type="button"
                 onClick={getStarted}
-                disabled={loading}
                 className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary via-primary to-secondary px-8 py-4 font-bold text-white shadow-xl shadow-primary/30 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-primary/50 active:scale-95 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               >
                 Get Started
@@ -375,4 +369,17 @@ export function LandingPage() {
       <Footer />
     </>
   );
+}
+
+export function LandingPage() {
+  const { loading, user } = useAuth();
+
+  if (loading) return null;
+  if (user) return <Navigate to="/app" replace />;
+
+  return <LandingPageContent />;
+}
+
+export function PublicLandingPage() {
+  return <LandingPageContent />;
 }

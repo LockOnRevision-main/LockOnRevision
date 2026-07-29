@@ -1,23 +1,32 @@
-import { initializeApp, getApps, cert } from "firebase-admin/app";
+import { initializeApp, cert } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 
+let adminApp = null;
+let adminInitError = null;
+
 function getAdminApp() {
-  if (getApps().length > 0) return getApps()[0];
+  if (adminApp) return adminApp;
 
   const projectId = process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
-  if (!projectId) return null;
+  if (!projectId) {
+    adminInitError = "Firebase project ID not configured";
+    return null;
+  }
 
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
   try {
     if (clientEmail && privateKey) {
-      return initializeApp({
+      adminApp = initializeApp({
         credential: cert({ projectId, clientEmail, privateKey: privateKey.replace(/\\n/g, "\n") }),
       });
+    } else {
+      adminApp = initializeApp({ projectId });
     }
-    return initializeApp({ projectId });
-  } catch {
+    return adminApp;
+  } catch (e) {
+    adminInitError = e.message;
     return null;
   }
 }
@@ -32,7 +41,7 @@ export async function verifyAuth(req) {
   const app = getAdminApp();
 
   if (!app) {
-    throw new Error("Firebase Admin SDK not configured");
+    throw new Error(adminInitError || "Firebase Admin SDK not configured");
   }
 
   try {

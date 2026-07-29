@@ -1,5 +1,6 @@
 import { isFirebaseConfigured } from "../config/firebase.js";
 import { getForgeContext } from "./forgeService.js";
+import { apiFetch } from "../utils/apiFetch.js";
 
 export async function askForgeAssistant(uid, messages) {
   if (!isFirebaseConfigured) {
@@ -14,9 +15,8 @@ export async function askForgeAssistant(uid, messages) {
 
   try {
     const { subjects } = await getForgeContext(uid);
-    const response = await fetch('/api/ask-forge-assistant', {
+    const response = await apiFetch('/api/ask-forge-assistant', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages, subjects }),
     });
 

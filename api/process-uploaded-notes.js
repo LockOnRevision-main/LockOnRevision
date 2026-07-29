@@ -115,7 +115,7 @@ export default requireAuth(async function handler(req, res) {
     const tempFiles = [];
 
     for (const file of filesToProcess) {
-      const fileName = path.basename(file.url);
+      const fileName = path.basename(file.url.split('?')[0]) || `file_${Date.now()}`;
       const filePath = path.join('/tmp', fileName);
       log.info('Downloading file', { url: file.url });
       const response = await fetch(file.url);
@@ -124,13 +124,13 @@ export default requireAuth(async function handler(req, res) {
       tempFiles.push(filePath);
 
       const uploadResponse = await fileManager.uploadFile(filePath, {
-        mimeType: file.mimeType,
+        mimeType: file.mimeType || 'application/octet-stream',
         displayName: fileName,
       });
       log.info('File uploaded to Gemini', { fileUri: uploadResponse.file.uri });
       geminiFiles.push({
         fileUri: uploadResponse.file.uri,
-        mimeType: file.mimeType
+        mimeType: file.mimeType || 'application/octet-stream'
       });
     }
 

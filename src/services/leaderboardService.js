@@ -1,4 +1,4 @@
-import { fetchLeaderboard, calculateTotalScore } from "./userService.js";
+import { calculateTotalScore } from "./userService.js";
 import { db, isFirebaseConfigured } from "../config/firebase.js";
 import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 import { subscribeLocalState } from "./localStore.js";
@@ -56,7 +56,7 @@ function paginate(users, page, pageSize) {
 }
 
 export async function getTopLeaderboardUsers() {
-  const raw = await fetchLeaderboard(500);
+  const raw = await fetchAllUsers();
   return applyCompetitionRanking(raw);
 }
 
@@ -81,7 +81,7 @@ async function fetchAllUsers() {
   }
   if (!db) throw new Error("Firebase is not configured.");
   const usersSnap = await getDocs(
-    query(collection(db, "users"), orderBy("totalScore", "desc"), limit(1000))
+    query(collection(db, "users"), orderBy("totalScore", "desc"), limit(5000))
   );
   return usersSnap.docs.map((doc) => stripAdminFields({ id: doc.id, ...doc.data() }));
 }

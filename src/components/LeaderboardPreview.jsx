@@ -6,33 +6,38 @@ function buildPreviewEntries(users, currentUserId) {
   if (!users.length) return [];
 
   const currentUser = users.find((u) => u.id === currentUserId);
-  if (!currentUser) return users.slice(0, 3);
+  if (!currentUser) return users.slice(0, 3).map((u) => ({ ...u, _isCurrentUser: false }));
 
   const uIdx = users.findIndex((u) => u.id === currentUserId);
-
-  if (uIdx <= 2) {
-    return users.slice(0, Math.min(5, users.length)).map((u) => ({
-      ...u,
-      _isCurrentUser: u.id === currentUserId,
-    }));
-  }
-
-  if (uIdx >= users.length - 2) {
-    return users.slice(Math.max(0, users.length - 5), users.length).map((u) => ({
-      ...u,
-      _isCurrentUser: u.id === currentUserId,
-    }));
-  }
-
+  const seen = new Set();
   const entries = [];
-  for (let i = uIdx - 2; i <= uIdx + 2; i++) {
-    if (i >= 0 && i < users.length) {
-      entries.push({
-        ...users[i],
-        _isCurrentUser: users[i].id === currentUserId,
-      });
-    }
+
+  function addUser(user) {
+    if (seen.has(user.id)) return;
+    seen.add(user.id);
+    entries.push({ ...user, _isCurrentUser: user.id === currentUserId });
   }
+
+  // Top 3 users
+  for (let i = 0; i < Math.min(3, users.length); i++) {
+    addUser(users[i]);
+  }
+
+  // Up to 3 users above current user
+  const aboveStart = Math.max(3, uIdx - 3);
+  for (let i = aboveStart; i < uIdx; i++) {
+    addUser(users[i]);
+  }
+
+  // Current user
+  addUser(currentUser);
+
+  // Up to 3 users below current user
+  const belowEnd = Math.min(users.length, uIdx + 4);
+  for (let i = uIdx + 1; i < belowEnd; i++) {
+    addUser(users[i]);
+  }
+
   return entries;
 }
 

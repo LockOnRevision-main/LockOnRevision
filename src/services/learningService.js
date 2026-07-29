@@ -17,6 +17,7 @@ import {
 import { db, isFirebaseConfigured } from "../config/firebase.js";
 import { getLocalUser, makeId, subscribeLocalState, updateLocalUser } from "./localStore.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
+import { apiFetch } from "../utils/apiFetch.js";
 import { emitLessonCompleted } from "./forgeEvents.js";
 import { emitScoreChanged } from "./forgeEvents.js";
 import { calculateLessonReward } from "./energyService.js";
@@ -127,9 +128,8 @@ async function writeFirebaseCourse(uid, generated, sourceFileId = null) {
 }
 
 async function buildFirebaseGeminiCourse(uid, sourceText, sourceFileId = null) {
-  const response = await fetch('/api/generate-learning-content', {
+  const response = await apiFetch('/api/generate-learning-content', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sourceText }),
   });
 
@@ -238,9 +238,8 @@ export async function processUploadedFile(uid, fileId) {
   if (!fileSnap.exists()) throw new Error("File not found in database.");
   const fileData = fileSnap.data();
 
-  const response = await fetch('/api/process-uploaded-notes', {
+  const response = await apiFetch('/api/process-uploaded-notes', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       uid,
       fileId,
@@ -298,9 +297,8 @@ export async function getHint(questionId) {
     throw new Error("Gemini API is not available in local mode. Configure Firebase to use AI generation.");
   }
 
-  const response = await fetch('/api/generate-question-hint', {
+  const response = await apiFetch('/api/generate-question-hint', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ questionId }),
   });
 
@@ -318,9 +316,8 @@ export async function explainWrongAnswer(questionId, selectedAnswer) {
     throw new Error("Gemini API is not available in local mode. Configure Firebase to use AI generation.");
   }
 
-  const response = await fetch('/api/explain-wrong-answer', {
+  const response = await apiFetch('/api/explain-wrong-answer', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ questionId, selectedAnswer }),
   });
 

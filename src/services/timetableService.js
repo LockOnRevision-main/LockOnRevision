@@ -1,6 +1,7 @@
 import { collection, doc, onSnapshot, orderBy, query, serverTimestamp, writeBatch } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "../config/firebase.js";
 import { getLocalUser, makeId, subscribeLocalState, updateLocalUser } from "./localStore.js";
+import { apiFetch } from "../utils/apiFetch.js";
 
 const STORAGE_KEY = "lockon-timetable-preferences";
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -39,9 +40,8 @@ export async function generateTimetable(preferences) {
   }
 
   try {
-    const response = await fetch("/api/generate-timetable", {
+    const response = await apiFetch("/api/generate-timetable", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
     if (!response.ok) {

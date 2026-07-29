@@ -1,4 +1,3 @@
-/* global TextDecoder */
 import { Loader2, MessageSquare, Send, Sparkles, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -92,9 +91,13 @@ export function AiSidebar() {
     setLoading(true);
 
     try {
+      const token = user ? await user.getIdToken() : null;
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const response = await fetch('/api/ai-tutor-chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         signal: abortController.signal,
         body: JSON.stringify({ 
           messages: nextMessages,
@@ -102,41 +105,18 @@ export function AiSidebar() {
         }),
       });
 
-      if (!response.ok) throw new Error(`API request failed: ${response.status}`);
-
-      if (!response.body) throw new Error("Response body is empty");
-
-      // Check if the response is JSON (fallback) or stream (normal)
-      const contentType = response.headers.get('content-type') || '';
-      
-      if (contentType.includes('application/json')) {
-        const data = await response.json();
-        const reply = data.reply || data.error || "I'm having trouble responding right now.";
-        setMessagesAndPersist([...nextMessages, { role: "assistant", content: reply }]);
-        setLoading(false);
-        return;
+      if (!response.ok) {
+        let errorDetail = '';
+        try {
+          const errData = await response.json();
+          errorDetail = errData.error || '';
+        } catch {}
+        throw new Error(`API request failed: ${response.status}${errorDetail ? ` - ${errorDetail}` : ''}`);
       }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let assistantReply = "";
-
-      // Add the assistant message as a placeholder for streaming
-      setMessagesAndPersist([...nextMessages, { role: "assistant", content: "", _id: `msg-${Date.now()}-ai` }]);
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        assistantReply += chunk;
-
-        setMessagesAndPersist((prev) => {
-          const updated = [...prev];
-          updated[updated.length - 1] = { role: "assistant", content: assistantReply };
-          return updated;
-        });
-      }
+      const data = await response.json();
+      const reply = data.reply || data.error || "I'm having trouble responding right now.";
+      setMessagesAndPersist([...nextMessages, { role: "assistant", content: reply }]);
     } catch (err) {
       if (err.name === "AbortError") return;
       console.error("AI Assistant Error:", err);

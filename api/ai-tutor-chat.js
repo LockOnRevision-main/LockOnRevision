@@ -6,41 +6,57 @@ const log = createLogger('ai-tutor-chat');
 
 let genAI;
 let model;
+let initError = null;
 
 try {
   const geminiApiKey = process.env.GEMINI_API_KEY;
   const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 
   if (!geminiApiKey) {
-    log.warn('GEMINI_API_KEY not set. AI functions will fail.');
+    initError = 'GEMINI_API_KEY environment variable is not set';
+    log.warn(initError);
   } else {
     genAI = new GoogleGenerativeAI(geminiApiKey);
     model = genAI.getGenerativeModel({ model: geminiModel });
+    log.info('Gemini initialized', { model: geminiModel });
   }
-} catch (initError) {
-  log.error('Module initialization error', initError);
+} catch (e) {
+  initError = e.message;
+  log.error('Module initialization error', e);
 }
 
 function isConfigured() {
   return !!model;
 }
 
-async function callGeminiStream(prompt) {
+async function callGemini(prompt) {
+  if (!model) throw new Error(initError || 'Gemini not initialized');
+
   const result = await withTimeout(
-    retry(() => model.generateContentStream(prompt), { logger: log }),
-    30000
+    retry(() => model.generateContent(prompt), { logger: log }),
+    45000
   );
-  return result.stream;
+  const response = await result.response;
+  const text = response.text();
+
+  if (!text || text.trim().length === 0) {
+    throw new Error('Gemini returned empty response');
+  }
+
+  return text;
 }
 
-export default requireAuth(async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   if (!isConfigured()) {
-    log.error('Gemini API not configured');
-    return res.status(503).json({ error: 'Gemini API is not configured. Set GEMINI_API_KEY.' });
+    log.error('Gemini not configured', { reason: initError });
+    return res.status(503).json({
+      error: initError || 'Gemini API is not configured.',
+      code: 'gemini_not_configured',
+    });
   }
 
   try {
@@ -118,22 +134,17 @@ ${conversation}
 
 Please provide your response in plain text (Markdown). Do not wrap it in JSON.`;
 
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    log.info('Calling Gemini for AI tutor chat');
+    const reply = await callGemini(prompt);
+    log.info('Gemini response received', { length: reply.length });
 
-    const stream = await callGeminiStream(prompt);
-    for await (const chunk of stream) {
-      const chunkText = chunk.text();
-      res.write(chunkText);
-    }
-    res.end();
+    return res.status(200).json({ reply });
   } catch (error) {
-    log.error('AI tutor chat error', error);
-    if (!res.headersSent) {
-      res.status(200).json({
-        reply: "The AI tutor is temporarily unavailable. Please try again in a moment.",
-      });
-    } else {
-      res.end();
-    }
+    log.error('AI tutor chat error', { message: error.message, stack: error.stack?.split('\n').slice(0, 3).join('\n') });
+    return res.status(200).json({
+      reply: "The AI tutor is temporarily unavailable. Please try again in a moment.",
+    });
   }
-});
+}
+
+export default requireAuth(handler);

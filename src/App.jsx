@@ -5,8 +5,10 @@ import { useAuth } from "./context/AuthContext.jsx";
 import { AppPage } from "./pages/AppPage.jsx";
 import { AdminPage } from "./pages/AdminPage.jsx";
 import { ForgePage } from "./pages/ForgePage.jsx";
+import { ForgeLessonPage } from "./pages/ForgeLessonPage.jsx";
+import { ForgeSubjectPage } from "./pages/ForgeSubjectPage.jsx";
 import { AboutPage } from "./pages/AboutPage.jsx";
-import { LandingPage } from "./pages/LandingPage.jsx";
+import { LandingPage, PublicLandingPage } from "./pages/LandingPage.jsx";
 import { LeaderboardPage } from "./pages/LeaderboardPage.jsx";
 import { LoginPage } from "./pages/LoginPage.jsx";
 import { ProfilePage } from "./pages/ProfilePage.jsx";
@@ -44,6 +46,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/landing" element={<PublicLandingPage />} />
       <Route path="/about" element={<AboutPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route
@@ -59,6 +62,22 @@ export default function App() {
         element={
           <ProtectedRoute>
             <ForgePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/forge/subject/:subjectId"
+        element={
+          <ProtectedRoute>
+            <ForgeSubjectPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/forge/lesson/:subjectId/:lessonId"
+        element={
+          <ProtectedRoute>
+            <ForgeLessonPage />
           </ProtectedRoute>
         }
       />

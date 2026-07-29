@@ -11,7 +11,8 @@ import {
 } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "../config/firebase.js";
 import { getLocalUser, makeId, subscribeLocalState, updateLocalUser } from "./localStore.js";
-import { uploadToCloudinary } from "../utils/cloudinary.js";
+import { uploadTempFile, deleteStorageFile, uploadAndGetContent } from "../utils/storage.js";
+import { apiFetch } from "../utils/apiFetch.js";
 
 function sortByOrder(items) {
   return [...items].sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0));
@@ -165,9 +166,8 @@ async function generateStructureFromText(sourceText) {
     throw new Error("Gemini API is not available in local mode. Configure Firebase to use AI generation.");
   }
 
-  const response = await fetch('/api/generate-forge-structure', {
+  const response = await apiFetch('/api/generate-forge-structure', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sourceText }),
   });
 
@@ -281,12 +281,9 @@ export async function uploadForgeFiles(uid, files, onProgress) {
 
   for (let index = 0; index < files.length; index += 1) {
     const file = files[index];
-    if (file.size > 20 * 1024 * 1024) {
-      throw new Error(`${file.name} is larger than 20MB.`);
-    }
 
-    const content = await readFileContent(file);
-    contents.push(content);
+    const result = await uploadAndGetContent(uid, file);
+    contents.push(result.content);
 
     if (!isFirebaseConfigured) {
       const localFile = {
@@ -294,7 +291,7 @@ export async function uploadForgeFiles(uid, files, onProgress) {
         name: file.name,
         size: file.size,
         type: file.type,
-        content,
+        content: result.content,
         status: "uploaded",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -305,29 +302,51 @@ export async function uploadForgeFiles(uid, files, onProgress) {
       continue;
     }
 
-    const uploadResult = await uploadToCloudinary(file, {
-      folder: `lockon-revision/${uid}/forge`,
-    });
-
-    const fileDoc = await addDoc(collection(db, "users", uid, "files"), {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      content: content.slice(0, 50000),
-      cloudinaryPublicId: uploadResult.publicId,
-      url: uploadResult.url,
-      format: uploadResult.format,
-      width: uploadResult.width,
-      height: uploadResult.height,
-      status: "uploaded",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    uploaded.push({ id: fileDoc.id, name: file.name, content, url: uploadResult.url, type: file.type });
+    if (result.type === "text" || result.type === "placeholder") {
+      const fileDoc = await addDoc(collection(db, "users", uid, "files"), {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        content: result.content.slice(0, 50000),
+        status: "uploaded",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      uploaded.push({ id: fileDoc.id, name: file.name, content: result.content, type: file.type });
+    } else {
+      const uploadResult = await uploadTempFile(uid, file);
+      const fileDoc = await addDoc(collection(db, "users", uid, "files"), {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        content: result.content.slice(0, 50000),
+        url: uploadResult.url,
+        storagePath: uploadResult.path,
+        status: "uploaded",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      uploaded.push({
+        id: fileDoc.id,
+        name: file.name,
+        content: result.content,
+        url: uploadResult.url,
+        type: file.type,
+        storagePath: uploadResult.path,
+      });
+    }
     onProgress?.(Math.round(((index + 1) / files.length) * 100));
   }
 
   return { uploaded, combinedText: contents.join("\n\n---\n\n") };
+}
+
+export async function cleanupUploadedFiles(uploaded) {
+  for (const file of uploaded) {
+    if (file.storagePath) {
+      await deleteStorageFile(file.storagePath);
+    }
+  }
 }
 
 export async function generateForgeStructure(uid, sourceText, sourceFileIds = [], files = []) {
@@ -337,20 +356,24 @@ export async function generateForgeStructure(uid, sourceText, sourceFileIds = []
 
   let normalized;
   if (files.length > 0) {
-    const response = await fetch('/api/process-uploaded-notes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        uid,
-        files: files.map(f => ({ url: f.url, mimeType: f.type }))
-      }),
-    });
-    if (!response.ok) {
-      const errBody = await response.json().catch(() => ({}));
-      throw new Error(errBody.error || `API request failed: ${response.status}`);
+    const hasBinaryFiles = files.some(f => f.url);
+    if (hasBinaryFiles) {
+      const response = await apiFetch('/api/process-uploaded-notes', {
+        method: 'POST',
+        body: JSON.stringify({
+          uid,
+          files: files.map(f => ({ url: f.url, mimeType: f.type || "application/octet-stream" }))
+        }),
+      });
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody.error || `API request failed: ${response.status}`);
+      }
+      const result = await response.json();
+      normalized = normalizeGeneratedStructure(result.data);
+    } else {
+      normalized = normalizeGeneratedStructure({ subject: { title: "Generated Subject", description: "AI-generated learning path.", units: [] } });
     }
-    const result = await response.json();
-    normalized = normalizeGeneratedStructure(result.data);
   } else {
     normalized = await generateStructureFromText(sourceText);
   }
