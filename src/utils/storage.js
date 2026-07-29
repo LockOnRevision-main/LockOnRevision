@@ -1,5 +1,5 @@
-import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
-import { storage, isFirebaseConfigured } from "../config/firebase.js";
+import { uploadToCloudinary, isCloudinaryConfigured } from "./cloudinary.js";
+import { apiFetch } from "./apiFetch.js";
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
@@ -28,34 +28,39 @@ export function validateFile(file) {
 }
 
 export async function uploadTempFile(uid, file) {
-  if (!isFirebaseConfigured || !storage) {
-    throw new Error("Firebase Storage is not configured.");
+  if (!isCloudinaryConfigured()) {
+    throw new Error("Cloudinary is not configured.");
   }
 
   validateFile(file);
 
-  const fileName = `${Date.now()}_${file.name}`;
-  const storageRef = ref(storage, `temp/${uid}/forge/${fileName}`);
-
-  const snapshot = await uploadBytes(storageRef, file);
-  const downloadUrl = await getDownloadURL(snapshot.ref);
+  const result = await uploadToCloudinary(file, {
+    folder: `temp/${uid}/forge`,
+  });
 
   return {
-    url: downloadUrl,
-    path: `temp/${uid}/forge/${fileName}`,
+    url: result.url,
+    publicId: result.publicId,
     name: file.name,
     size: file.size,
     type: file.type,
+    resourceType: result.resourceType,
   };
 }
 
-export async function deleteStorageFile(path) {
-  if (!isFirebaseConfigured || !storage) return;
+export async function deleteStorageFile(publicId, resourceType = "raw") {
+  if (!publicId) return;
   try {
-    const storageRef = ref(storage, path);
-    await deleteObject(storageRef);
+    const response = await apiFetch("/api/delete-cloudinary-files", {
+      method: "POST",
+      body: JSON.stringify({ files: [{ publicId, resourceType }] }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      console.warn("Failed to delete Cloudinary file:", publicId, err.error);
+    }
   } catch (error) {
-    console.warn("Failed to delete storage file:", path, error.message);
+    console.warn("Failed to delete Cloudinary file:", publicId, error.message);
   }
 }
 
@@ -67,7 +72,7 @@ export async function uploadAndGetContent(uid, file) {
     return { content: text, type: "text", fileInfo: { name: file.name, size: file.size, type: file.type } };
   }
 
-  if (!isFirebaseConfigured || !storage) {
+  if (!isCloudinaryConfigured()) {
     return {
       content: `[File: ${file.name}]\nType: ${file.type || "unknown"}\nSize: ${file.size} bytes\nExtract readable concepts from this uploaded document when generating the learning path.`,
       type: "placeholder",

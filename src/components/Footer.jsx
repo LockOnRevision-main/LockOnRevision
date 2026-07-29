@@ -9,7 +9,7 @@ const quickLinks = [
 ];
 
 const socialLinks = [
-  { label: "GitHub", href: "https://github.com/LockOnRevision", icon: Github },
+  { label: "GitHub", href: "https://github.com/LockOnRevision/LockOnRevision", icon: Github },
   { label: "Discord", href: "https://discord.gg/efDwq2XhS7", icon: MessageCircle },
   { label: "Instagram", href: "https://www.instagram.com/lockonrevision?igsh=bHMzd25kM2pydzdh", icon: Instagram },
 ];

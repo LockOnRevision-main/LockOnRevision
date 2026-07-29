@@ -1,4 +1,4 @@
-/* global fetch */
+/* global fetch, btoa, URLSearchParams */
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { GoogleAIFileManager } from '@google/generative-ai/server';
 import fs from 'fs';
@@ -6,6 +6,44 @@ import path from 'path';
 import { pipeline } from 'stream/promises';
 import { createLogger, withTimeout, retry, validateFileResponse } from './lib/forge-integrity.js';
 import { requireAuth } from './lib/auth.js';
+
+function getCloudinaryConfig() {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.VITE_CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+  if (!cloudName || !apiKey || !apiSecret) return null;
+  return { cloudName, apiKey, apiSecret };
+}
+
+async function deleteCloudinarySourceFiles(files) {
+  const config = getCloudinaryConfig();
+  if (!config) {
+    log.warn('Cloudinary Admin API not configured — skipping source file deletion.');
+    return;
+  }
+  for (const file of files) {
+    if (!file.publicId) continue;
+    try {
+      const url = `https://api.cloudinary.com/v1_1/${config.cloudName}/${file.resourceType || 'raw'}/destroy`;
+      const credentials = btoa(`${config.apiKey}:${config.apiSecret}`);
+      const formData = new URLSearchParams();
+      formData.append('public_id', file.publicId);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { Authorization: `Basic ${credentials}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData.toString(),
+      });
+      const data = await response.json();
+      if (data.result === 'ok') {
+        log.info('Deleted Cloudinary source file', { publicId: file.publicId });
+      } else {
+        log.warn('Cloudinary delete returned non-ok', { publicId: file.publicId, result: data.result });
+      }
+    } catch (error) {
+      log.warn('Failed to delete Cloudinary source file', { publicId: file.publicId, error: error.message });
+    }
+  }
+}
 
 const log = createLogger('process-uploaded-notes');
 
@@ -106,6 +144,11 @@ export default requireAuth(async function handler(req, res) {
       return res.status(400).json({ error: 'Missing required fields: url/mimeType or files array' });
     }
 
+    const sourceFiles = filesToProcess.map(f => ({
+      publicId: f.publicId,
+      resourceType: f.resourceType || 'raw',
+    })).filter(f => f.publicId);
+
     if (!isConfigured()) {
       log.error('Gemini API not configured');
       return res.status(503).json({ error: 'Gemini API is not configured. Set GEMINI_API_KEY.' });
@@ -193,6 +236,8 @@ Return ONLY valid JSON with this structure:
         fs.unlinkSync(filePath);
       }
     }
+
+    deleteCloudinarySourceFiles(sourceFiles);
 
     return res.status(200).json({ ok: true, data: generated });
   } catch (error) {

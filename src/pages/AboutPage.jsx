@@ -10,7 +10,6 @@ import {
   HeartHandshake,
   Lock,
   Mail,
-  MapPin,
   Medal,
   MessageCircle,
   Rocket,
@@ -19,7 +18,6 @@ import {
   Sparkles,
   Target,
   Trophy,
-  Users,
   Zap,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -147,10 +145,6 @@ const roadmap = [
   { phase: "V1", status: "Future", items: ["Mobile applications", "Offline mode", "Third-party integrations", "Marketplace for shared curricula", "Advanced gamification"] },
 ];
 
-const teamMembers = [
-  { name: "Founder & Lead Developer", role: "", placeholder: true },
-];
-
 export function AboutPage() {
   const { loading, user } = useAuth();
   const navigate = useNavigate();
@@ -204,6 +198,17 @@ export function AboutPage() {
             LockOnRevision transforms the way students approach study by turning consistency into a visible,
             competitive scoring system.
           </p>
+          <div className="mt-8 inline-flex flex-col items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1 text-xs font-bold text-primary shadow-sm">
+              <span className="flex h-2 w-2 rounded-full bg-primary" />
+              Beta 1.5
+            </span>
+            <p className="max-w-md text-xs leading-relaxed text-text-muted">
+              LockOnRevision is currently in Beta. We&rsquo;re continuously improving the platform through
+              student feedback, testing, and regular feature updates as we work towards a full production
+              release.
+            </p>
+          </div>
         </div>
       </Section>
 
@@ -411,31 +416,115 @@ export function AboutPage() {
         </div>
       </Section>
 
-      {/* ───── TEAM ───── */}
+      {/* ───── FOUNDERS ───── */}
       <Section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-bold uppercase tracking-widest text-primary">Team</p>
           <h2 className="mt-3 text-3xl font-black tracking-tight text-text-primary sm:text-4xl">
-            The people behind LockOn.
+            The people behind LockOnRevision.
           </h2>
-          <p className="mt-4 text-base leading-relaxed text-text-secondary">
-            LockOnRevision is being built by a small, dedicated team committed to improving how students revise.
-            More team information will be added here as the project grows.
-          </p>
         </div>
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {teamMembers.map((member, i) => (
-            <div
-              key={i}
-              className="flex flex-col items-center rounded-2xl border border-dashed border-border bg-surface/50 p-8 text-center shadow-sm"
-            >
-              <div className="grid h-20 w-20 place-items-center rounded-full border-2 border-dashed border-text-muted/30 bg-surface">
-                <Users className="text-text-muted" size={28} />
-              </div>
-              <p className="mt-4 font-bold text-text-muted">{member.name}</p>
-              <p className="mt-1 text-xs text-text-muted/70">Awaiting team details</p>
+        <div className="mt-12 grid gap-8 md:grid-cols-2">
+          {/* ── Abhijay Jalagari ── */}
+          <div className="rounded-2xl border border-border bg-surface p-8 shadow-sm transition-all hover:shadow-lg hover:-translate-y-1 hover:border-primary/30">
+            <div className="grid h-16 w-16 place-items-center rounded-full bg-primary/10 text-primary">
+              <GraduationCap size={28} />
             </div>
-          ))}
+            <h3 className="mt-5 text-xl font-black tracking-tight text-text-primary">Abhijay Jalagari</h3>
+            <p className="mt-1 text-sm font-semibold text-primary">Founder, CEO &amp; Brand Representative</p>
+            <p className="mt-4 text-sm leading-relaxed text-text-secondary">
+              Abhijay Jalagari is the Founder, Chief Executive Officer (CEO), and primary Brand Representative
+              of LockOnRevision, a student-focused EdTech platform dedicated to helping learners stay organized,
+              motivated, and confident during exam preparation.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-text-secondary">
+              Motivated by his own experiences as a student, he founded LockOnRevision with the vision of
+              making revision more engaging, structured, and accessible through technology. As CEO, Abhijay
+              leads the platform&rsquo;s overall vision, product direction, and innovation while actively
+              gathering feedback from students to ensure every feature solves real educational challenges.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-text-secondary">
+              Beyond leadership, Abhijay represents LockOnRevision in presentations, competitions,
+              demonstrations, and school initiatives, serving as the public face of the project.
+            </p>
+            <div className="mt-5">
+              <p className="text-xs font-bold uppercase tracking-widest text-primary">Key Strengths</p>
+              <ul className="mt-2 flex flex-wrap gap-1.5">
+                {["Student entrepreneur","Product visionary","Public speaker & presenter","Creative problem solver","User-focused product designer","Passionate about improving education"].map((skill) => (
+                  <li key={skill} className="rounded-md bg-primary/5 px-2.5 py-1 text-xs font-semibold text-text-secondary">
+                    {skill}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="mt-4 border-t border-border pt-4">
+              <p className="text-xs font-bold uppercase tracking-widest text-primary">Mission</p>
+              <p className="mt-1 text-sm leading-relaxed text-text-secondary">
+                To empower students worldwide with engaging and effective revision tools that transform
+                studying into a rewarding experience.
+              </p>
+            </div>
+          </div>
+
+          {/* ── Mayank Ghosh ── */}
+          <div className="rounded-2xl border border-border bg-surface p-8 shadow-sm transition-all hover:shadow-lg hover:-translate-y-1 hover:border-primary/30">
+            <div className="grid h-16 w-16 place-items-center rounded-full bg-primary/10 text-primary">
+              <GraduationCap size={28} />
+            </div>
+            <h3 className="mt-5 text-xl font-black tracking-tight text-text-primary">Mayank Ghosh</h3>
+            <p className="mt-1 text-sm font-semibold text-primary">Founder, CEO &amp; Brand Representative</p>
+            <p className="mt-4 text-sm leading-relaxed text-text-secondary">
+              Mayank Ghosh is the Founder, Chief Executive Officer (CEO), and one of the primary Brand
+              Representatives of LockOnRevision, helping drive the platform&rsquo;s technical vision, strategic
+              direction, and public identity.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-text-secondary">
+              He plays a major role in shaping LockOnRevision&rsquo;s long-term roadmap, ensuring the platform
+              remains modern, scalable, and genuinely useful for students. His focus is on combining thoughtful
+              product strategy with practical implementation to create an engaging AI-powered learning experience.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-text-secondary">
+              Mayank contributes extensively to platform architecture, feature planning, AI integration, user
+              experience improvements, deployment strategy, and overall product development. He continually
+              researches emerging technologies and educational trends to ensure LockOnRevision evolves alongside
+              students&rsquo; needs.
+            </p>
+            <div className="mt-5">
+              <p className="text-xs font-bold uppercase tracking-widest text-primary">Key Strengths</p>
+              <ul className="mt-2 flex flex-wrap gap-1.5">
+                {["Student entrepreneur","Product strategist","AI & EdTech enthusiast","Full-stack software developer","UI/UX-focused designer","Technology researcher","Scalable software architecture","Public presenter & brand representative"].map((skill) => (
+                  <li key={skill} className="rounded-md bg-primary/5 px-2.5 py-1 text-xs font-semibold text-text-secondary">
+                    {skill}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="mt-4 border-t border-border pt-4">
+              <p className="text-xs font-bold uppercase tracking-widest text-primary">Vision</p>
+              <p className="mt-1 text-sm leading-relaxed text-text-secondary">
+                To build one of the world&rsquo;s most student-centred revision platforms by combining
+                artificial intelligence, personalised learning, and thoughtful product design to make studying
+                both effective and enjoyable.
+              </p>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* ───── BUILT BY STUDENTS ───── */}
+      <Section className="border-y border-border bg-surface/50 py-16 sm:py-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-sm font-bold uppercase tracking-widest text-primary">Built by Students, for Students</p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-text-primary sm:text-4xl">
+              Built by Students, for Students
+            </h2>
+            <p className="mt-4 text-base leading-relaxed text-text-secondary sm:text-lg">
+              LockOnRevision was created by students who experienced the same revision challenges faced by
+              millions of learners. Every feature is designed using real classroom experiences and student
+              feedback to ensure the platform remains practical, engaging, and genuinely helpful.
+            </p>
+          </div>
         </div>
       </Section>
 
@@ -463,7 +552,7 @@ export function AboutPage() {
               Join us on Discord
             </a>
             <a
-              href="https://github.com/LockOnRevision"
+              href="https://github.com/LockOnRevision/LockOnRevision"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-3 rounded-2xl border border-border bg-surface px-6 py-4 font-bold text-text-primary shadow-sm transition-all hover:shadow-lg hover:-translate-y-1 hover:border-primary/30"
@@ -485,17 +574,14 @@ export function AboutPage() {
               Follow on Instagram
             </a>
             <a
-              href="mailto:contact@lockonrevision.com"
+              href="mailto:lockonrevision@gmail.com"
               className="inline-flex items-center gap-3 rounded-2xl border border-border bg-surface px-6 py-4 font-bold text-text-primary shadow-sm transition-all hover:shadow-lg hover:-translate-y-1 hover:border-primary/30"
             >
               <Mail className="text-primary" size={22} />
               Email us
             </a>
           </div>
-          <div className="mt-8 flex items-center justify-center gap-2 text-sm text-text-muted">
-            <MapPin size={14} />
-            <span>Gaza Sky Geeks, Palestine</span>
-          </div>
+
         </div>
       </Section>
     </main>

@@ -321,7 +321,8 @@ export async function uploadForgeFiles(uid, files, onProgress) {
         type: file.type,
         content: result.content.slice(0, 50000),
         url: uploadResult.url,
-        storagePath: uploadResult.path,
+        publicId: uploadResult.publicId,
+        resourceType: uploadResult.resourceType,
         status: "uploaded",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -332,7 +333,8 @@ export async function uploadForgeFiles(uid, files, onProgress) {
         content: result.content,
         url: uploadResult.url,
         type: file.type,
-        storagePath: uploadResult.path,
+        publicId: uploadResult.publicId,
+        resourceType: uploadResult.resourceType,
       });
     }
     onProgress?.(Math.round(((index + 1) / files.length) * 100));
@@ -343,8 +345,8 @@ export async function uploadForgeFiles(uid, files, onProgress) {
 
 export async function cleanupUploadedFiles(uploaded) {
   for (const file of uploaded) {
-    if (file.storagePath) {
-      await deleteStorageFile(file.storagePath);
+    if (file.publicId) {
+      await deleteStorageFile(file.publicId, file.resourceType);
     }
   }
 }
@@ -362,7 +364,12 @@ export async function generateForgeStructure(uid, sourceText, sourceFileIds = []
         method: 'POST',
         body: JSON.stringify({
           uid,
-          files: files.map(f => ({ url: f.url, mimeType: f.type || "application/octet-stream" }))
+          files: files.map(f => ({
+            url: f.url,
+            mimeType: f.type || "application/octet-stream",
+            publicId: f.publicId,
+            resourceType: f.resourceType || "raw",
+          }))
         }),
       });
       if (!response.ok) {
