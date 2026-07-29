@@ -472,27 +472,37 @@ export function AboutPage() {
               <GraduationCap size={28} />
             </div>
             <h3 className="mt-5 text-xl font-black tracking-tight text-text-primary">Mayank Ghosh</h3>
-            <p className="mt-1 text-sm font-semibold text-primary">Founder, CEO &amp; Brand Representative</p>
+            <p className="mt-1 text-sm font-semibold text-primary">Founder &bull; COO &bull; Lead Developer</p>
             <p className="mt-4 text-sm leading-relaxed text-text-secondary">
-              Mayank Ghosh is the Founder, Chief Executive Officer (CEO), and one of the primary Brand
-              Representatives of LockOnRevision, helping drive the platform&rsquo;s technical vision, strategic
-              direction, and public identity.
+              Mayank Ghosh is the Founder, Chief Operating Officer (COO), and Lead Developer of LockOnRevision,
+              an AI-powered personalised learning platform designed to make revision smarter, more engaging,
+              and accessible for students.
             </p>
             <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-              He plays a major role in shaping LockOnRevision&rsquo;s long-term roadmap, ensuring the platform
-              remains modern, scalable, and genuinely useful for students. His focus is on combining thoughtful
-              product strategy with practical implementation to create an engaging AI-powered learning experience.
+              As founder, he leads the product vision, ensuring every feature solves real problems students
+              face while studying. He believes revision should be adaptive, motivating, and tailored to each
+              learner instead of relying on generic study methods.
             </p>
             <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-              Mayank contributes extensively to platform architecture, feature planning, AI integration, user
-              experience improvements, deployment strategy, and overall product development. He continually
-              researches emerging technologies and educational trends to ensure LockOnRevision evolves alongside
-              students&rsquo; needs.
+              As COO, he oversees product strategy, feature planning, and the overall direction of the
+              platform. He focuses on balancing educational value with an intuitive user experience, making
+              sure new features support long-term growth and scalability.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-text-secondary">
+              As Lead Developer, he architects and builds much of the platform, working across AI-powered
+              revision tools, personalised study plans, adaptive learning systems, gamification and
+              progression mechanics, UX improvements, full-stack development, deployment, and production
+              management.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-text-secondary">
+              Beyond writing code, Mayank combines technical development with product leadership, often
+              making decisions on feature prioritisation, usability, and long-term platform strategy. He
+              actively researches modern technologies and AI tools to continuously improve LockOnRevision.
             </p>
             <div className="mt-5">
-              <p className="text-xs font-bold uppercase tracking-widest text-primary">Key Strengths</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-primary">Skills &amp; Interests</p>
               <ul className="mt-2 flex flex-wrap gap-1.5">
-                {["Student entrepreneur","Product strategist","AI & EdTech enthusiast","Full-stack software developer","UI/UX-focused designer","Technology researcher","Scalable software architecture","Public presenter & brand representative"].map((skill) => (
+                {["Product Development","AI in Education","Full-Stack Development","UI/UX Design","Product Strategy","Cybersecurity Awareness","Cloud Deployment & DevOps","EdTech"].map((skill) => (
                   <li key={skill} className="rounded-md bg-primary/5 px-2.5 py-1 text-xs font-semibold text-text-secondary">
                     {skill}
                   </li>
@@ -502,9 +512,9 @@ export function AboutPage() {
             <div className="mt-4 border-t border-border pt-4">
               <p className="text-xs font-bold uppercase tracking-widest text-primary">Vision</p>
               <p className="mt-1 text-sm leading-relaxed text-text-secondary">
-                To build one of the world&rsquo;s most student-centred revision platforms by combining
-                artificial intelligence, personalised learning, and thoughtful product design to make studying
-                both effective and enjoyable.
+                To build one of the most student-centred revision platforms by combining artificial
+                intelligence, personalised learning, and thoughtful design to help learners study more
+                effectively while making revision feel rewarding rather than repetitive.
               </p>
             </div>
           </div>
