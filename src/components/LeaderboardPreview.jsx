@@ -1,66 +1,39 @@
 import { Medal, Trophy } from "lucide-react";
+import { getLeaderAvatar } from "../utils/avatar.js";
+import { ProfileIconRenderer } from "./Profile/ProfileIconPicker.jsx";
 
 function buildPreviewEntries(users, currentUserId) {
   if (!users.length) return [];
 
   const currentUser = users.find((u) => u.id === currentUserId);
-  const top3 = users.slice(0, 3);
-  const usedIds = new Set();
-
-  if (!currentUser) return top3;
-
-  const currentRank = currentUser._rank;
-
-  usedIds.add(currentUserId);
-
-  if (currentRank <= 3) {
-    const result = [];
-    for (const u of users) {
-      if (result.length >= 5) break;
-      if (u.id === currentUserId) {
-        result.push({ ...u, _isCurrentUser: true });
-        usedIds.add(u.id);
-      } else if (!usedIds.has(u.id)) {
-        result.push(u);
-        usedIds.add(u.id);
-      }
-    }
-    return result;
-  }
+  if (!currentUser) return users.slice(0, 3);
 
   const uIdx = users.findIndex((u) => u.id === currentUserId);
-  let contextEntries = [];
-  const above = uIdx > 0 ? users[uIdx - 1] : null;
-  const below = uIdx < users.length - 1 ? users[uIdx + 1] : null;
-  const above2 = uIdx > 1 ? users[uIdx - 2] : null;
-  const below2 = uIdx < users.length - 2 ? users[uIdx + 2] : null;
 
-  if (uIdx <= 1) {
-    for (let i = 0; i < Math.min(5, users.length); i++) {
-      contextEntries.push(users[i]);
-    }
-  } else if (uIdx >= users.length - 2) {
-    for (let i = Math.max(0, users.length - 5); i < users.length; i++) {
-      contextEntries.push(users[i]);
-    }
-  } else {
-    contextEntries = [];
-    if (above2 && above2._rank !== currentRank) contextEntries.push(above2);
-    if (above && above._rank !== currentRank) contextEntries.push(above);
-    contextEntries.push(currentUser);
-    if (below && below._rank !== currentRank) contextEntries.push(below);
-    if (below2 && below2._rank !== currentRank) contextEntries.push(below2);
+  if (uIdx <= 2) {
+    return users.slice(0, Math.min(5, users.length)).map((u) => ({
+      ...u,
+      _isCurrentUser: u.id === currentUserId,
+    }));
   }
 
-  const result = [];
-  const seen = new Set();
-  for (const u of contextEntries) {
-    if (seen.has(u.id)) continue;
-    seen.add(u.id);
-    result.push(u.id === currentUserId ? { ...u, _isCurrentUser: true } : u);
+  if (uIdx >= users.length - 2) {
+    return users.slice(Math.max(0, users.length - 5), users.length).map((u) => ({
+      ...u,
+      _isCurrentUser: u.id === currentUserId,
+    }));
   }
 
-  return result;
+  const entries = [];
+  for (let i = uIdx - 2; i <= uIdx + 2; i++) {
+    if (i >= 0 && i < users.length) {
+      entries.push({
+        ...users[i],
+        _isCurrentUser: users[i].id === currentUserId,
+      });
+    }
+  }
+  return entries;
 }
 
 export function LeaderboardPreview({ users, currentUserId }) {
@@ -84,10 +57,11 @@ export function LeaderboardPreview({ users, currentUserId }) {
         const total = Number(entry._score) || Number(entry.totalScore || xp + energy * 100);
         const isCurrentUser = entry._isCurrentUser;
 
+        const avatar = getLeaderAvatar(entry, entry.id);
         return (
           <div
             key={entry.id}
-            className={`flex items-center gap-3 px-4 py-3.5 transition-all ${
+            className={`flex items-center gap-3 px-4 py-3 transition-all ${
               isCurrentUser
                 ? "bg-primary/5 ring-1 ring-inset ring-primary/30"
                 : ""
@@ -96,6 +70,25 @@ export function LeaderboardPreview({ users, currentUserId }) {
             <div className="flex w-8 shrink-0 items-center justify-center font-black text-text-primary text-sm">
               {rank <= 3 ? <Medal className="text-warning" size={16} /> : <Trophy className="text-text-muted" size={14} />}
               <span className="ml-1">{rank}</span>
+            </div>
+
+            <div className="shrink-0">
+              {avatar.type === "image" ? (
+                <img
+                  src={avatar.src}
+                  alt=""
+                  className="h-9 w-9 rounded-lg border-2 border-border bg-background object-cover"
+                />
+              ) : avatar.type === "icon" ? (
+                <div className="h-9 w-9 rounded-lg border-2 border-border bg-background p-1.5">
+                  <ProfileIconRenderer iconId={avatar.iconId} className="h-full w-full" />
+                </div>
+              ) : (
+                <div
+                  className="h-9 w-9 rounded-lg border-2 border-border bg-background p-1"
+                  dangerouslySetInnerHTML={{ __html: avatar.svg }}
+                />
+              )}
             </div>
 
             <div className="min-w-0 flex-1">

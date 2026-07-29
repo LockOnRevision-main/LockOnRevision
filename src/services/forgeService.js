@@ -17,114 +17,11 @@ function sortByOrder(items) {
   return [...items].sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0));
 }
 
-function titleFromText(text, fallback = "Uploaded Notes") {
-  const firstLine = text
-    .split(/\n+/)
-    .map((line) => line.trim())
-    .find(Boolean);
-  return (firstLine || fallback).slice(0, 72);
-}
-
-function buildFallbackStructure(sourceText) {
-  const clean = sourceText.trim() || "General revision notes.";
-  const topic = titleFromText(clean, "Study Subject");
-  const segments = clean.split(/\n+/).filter((line) => line.trim().length > 12);
-  const chunks = segments.length ? segments : [clean];
-
-  const units = [0, 1, 2].map((unitIndex) => ({
-    title: `Unit ${unitIndex + 1}`,
-    summary: chunks[unitIndex % chunks.length]?.slice(0, 120) || `Core concepts for unit ${unitIndex + 1}.`,
-    subUnits: [0, 1].map((subIndex) => ({
-      title: `Sub Unit ${subIndex + 1}`,
-      summary: `Focused topics within unit ${unitIndex + 1}.`,
-      lessons: [0, 1].map((lessonIndex) => {
-        const chunk = chunks[(unitIndex * 2 + subIndex + lessonIndex) % chunks.length] || clean;
-        return {
-          title: chunk.slice(0, 64),
-          summary: chunk.slice(0, 240),
-          keyPoints: [chunk.slice(0, 80)],
-        };
-      }),
-    })),
-  }));
-
-  return {
-    subject: {
-      title: topic,
-      description: "Generated learning path from your notes.",
-      units,
-    },
-  };
-}
-
-function generateExercisesForLesson(lesson) {
-  const { title, summary, keyPoints = [] } = lesson;
-  const content = keyPoints.length > 0 ? keyPoints : [summary].filter(Boolean);
-  if (!content.length) return [];
-
-  const mainPoint = content[0];
-  const secondaryPoint = content[1] || mainPoint;
-
-  return [
-    {
-      id: makeId("exercise"),
-      type: "multipleChoice",
-      question: `Which of the following best describes ${title}?`,
-      options: [mainPoint, "A completely unrelated concept", "A minor detail of the subject", "None of the above"],
-      correctAnswer: mainPoint,
-      explanation: `The core concept of this lesson is: ${mainPoint}`
-    },
-    {
-      id: makeId("exercise"),
-      type: "fillBlank",
-      question: `Complete the statement: ${secondaryPoint.replace(/[.!?]$/, "")}...`,
-      correctAnswer: secondaryPoint.split(' ').pop()?.replace(/[.!?]$/, ""),
-      explanation: `The full concept is: ${secondaryPoint}`
-    },
-    {
-      id: makeId("exercise"),
-      type: "typeAnswer",
-      question: `In your own words, what is the main objective of ${title}?`,
-      correctAnswer: mainPoint,
-      explanation: `The primary objective is ${mainPoint}.`
-    },
-    {
-      id: makeId("exercise"),
-      type: "matchPairs",
-      question: `Match the key terms with their descriptions.`,
-      pairs: [
-        { left: { id: 'l1', text: title }, right: { id: 'r1', text: mainPoint } },
-        { left: { id: 'l2', text: 'Key Detail' }, right: { id: 'r2', text: secondaryPoint } }
-      ],
-      correctAnswer: 'l1-r1,l2-r2',
-      explanation: "Matching based on the lesson content."
-    },
-    {
-      id: makeId("exercise"),
-      type: "arrangeOrder",
-      question: `Arrange the following concepts in logical order.`,
-      items: [
-        { id: 'o1', text: title },
-        { id: 'o2', text: mainPoint },
-        { id: 'o3', text: secondaryPoint }
-      ],
-      correctAnswer: 'o1,o2,o3',
-      explanation: "Logical flow from title to main point then detail."
-    },
-    {
-      id: makeId("exercise"),
-      type: "multipleChoice",
-      question: `True or False: ${mainPoint} is a key part of ${title}.`,
-      options: ["True", "False"],
-      correctAnswer: "True",
-      explanation: "As stated in the lesson content."
-    }
-  ];
-}
-
 function normalizeGeneratedStructure(generated) {
   const subject = generated?.subject;
-  if (!subject) return buildFallbackStructure("");
+  if (!subject) {
+    throw new Error("Generated response is missing subject field");
+  }
 
   const units = (subject.units || []).slice(0, 10).map((unit, unitIndex) => ({
     title: unit.title || `Unit ${unitIndex + 1}`,
@@ -173,9 +70,6 @@ function normalizeExercise(exercise, lesson, _index) {
 
 function buildLessonExercises(lesson) {
   const provided = Array.isArray(lesson.exercises) ? lesson.exercises : [];
-  if (provided.length === 0) {
-    return generateExercisesForLesson(lesson);
-  }
   return provided.map((exercise, index) => normalizeExercise(exercise, lesson, index));
 }
 
@@ -268,26 +162,22 @@ function flattenStructure(subjectInput, sourceFileIds = [], sourceText = "") {
 
 async function generateStructureFromText(sourceText) {
   if (!isFirebaseConfigured) {
-    return normalizeGeneratedStructure(buildFallbackStructure(sourceText));
+    throw new Error("Gemini API is not available in local mode. Configure Firebase to use AI generation.");
   }
 
-  try {
-    const response = await fetch('/api/generate-forge-structure', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sourceText }),
-    });
+  const response = await fetch('/api/generate-forge-structure', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sourceText }),
+  });
 
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.status}`);
-    }
-
-    const result = await response.json();
-    return normalizeGeneratedStructure(result);
-  } catch (error) {
-    console.error("Vercel API error:", error);
-    return normalizeGeneratedStructure(buildFallbackStructure(sourceText));
+  if (!response.ok) {
+    const errBody = await response.json().catch(() => ({}));
+    throw new Error(errBody.error || `API request failed: ${response.status}`);
   }
+
+  const result = await response.json();
+  return normalizeGeneratedStructure(result);
 }
 
 function assembleForgeTree(subject, units, subUnits, lessons) {
@@ -415,7 +305,6 @@ export async function uploadForgeFiles(uid, files, onProgress) {
       continue;
     }
 
-    // Upload directly to Cloudinary (unsigned)
     const uploadResult = await uploadToCloudinary(file, {
       folder: `lockon-revision/${uid}/forge`,
     });
@@ -442,26 +331,26 @@ export async function uploadForgeFiles(uid, files, onProgress) {
 }
 
 export async function generateForgeStructure(uid, sourceText, sourceFileIds = [], files = []) {
-  let normalized;
   if (!isFirebaseConfigured) {
-    normalized = normalizeGeneratedStructure(buildFallbackStructure(sourceText));
-  } else if (files.length > 0) {
-    try {
-      const response = await fetch('/api/process-uploaded-notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          uid, 
-          files: files.map(f => ({ url: f.url, mimeType: f.type })) 
-        }),
-      });
-      if (!response.ok) throw new Error(`API request failed: ${response.status}`);
-      const result = await response.json();
-      normalized = normalizeGeneratedStructure(result.data);
-    } catch (error) {
-      console.error("Forge upload processing error:", error);
-      normalized = normalizeGeneratedStructure(buildFallbackStructure(sourceText));
+    throw new Error("Gemini API is not available in local mode. Configure Firebase to use AI generation.");
+  }
+
+  let normalized;
+  if (files.length > 0) {
+    const response = await fetch('/api/process-uploaded-notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uid,
+        files: files.map(f => ({ url: f.url, mimeType: f.type }))
+      }),
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.error || `API request failed: ${response.status}`);
     }
+    const result = await response.json();
+    normalized = normalizeGeneratedStructure(result.data);
   } else {
     normalized = await generateStructureFromText(sourceText);
   }

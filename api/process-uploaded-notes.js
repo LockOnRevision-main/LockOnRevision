@@ -4,48 +4,32 @@ import { GoogleAIFileManager } from '@google/generative-ai/server';
 import fs from 'fs';
 import path from 'path';
 import { pipeline } from 'stream/promises';
+import { createLogger, withTimeout, retry, validateFileResponse } from './lib/forge-integrity.js';
+import { requireAuth } from './lib/auth.js';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
+const log = createLogger('process-uploaded-notes');
 
-function setCorsHeaders(res) {
-  for (const [key, value] of Object.entries(corsHeaders)) {
-    res.setHeader(key, value);
-  }
-}
-
-let geminiApiKey;
 let genAI;
 let model;
 let fileManager;
 
 try {
-  geminiApiKey = process.env.GEMINI_API_KEY;
+  const geminiApiKey = process.env.GEMINI_API_KEY;
   const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 
   if (!geminiApiKey) {
-    console.warn('[process-uploaded-notes] GEMINI_API_KEY not set. AI functions will fail.');
+    log.warn('GEMINI_API_KEY not set. AI functions will fail.');
   } else {
     genAI = new GoogleGenerativeAI(geminiApiKey);
     model = genAI.getGenerativeModel({ model: geminiModel });
     fileManager = new GoogleAIFileManager(geminiApiKey);
   }
 } catch (initError) {
-  console.error('[process-uploaded-notes] Module initialization error:', initError.message);
+  log.error('Module initialization error', initError);
 }
 
 function isConfigured() {
-  return !!model;
-}
-
-function validateGeminiResponse(data) {
-  if (!data || !data.subject || !data.subject.units) {
-    throw new Error('Invalid Gemini response structure.');
-  }
-  return true;
+  return !!model && !!fileManager;
 }
 
 function parseGeminiJson(text) {
@@ -56,24 +40,21 @@ function parseGeminiJson(text) {
       .replace(/```$/i, '')
       .trim();
     return JSON.parse(cleaned);
-    } catch (e) {
-      console.error("JSON parse error:", e, "Original text:", text);
-      // Attempt to extract JSON from the text if it's wrapped in other text
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          return JSON.parse(jsonMatch[0]);
-        } catch {
-          throw e;
-        }
+  } catch (e) {
+    log.error('JSON parse error', { originalText: text.slice(0, 500) });
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0]);
+      } catch {
+        throw e;
       }
-      throw e;
     }
+    throw e;
+  }
 }
 
 async function callGeminiWithFiles(files, prompt) {
-  if (!isConfigured()) throw new Error('Gemini API is not configured.');
-
   const contents = files.map(f => ({
     fileData: {
       mimeType: f.mimeType,
@@ -81,22 +62,34 @@ async function callGeminiWithFiles(files, prompt) {
     }
   }));
 
-  const result = await model.generateContent([
-    ...contents,
-    { text: prompt },
-  ]);
+  log.info('Calling Gemini with files', { fileCount: files.length });
+
+  const result = await withTimeout(
+    retry(() => model.generateContent([...contents, { text: prompt }]), { logger: log }),
+    60000
+  );
 
   const response = await result.response;
-  return parseGeminiJson(response.text());
-}
+  const text = response.text();
 
-export default async function handler(req, res) {
-  setCorsHeaders(res);
-
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
+  if (!text || text.trim().length === 0) {
+    throw new Error('Gemini returned empty response');
   }
 
+  log.info('Gemini response received', { length: text.length });
+
+  const parsed = parseGeminiJson(text);
+  validateFileResponse(parsed);
+
+  log.info('File-based structure validated successfully', {
+    subject: parsed.subject.title,
+    unitCount: parsed.subject.units.length,
+  });
+
+  return parsed;
+}
+
+export default requireAuth(async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -104,7 +97,6 @@ export default async function handler(req, res) {
   try {
     const { url, mimeType, files: requestedFiles } = req.body;
 
-    // Support both single file (url/mimeType) and multiple files (files array)
     const filesToProcess = [];
     if (url && mimeType) {
       filesToProcess.push({ url, mimeType });
@@ -114,30 +106,34 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing required fields: url/mimeType or files array' });
     }
 
+    if (!isConfigured()) {
+      log.error('Gemini API not configured');
+      return res.status(503).json({ error: 'Gemini API is not configured. Set GEMINI_API_KEY.' });
+    }
+
     const geminiFiles = [];
     const tempFiles = [];
 
     for (const file of filesToProcess) {
-      // 1. Download file from Cloudinary to /tmp
       const fileName = path.basename(file.url);
       const filePath = path.join('/tmp', fileName);
+      log.info('Downloading file', { url: file.url });
       const response = await fetch(file.url);
-      if (!response.ok) throw new Error(`Failed to download file ${file.url} from Cloudinary: ${response.status}`);
+      if (!response.ok) throw new Error(`Failed to download file ${file.url}: ${response.status}`);
       await pipeline(response.body, fs.createWriteStream(filePath));
       tempFiles.push(filePath);
 
-      // 2. Upload to Gemini File API
       const uploadResponse = await fileManager.uploadFile(filePath, {
         mimeType: file.mimeType,
         displayName: fileName,
       });
+      log.info('File uploaded to Gemini', { fileUri: uploadResponse.file.uri });
       geminiFiles.push({
         fileUri: uploadResponse.file.uri,
         mimeType: file.mimeType
       });
     }
 
-    // 3. Generate curriculum using the files
     const prompt = `You are an expert educational AI. Your goal is to transform the uploaded study notes into a premium, interactive, and structured learning experience.
     
 Analyze the provided files and generate a highly structured JSON response representing a complete subject curriculum.
@@ -191,9 +187,7 @@ Return ONLY valid JSON with this structure:
 `;
 
     const generated = await callGeminiWithFiles(geminiFiles, prompt);
-    validateGeminiResponse(generated);
 
-    // Clean up tmp files
     for (const filePath of tempFiles) {
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
@@ -202,7 +196,7 @@ Return ONLY valid JSON with this structure:
 
     return res.status(200).json({ ok: true, data: generated });
   } catch (error) {
-    console.error('Error in process-uploaded-notes:', error);
-    return res.status(500).json({ error: 'Failed to process uploaded notes. Please try again.' });
+    log.error('Failed to process uploaded notes', error);
+    return res.status(500).json({ error: 'Failed to process uploaded notes. Gemini could not generate a valid curriculum. Please try again with clearer files.' });
   }
-}
+});

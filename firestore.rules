@@ -17,7 +17,8 @@ service cloud.firestore {
     function isAdmin() {
       return signedIn() && 
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-             userDoc(request.auth.uid).get('role', 'user') == 'admin';
+             (userDoc(request.auth.uid).isAdmin == true || 
+              userDoc(request.auth.uid).role == 'admin');
     }
 
     match /users/{userId} {
@@ -26,12 +27,14 @@ service cloud.firestore {
         && request.resource.data.xp == 0
         && request.resource.data.energy == 0
         && request.resource.data.totalScore == 0
-        && (request.resource.data.role == 'user' || request.resource.data.role == 'admin');
+        && request.resource.data.isAdmin != true
+        && request.resource.data.role == 'user';
       allow update: if ownsUserDoc(userId)
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
           'email',
           'createdAt',
-          'role'
+          'isAdmin',
+          'adminRewards'
         ])
         || isAdmin();
       allow delete: if false;

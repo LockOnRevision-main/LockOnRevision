@@ -1,33 +1,24 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createLogger, withTimeout, retry, validateForgeAssistantReply } from './lib/forge-integrity.js';
+import { requireAuth } from './lib/auth.js';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
+const log = createLogger('ask-forge-assistant');
 
-function setCorsHeaders(res) {
-  for (const [key, value] of Object.entries(corsHeaders)) {
-    res.setHeader(key, value);
-  }
-}
-
-let geminiApiKey;
 let genAI;
 let model;
 
 try {
-  geminiApiKey = process.env.GEMINI_API_KEY;
+  const geminiApiKey = process.env.GEMINI_API_KEY;
   const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 
   if (!geminiApiKey) {
-    console.warn('[ask-forge-assistant] GEMINI_API_KEY not set. AI functions will fail.');
+    log.warn('GEMINI_API_KEY not set. AI functions will fail.');
   } else {
     genAI = new GoogleGenerativeAI(geminiApiKey);
     model = genAI.getGenerativeModel({ model: geminiModel });
   }
 } catch (initError) {
-  console.error('[ask-forge-assistant] Module initialization error:', initError.message);
+  log.error('Module initialization error', initError);
 }
 
 function isConfigured() {
@@ -42,43 +33,36 @@ function parseGeminiJson(text) {
       .replace(/```$/i, '')
       .trim();
     return JSON.parse(cleaned);
-  } catch (e) {
-    console.error("JSON parse error:", e, "Original text:", text);
-    return { reply: text.replace(/```json\s*|```/gi, '').trim() };
+  } catch {
+    log.error('JSON parse error', { originalText: text.slice(0, 300) });
+    const cleaned = text.replace(/```json\s*|```/gi, '').trim();
+    return { reply: cleaned };
   }
 }
 
-async function callGeminiJson(prompt, fallbackValue = null) {
-  if (!isConfigured()) {
-    if (fallbackValue !== null) return fallbackValue;
-    throw new Error('Gemini API is not configured.');
+async function callGeminiWithValidation(prompt) {
+  log.info('Calling Gemini for forge assistant');
+
+  const result = await withTimeout(
+    retry(() => model.generateContent(prompt), { logger: log }),
+    30000
+  );
+  const response = await result.response;
+  const text = response.text();
+
+  if (!text || text.trim().length === 0) {
+    throw new Error('Gemini returned empty response');
   }
 
-  try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    
-    if (!text) {
-      if (fallbackValue !== null) return fallbackValue;
-      throw new Error('Gemini returned no text.');
-    }
+  log.info('Gemini response received', { length: text.length });
 
-    return parseGeminiJson(text);
-  } catch (error) {
-    console.error('Gemini API error:', error);
-    if (fallbackValue !== null) return fallbackValue;
-    throw new Error(`Gemini request failed: ${error.message}`);
-  }
+  const parsed = parseGeminiJson(text);
+  validateForgeAssistantReply(parsed);
+
+  return parsed;
 }
 
-export default async function handler(req, res) {
-  setCorsHeaders(res);
-
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
-  }
-
+export default requireAuth(async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -88,6 +72,11 @@ export default async function handler(req, res) {
 
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: 'Missing required field: messages' });
+    }
+
+    if (!isConfigured()) {
+      log.error('Gemini API not configured');
+      return res.status(503).json({ error: 'Gemini API is not configured. Set GEMINI_API_KEY.' });
     }
 
     const structureSummary = subjects && subjects.length
@@ -126,16 +115,10 @@ ${conversation}
 
 Return a JSON object: {"reply": "your markdown-formatted response here"}`;
 
-    const fallback = {
-      reply: subjects && subjects.length
-        ? 'I can help you revise your Forge subjects. Ask about a specific unit or lesson.'
-        : 'Upload notes in Forge first so I can answer with your study material context.',
-    };
-
-    const result = await callGeminiJson(prompt, fallback);
+    const result = await callGeminiWithValidation(prompt);
     return res.status(200).json(result);
   } catch (error) {
-    console.error('Error in ask-forge-assistant:', error);
+    log.error('Failed to get forge assistant reply', error);
     return res.status(500).json({ error: 'The assistant encountered an error. Please try again.' });
   }
-}
+});

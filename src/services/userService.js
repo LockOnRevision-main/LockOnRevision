@@ -4,11 +4,20 @@ import { calculateUnitReward } from "./energyService.js";
 
 import { doc, updateDoc, increment, serverTimestamp, arrayUnion, arrayRemove, getDocs, getDoc, query, orderBy, collection, limit } from "firebase/firestore";
 
+const ADMIN_FIELDS = new Set(["isAdmin", "role"]);
+
+function stripAdminFields(obj) {
+  if (!obj || typeof obj !== "object") return obj;
+  const cleaned = { ...obj };
+  for (const key of ADMIN_FIELDS) delete cleaned[key];
+  return cleaned;
+}
+
 export async function fetchLeaderboard(limitCount = 50) {
   if (!isFirebaseConfigured) {
     const { readLocalState } = await import("./localStore.js");
     const state = readLocalState();
-    const users = Object.entries(state.users || {}).map(([uid, data]) => ({
+    const users = Object.entries(state.users || {}).map(([uid, data]) => stripAdminFields({
       id: uid,
       ...data.profile,
       xp: data.xp ?? data.profile?.xp ?? 0,
@@ -21,7 +30,7 @@ export async function fetchLeaderboard(limitCount = 50) {
   const usersSnap = await getDocs(
     query(collection(db, "users"), orderBy("totalScore", "desc"), limit(limitCount))
   );
-  return usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  return usersSnap.docs.map(doc => stripAdminFields({ id: doc.id, ...doc.data() }));
 }
 
 export function calculateTotalScore(profile) {
@@ -88,7 +97,7 @@ export async function completeUnit(uid, unitId, profile = {}) {
 }
 
 const PROFILE_ALLOWED_FIELDS = [
-  "name", "username", "bio", "avatarUrl", "avatarIcon",
+  "name", "username", "bio", "avatarUrl", "avatarIcon", "hasCustomAvatar",
   "grade", "curriculum", "goals", "theme",
   "favoriteSubjects", "referralSource", "onboardingCompleted",
 ];

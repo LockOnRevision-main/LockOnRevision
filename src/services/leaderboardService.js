@@ -6,8 +6,19 @@ import { onLessonCompleted, onSessionCompleted, onScoreChanged } from "./forgeEv
 
 const PAGE_SIZE = 20;
 
+const ADMIN_FIELDS = new Set(["isAdmin", "role"]);
+
+function stripAdminFields(obj) {
+  if (!obj || typeof obj !== "object") return obj;
+  const cleaned = { ...obj };
+  for (const key of ADMIN_FIELDS) delete cleaned[key];
+  return cleaned;
+}
+
 function calcTotal(user) {
-  return Number(user.totalScore) || calculateTotalScore(user) || 0;
+  const score = Number(user.totalScore);
+  if (Number.isFinite(score) && score !== 0) return score;
+  return calculateTotalScore(user);
 }
 
 export function applyCompetitionRanking(users) {
@@ -60,7 +71,7 @@ async function fetchAllUsers() {
   if (!isFirebaseConfigured) {
     const { readLocalState } = await import("./localStore.js");
     const state = readLocalState();
-    return Object.entries(state.users || {}).map(([uid, data]) => ({
+    return Object.entries(state.users || {}).map(([uid, data]) => stripAdminFields({
       id: uid,
       ...data.profile,
       xp: data.xp ?? data.profile?.xp ?? 0,
@@ -72,17 +83,17 @@ async function fetchAllUsers() {
   const usersSnap = await getDocs(
     query(collection(db, "users"), orderBy("totalScore", "desc"), limit(1000))
   );
-  return usersSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  return usersSnap.docs.map((doc) => stripAdminFields({ id: doc.id, ...doc.data() }));
 }
 
 export function mapUserData(doc) {
-  return {
+  return stripAdminFields({
     id: doc.id,
     ...doc.data(),
     xp: doc.data().xp ?? 0,
     energy: doc.data().energy ?? 0,
     totalScore: doc.data().totalScore ?? 0,
-  };
+  });
 }
 
 export async function findUserPage(uid, search = "", pageSize = PAGE_SIZE) {

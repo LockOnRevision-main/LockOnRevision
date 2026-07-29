@@ -1,33 +1,24 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createLogger, withTimeout, retry } from './lib/forge-integrity.js';
+import { requireAuth } from './lib/auth.js';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
+const log = createLogger('ai-tutor-chat');
 
-function setCorsHeaders(res) {
-  for (const [key, value] of Object.entries(corsHeaders)) {
-    res.setHeader(key, value);
-  }
-}
-
-let geminiApiKey;
 let genAI;
 let model;
 
 try {
-  geminiApiKey = process.env.GEMINI_API_KEY;
+  const geminiApiKey = process.env.GEMINI_API_KEY;
   const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 
   if (!geminiApiKey) {
-    console.warn('[ai-tutor-chat] GEMINI_API_KEY not set. AI functions will fail.');
+    log.warn('GEMINI_API_KEY not set. AI functions will fail.');
   } else {
     genAI = new GoogleGenerativeAI(geminiApiKey);
     model = genAI.getGenerativeModel({ model: geminiModel });
   }
 } catch (initError) {
-  console.error('[ai-tutor-chat] Module initialization error:', initError.message);
+  log.error('Module initialization error', initError);
 }
 
 function isConfigured() {
@@ -35,26 +26,21 @@ function isConfigured() {
 }
 
 async function callGeminiStream(prompt) {
-  const result = await model.generateContentStream(prompt);
+  const result = await withTimeout(
+    retry(() => model.generateContentStream(prompt), { logger: log }),
+    30000
+  );
   return result.stream;
 }
 
-export default async function handler(req, res) {
-  setCorsHeaders(res);
-
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
-  }
-
+export default requireAuth(async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   if (!isConfigured()) {
-    console.error('[ai-tutor-chat] Gemini API not configured — missing or invalid GEMINI_API_KEY');
-    return res.status(200).json({
-      reply: "I'm not fully configured yet. Ask an administrator to set the GEMINI_API_KEY environment variable so I can start helping you study!",
-    });
+    log.error('Gemini API not configured');
+    return res.status(503).json({ error: 'Gemini API is not configured. Set GEMINI_API_KEY.' });
   }
 
   try {
@@ -141,17 +127,13 @@ Please provide your response in plain text (Markdown). Do not wrap it in JSON.`;
     }
     res.end();
   } catch (error) {
-    console.error('[ai-tutor-chat] Error:', error.message);
-    if (error.message?.includes('API_KEY_INVALID') || error.message?.includes('API key not valid')) {
-      console.error('[ai-tutor-chat] The GEMINI_API_KEY is invalid or expired.');
-    }
+    log.error('AI tutor chat error', error);
     if (!res.headersSent) {
       res.status(200).json({
-        reply: "I hit a temporary snag. Please try again in a moment!",
+        reply: "The AI tutor is temporarily unavailable. Please try again in a moment.",
       });
     } else {
-      res.write(`\n\n_I hit a snag responding. Please try again._`);
       res.end();
     }
   }
-}
+});

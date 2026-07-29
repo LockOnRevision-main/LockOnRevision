@@ -10,7 +10,7 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db, isFirebaseConfigured } from "../config/firebase.js";
-import { resolveRole } from "../utils/permissions.js";
+import { canAccessAdmin } from "../utils/permissions.js";
 import { signOutLocalUser } from "../services/localStore.js";
 
 const AuthContext = createContext(null);
@@ -18,7 +18,6 @@ const AuthContext = createContext(null);
 const PLACEHOLDER_NAME = "Lock-on Learner";
 
 function createUserProfile(user, name) {
-  const role = resolveRole(null, user.email);
   return {
     name: name || user.displayName || user.email?.split('@')[0] || PLACEHOLDER_NAME,
     email: user.email,
@@ -26,7 +25,8 @@ function createUserProfile(user, name) {
     bio: "",
     avatarUrl: "",
     avatarIcon: "",
-    role,
+    hasCustomAvatar: false,
+    isAdmin: canAccessAdmin(null, user.email),
     xp: 0,
     energy: 0,
     totalScore: 0,
@@ -62,12 +62,19 @@ async function ensureUserDocument(user, name) {
 
   const data = snapshot.data();
   const patch = {};
-  
+
   // Core Identity
   if (!data.name) patch.name = name || user.displayName || user.email?.split('@')[0] || PLACEHOLDER_NAME;
   if (!data.email) patch.email = user.email;
   if (!data.username) patch.username = user.email?.split('@')[0] || "learner";
-  if (data.role === undefined) patch.role = resolveRole(data, user.email);
+
+  // Migrate role -> isAdmin
+  if (data.role === "admin" && data.isAdmin !== true) {
+    patch.isAdmin = true;
+  }
+  if (data.isAdmin === undefined && data.role !== "admin") {
+    patch.isAdmin = canAccessAdmin(data, user.email);
+  }
 
   // If the display name is the placeholder, treat as incomplete onboarding
   if (data.name === PLACEHOLDER_NAME) {
@@ -98,6 +105,7 @@ async function ensureUserDocument(user, name) {
   if (data.theme === undefined) patch.theme = "system";
   if (data.avatarUrl === undefined) patch.avatarUrl = "";
   if (data.avatarIcon === undefined) patch.avatarIcon = "";
+  if (data.hasCustomAvatar === undefined) patch.hasCustomAvatar = false;
 
   // Onboarding
   if (data.onboardingCompleted === undefined) patch.onboardingCompleted = false;

@@ -40,6 +40,7 @@ import { ActivityHeatmap } from '../components/Profile/ActivityHeatmap';
 import { AchievementBadge } from '../components/Profile/AchievementBadge';
 import { EditProfileModal } from '../components/Profile/EditProfileModal';
 import { ProfileIconRenderer } from '../components/Profile/ProfileIconPicker';
+import { getLeaderAvatar } from '../utils/avatar';
 import { PasswordInput } from '../components/PasswordInput';
 
 export function ProfilePage() {
@@ -191,17 +192,31 @@ export function ProfilePage() {
         <div className="px-8 pb-8">
           <div className="relative flex flex-col md:flex-row items-end gap-6 -mt-12">
             <div className="relative">
-              {profile.avatarIcon ? (
-                <div className="w-32 h-32 rounded-3xl border-4 border-surface bg-background shadow-xl overflow-hidden p-3">
-                  <ProfileIconRenderer iconId={profile.avatarIcon} className="w-full h-full" />
-                </div>
-              ) : (
-                <img 
-                  src={profile.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} 
-                  alt="Avatar"
-                  className="w-32 h-32 rounded-3xl border-4 border-surface bg-background object-cover shadow-xl"
-                />
-              )}
+              {(() => {
+                const av = getLeaderAvatar(profile, user?.uid);
+                if (av.type === "image") {
+                  return (
+                    <img
+                      src={av.src}
+                      alt="Avatar"
+                      className="w-32 h-32 rounded-3xl border-4 border-surface bg-background object-cover shadow-xl"
+                    />
+                  );
+                }
+                if (av.type === "icon") {
+                  return (
+                    <div className="w-32 h-32 rounded-3xl border-4 border-surface bg-background shadow-xl overflow-hidden p-3">
+                      <ProfileIconRenderer iconId={av.iconId} className="w-full h-full" />
+                    </div>
+                  );
+                }
+                return (
+                  <div
+                    className="w-32 h-32 rounded-3xl border-4 border-surface bg-background shadow-xl overflow-hidden p-4"
+                    dangerouslySetInnerHTML={{ __html: av.svg }}
+                  />
+                );
+              })()}
               <button 
                 onClick={() => setIsEditing(true)}
                 className="absolute bottom-2 right-2 p-2 rounded-full bg-surface text-primary shadow-lg hover:scale-110 transition-transform border border-border"
@@ -567,7 +582,7 @@ export function ProfilePage() {
                 <Shield size={16} className="text-text-muted shrink-0" />
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-text-muted uppercase tracking-widest">Role</p>
-                  <p className="text-sm font-bold text-text-primary capitalize">{profile.role || 'learner'}</p>
+                  <p className="text-sm font-bold text-text-primary capitalize">{profile.isAdmin ? 'admin' : 'user'}</p>
                 </div>
               </div>
               {joinedDate && (

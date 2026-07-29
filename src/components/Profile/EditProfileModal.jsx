@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Camera, X, Palette } from 'lucide-react';
 import { uploadToCloudinary, isCloudinaryConfigured } from '../../utils/cloudinary';
 import { ProfileIconPicker, ProfileIconRenderer } from './ProfileIconPicker';
+import { getLeaderAvatar } from '../../utils/avatar';
 
 const GRADE_OPTIONS = [
   "Grade 1", "Grade 2", "Grade 3", "Grade 4",
@@ -29,6 +30,7 @@ export function EditProfileModal({ profile, onClose, onSave }) {
     favoriteSubjects: profile?.favoriteSubjects || [],
     avatarUrl: profile?.avatarUrl || '',
     avatarIcon: profile?.avatarIcon || '',
+    hasCustomAvatar: profile?.hasCustomAvatar || false,
   });
   const [newSubject, setNewSubject] = useState('');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -51,7 +53,7 @@ export function EditProfileModal({ profile, onClose, onSave }) {
   };
 
   const handleSelectIcon = (iconId) => {
-    setFormData({ ...formData, avatarIcon: iconId, avatarUrl: '' });
+    setFormData({ ...formData, avatarIcon: iconId, avatarUrl: '', hasCustomAvatar: false });
     setShowIconPicker(false);
   };
 
@@ -73,7 +75,7 @@ export function EditProfileModal({ profile, onClose, onSave }) {
         const result = await uploadToCloudinary(file, {
           folder: `lockon-revision/${profile.id || 'user'}/avatar`,
         });
-        setFormData({ ...formData, avatarUrl: result.url, avatarIcon: '' });
+        setFormData({ ...formData, avatarUrl: result.url, avatarIcon: '', hasCustomAvatar: true });
       } else {
         const dataUrl = await new Promise((resolve, reject) => {
           const reader = new FileReader();
@@ -81,7 +83,7 @@ export function EditProfileModal({ profile, onClose, onSave }) {
           reader.onerror = reject;
           reader.readAsDataURL(file);
         });
-        setFormData({ ...formData, avatarUrl: dataUrl, avatarIcon: '' });
+        setFormData({ ...formData, avatarUrl: dataUrl, avatarIcon: '', hasCustomAvatar: true });
       }
     } catch (error) {
       console.error("Avatar upload error:", error);
@@ -122,17 +124,35 @@ export function EditProfileModal({ profile, onClose, onSave }) {
           {/* Avatar */}
           <div className="flex items-center gap-4">
             <div className="relative">
-              {formData.avatarIcon ? (
-                <div className="w-20 h-20 rounded-2xl border-4 border-border bg-background overflow-hidden p-2">
-                  <ProfileIconRenderer iconId={formData.avatarIcon} className="w-full h-full" />
-                </div>
-              ) : (
-                <img
-                  src={formData.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`}
-                  alt="Avatar preview"
-                  className="w-20 h-20 rounded-2xl border-4 border-border bg-background object-cover"
-                />
-              )}
+              {(() => {
+                const previewAvatar = formData.avatarIcon
+                  ? { type: "icon", iconId: formData.avatarIcon }
+                  : formData.avatarUrl
+                  ? { type: "image", src: formData.avatarUrl }
+                  : getLeaderAvatar(profile, profile?.id);
+                if (previewAvatar.type === "image") {
+                  return (
+                    <img
+                      src={previewAvatar.src}
+                      alt="Avatar preview"
+                      className="w-20 h-20 rounded-2xl border-4 border-border bg-background object-cover"
+                    />
+                  );
+                }
+                if (previewAvatar.type === "icon") {
+                  return (
+                    <div className="w-20 h-20 rounded-2xl border-4 border-border bg-background overflow-hidden p-2">
+                      <ProfileIconRenderer iconId={previewAvatar.iconId} className="w-full h-full" />
+                    </div>
+                  );
+                }
+                return (
+                  <div
+                    className="w-20 h-20 rounded-2xl border-4 border-border bg-background overflow-hidden p-2.5"
+                    dangerouslySetInnerHTML={{ __html: previewAvatar.svg }}
+                  />
+                );
+              })()}
             </div>
             <div className="flex flex-col gap-1.5">
               <p className="font-bold text-text-primary text-sm">Profile Picture</p>

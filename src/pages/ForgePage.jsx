@@ -1,7 +1,5 @@
-import { FileUp, RefreshCw, Save } from "lucide-react";
+import { BookOpen, FileUp, RefreshCw, Trophy, Zap } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { ForgeStructureEditor } from "../components/ForgeStructureEditor.jsx";
-import { EmptyState } from "../components/EmptyState.jsx";
 import { ForgeCurriculumView } from "../components/ForgeCurriculumView.jsx";
 import { LessonPlayer } from "../components/LessonPlayer.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -10,7 +8,6 @@ import {
   generateForgeStructure,
   getForgeContext,
   regenerateForgeStructure,
-  saveForgeStructure,
   subscribeForgeSubjects,
   subscribeForgeUnits,
   subscribeForgeSubUnits,
@@ -25,7 +22,6 @@ export function ForgePage() {
   const [subUnits, setSubUnits] = useState([]);
   const [lessons, setLessons] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
-  const [viewingSubjectList, setViewingSubjectList] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [draft, setDraft] = useState(null);
   const [pastedNotes, setPastedNotes] = useState("");
@@ -43,14 +39,10 @@ export function ForgePage() {
   }, [user?.uid]);
 
   useEffect(() => {
-    if (selectedId === null && subjects.length > 0 && !viewingSubjectList) {
-      setSelectedId(subjects[0].id);
-      return;
-    }
     if (selectedId && subjects.length > 0 && !subjects.some((s) => s.id === selectedId)) {
-      setSelectedId(subjects[0].id);
+      setSelectedId(null);
     }
-  }, [subjects, selectedId, viewingSubjectList]);
+  }, [subjects, selectedId]);
 
   useEffect(() => {
     const selected = subjects.find((item) => item.id === selectedId);
@@ -60,8 +52,13 @@ export function ForgePage() {
   const handleBackToSubjects = useCallback(() => {
     setSelectedId(null);
     setDraft(null);
-    setViewingSubjectList(true);
   }, []);
+
+  const handleContinueLearning = useCallback(() => {
+    if (subjects.length > 0) {
+      setSelectedId(subjects[0].id);
+    }
+  }, [subjects]);
 
   async function handleUpload(event) {
     const files = Array.from(event.target.files || []);
@@ -131,22 +128,6 @@ export function ForgePage() {
     }
   }
 
-  async function handleSave() {
-    if (!draft) return;
-
-    setBusy(true);
-    setStatus("Saving changes...");
-    try {
-      const saved = await saveForgeStructure(user.uid, draft);
-      setSelectedId(saved?.id || draft.id);
-      setStatus("Changes saved.");
-    } catch (error) {
-      setStatus(error.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   const handleStartLesson = (lesson) => {
     setSelectedLesson(lesson);
   };
@@ -177,6 +158,11 @@ export function ForgePage() {
   const subjectUnits = units.filter((u) => u.subjectId === selectedId);
   const subjectSubUnits = subUnits.filter((su) => subjectUnits.some((u) => u.id === su.unitId));
   const subjectLessons = lessons.filter((l) => l.subjectId === selectedId);
+
+  const totalLessons = lessons.length;
+  const completedLessons = lessons.filter((l) => l.completed).length;
+  const totalXp = lessons.reduce((sum, l) => sum + (l.xpEarned || 0), 0);
+  const hasSubjects = subjects.length > 0;
 
   if (selectedLesson) {
     return (
@@ -244,120 +230,101 @@ export function ForgePage() {
           />
         </div>
       ) : (
-        <>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 space-y-6">
+          {/* Generate New Subject */}
           <section className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-black text-text-primary">My Subjects</h2>
-              {selectedId && subjects.length > 0 && (
-                <button
-                  onClick={handleBackToSubjects}
-                  className="text-sm font-bold text-primary hover:text-primary-active transition-colors"
-                >
-                  View All
-                </button>
-              )}
-            </div>
-            <div className="mt-4 flex gap-2 flex-wrap">
-              {subjects.length === 0 && !busy && (
-                <p className="text-sm text-text-muted">No subjects yet. Upload notes or paste content below to get started.</p>
-              )}
-              {subjects.map((subject) => (
-                <button
-                  key={subject.id}
-                  type="button"
-                  onClick={() => { setSelectedId(subject.id); setViewingSubjectList(false); }}
-                  className={`rounded-full border px-4 py-2 text-sm font-bold transition-colors ${
-                    selectedId === subject.id
-                      ? "border-primary bg-primary text-white"
-                      : "border-border text-text-secondary hover:border-primary/50 hover:text-text-primary"
-                  }`}
-                >
-                  {subject.title}
-                </button>
-              ))}
-            </div>
+            <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">Forge New</p>
+            <h2 className="mt-1 text-2xl font-black text-text-primary">Generate Subject</h2>
+
+            <label className="mt-4 grid cursor-pointer place-items-center rounded-2xl border-2 border-dashed border-border bg-background p-8 text-center transition hover:border-primary focus-within:ring-2 focus-within:ring-primary/50">
+              <FileUp size={32} className="text-primary" />
+              <strong className="mt-3 text-text-primary">Upload notes or documents</strong>
+              <span className="mt-1 text-sm text-text-secondary">PDF, text, or images up to 20MB each</span>
+              <input
+                className="hidden"
+                type="file"
+                multiple
+                accept=".pdf,.txt,.md,.png,.jpg,.jpeg,.webp,.gif,.svg,.docx,.pptx"
+                onChange={handleUpload}
+                disabled={busy}
+              />
+            </label>
+
+            <textarea
+              value={pastedNotes}
+              onChange={(event) => setPastedNotes(event.target.value)}
+              className="mt-4 min-h-40 w-full resize-y rounded-xl border border-border bg-background px-4 py-3 text-sm leading-6 text-text-primary outline-none focus:border-primary transition-colors placeholder:text-text-muted"
+              placeholder="Or paste notes here..."
+              disabled={busy}
+            />
+
+            <button
+              type="button"
+              disabled={busy || !pastedNotes.trim()}
+              onClick={handleGenerateFromPaste}
+              className="mt-3 w-full rounded-xl bg-secondary px-4 py-3 font-black text-white disabled:bg-text-muted disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-colors hover:bg-secondary-hover"
+            >
+              Generate from pasted notes
+            </button>
           </section>
 
-          {subjects.length === 0 && !busy && (
-            <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-              <section className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
-                <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">Forge New</p>
-                <h2 className="mt-1 text-2xl font-black text-text-primary">Study materials</h2>
-
-                <label className="mt-4 grid cursor-pointer place-items-center rounded-2xl border-2 border-dashed border-border bg-background p-8 text-center transition hover:border-primary focus-within:ring-2 focus-within:ring-primary/50">
-                  <FileUp size={32} className="text-primary" />
-                  <strong className="mt-3 text-text-primary">Upload notes or documents</strong>
-                  <span className="mt-1 text-sm text-text-secondary">PDF, text, or images up to 20MB each</span>
-                  <input
-                    className="hidden"
-                    type="file"
-                    multiple
-                    accept=".pdf,.txt,.md,.png,.jpg,.jpeg,.webp,.gif,.svg,.docx,.pptx"
-                    onChange={handleUpload}
-                    disabled={busy}
-                  />
-                </label>
-
-                <textarea
-                  value={pastedNotes}
-                  onChange={(event) => setPastedNotes(event.target.value)}
-                  className="mt-4 min-h-40 w-full resize-y rounded-xl border border-border bg-background px-4 py-3 text-sm leading-6 text-text-primary outline-none focus:border-primary transition-colors placeholder:text-text-muted"
-                  placeholder="Or paste notes here..."
-                  disabled={busy}
-                />
-
-                <button
-                  type="button"
-                  disabled={busy || !pastedNotes.trim()}
-                  onClick={handleGenerateFromPaste}
-                  className="mt-3 w-full rounded-xl bg-secondary px-4 py-3 font-black text-white disabled:bg-text-muted disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-colors hover:bg-secondary-hover"
-                >
-                  Generate from pasted notes
-                </button>
-              </section>
-
-              <section className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">Structure</p>
-                    <h2 className="text-2xl font-black text-text-primary">Edit learning path</h2>
+          {/* Continue Previous Learning */}
+          {hasSubjects && (
+            <button
+              onClick={handleContinueLearning}
+              className="w-full rounded-3xl border border-border bg-surface p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-left group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-secondary/10 flex items-center justify-center shrink-0">
+                    <BookOpen size={24} className="text-secondary" />
                   </div>
-                  {draft ? (
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={handleRegenerate}
-                        className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-bold text-text-secondary disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-colors hover:bg-background"
-                      >
-                        <RefreshCw size={16} />
-                        Regenerate
-                      </button>
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={handleSave}
-                        className="inline-flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-sm font-black text-white disabled:bg-primary-active disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-colors hover:bg-primary-active"
-                      >
-                        <Save size={16} />
-                        Save changes
-                      </button>
-                    </div>
-                  ) : null}
+                  <div>
+                    <p className="text-lg font-black text-text-primary group-hover:text-primary transition-colors">Continue Previous Learning</p>
+                    <p className="text-sm text-text-secondary mt-0.5">
+                      Resume &ldquo;{subjects[0]?.title}&rdquo; &middot; {subjects.length} subject{subjects.length !== 1 ? 's' : ''} available
+                    </p>
+                  </div>
                 </div>
-
-                {draft ? (
-                  <ForgeStructureEditor tree={draft} onChange={setDraft} />
-                ) : (
-                  <EmptyState
-                    title="No structure yet"
-                    copy="Upload notes or paste content to generate your first Forge learning path."
-                  />
-                )}
-              </section>
-            </div>
+                <span className="text-xl text-text-muted group-hover:text-primary transition-colors">&rarr;</span>
+              </div>
+            </button>
           )}
-        </>
+
+          {/* Recent Progress Summary */}
+          {hasSubjects && (
+            <section className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <Zap size={20} className="text-primary" />
+                <h2 className="text-lg font-black text-text-primary">Recent Progress</h2>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="p-4 rounded-2xl bg-background border border-border text-center">
+                  <p className="text-2xl font-black text-text-primary">{subjects.length}</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">Subjects</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-background border border-border text-center">
+                  <p className="text-2xl font-black text-text-primary">{completedLessons}/{totalLessons}</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">Lessons</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-background border border-border text-center">
+                  <p className="text-2xl font-black text-text-primary">
+                    {totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0}%
+                  </p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">Complete</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-background border border-border text-center">
+                  <p className="text-2xl font-black text-text-primary">
+                    <span className="flex items-center justify-center gap-1">
+                      {totalXp} <Trophy size={16} className="text-warning" />
+                    </span>
+                  </p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">XP Earned</p>
+                </div>
+              </div>
+            </section>
+          )}
+        </div>
       )}
     </div>
   );

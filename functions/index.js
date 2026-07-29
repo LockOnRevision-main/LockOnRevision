@@ -10,12 +10,11 @@ import {
 initializeApp();
 const db = getFirestore();
 
-let geminiApiKey;
 let genAI;
 let model;
 
 try {
-  geminiApiKey = process.env.GEMINI_API_KEY;
+  const geminiApiKey = process.env.GEMINI_API_KEY;
   const geminiModel = process.env.GEMINI_MODEL || "gemini-1.5-flash";
 
   if (!geminiApiKey) {
@@ -32,6 +31,41 @@ function isConfigured() {
   return !!model;
 }
 
+function createLogger(name) {
+  return {
+    info: (msg, data) => console.log(JSON.stringify({ level: "info", timestamp: new Date().toISOString(), service: name, message: msg, data })),
+    warn: (msg, data) => console.warn(JSON.stringify({ level: "warn", timestamp: new Date().toISOString(), service: name, message: msg, data })),
+    error: (msg, err) => console.error(JSON.stringify({ level: "error", timestamp: new Date().toISOString(), service: name, message: msg, error: err?.message })),
+  };
+}
+
+const log = createLogger("functions");
+
+function withTimeout(promise, ms = 30000) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Request timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+async function retry(fn, { maxRetries = 2, baseDelay = 1000, logger } = {}) {
+  let lastError;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      const isRetryable = error.message?.includes("429") || error.message?.includes("500") || error.message?.includes("503") || error.message?.includes("timed out") || error.message?.includes("RESOURCE_EXHAUSTED");
+      if (attempt >= maxRetries || !isRetryable) break;
+      const delay = baseDelay * Math.pow(2, attempt);
+      logger?.warn(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`, { error: error.message });
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw lastError;
+}
+
 function parseGeminiJson(text) {
   const cleaned = text
     .replace(/^```json\s*/i, "")
@@ -41,28 +75,87 @@ function parseGeminiJson(text) {
   return JSON.parse(cleaned);
 }
 
-async function callGeminiJson(prompt, fallbackValue = null) {
+function detectTemplatedTitle(title) {
+  if (!title || typeof title !== "string") return true;
+  return [/^generated\s+(subject|unit|lesson)/i, /^new\s+(unit|sub\s*unit|lesson)/i, /^unit\s+\d+$/i, /^lesson\s+\d+$/i, /^sub\s*unit\s+\d+$/i].some(p => p.test(title.trim()));
+}
+
+function detectPlaceholder(value) {
+  if (!value) return false;
+  if (typeof value === "string") {
+    return [/option\s*a/i, /option\s*b/i, /option\s*c/i, /option\s*d/i, /sample\s*question/i, /example\s*question/i, /placeholder/i].some(p => p.test(value));
+  }
+  if (Array.isArray(value)) return value.some(v => detectPlaceholder(v));
+  if (typeof value === "object") return Object.values(value).some(v => detectPlaceholder(v));
+  return false;
+}
+
+function validateForgeStructure(data) {
+  if (!data || !data.subject) throw new HttpsError("internal", "Response missing subject");
+  const subject = data.subject;
+  if (!subject.title || typeof subject.title !== "string" || subject.title.trim().length === 0) throw new HttpsError("internal", "Subject title is empty");
+  if (detectTemplatedTitle(subject.title)) throw new HttpsError("internal", "Subject title is a placeholder");
+
+  const units = subject.units;
+  if (!Array.isArray(units) || units.length < 2) throw new HttpsError("internal", "Need at least 2 units");
+
+  for (const unit of units) {
+    if (!unit.title || detectTemplatedTitle(unit.title)) throw new HttpsError("internal", `Unit title "${unit.title}" is invalid`);
+    const subUnits = unit.subUnits;
+    if (!Array.isArray(subUnits) || subUnits.length === 0) throw new HttpsError("internal", `Unit "${unit.title}" has no sub-units`);
+    for (const subUnit of subUnits) {
+      if (!subUnit.title || detectTemplatedTitle(subUnit.title)) throw new HttpsError("internal", `Sub-unit title is invalid`);
+      const lessons = subUnit.lessons;
+      if (!Array.isArray(lessons) || lessons.length === 0) throw new HttpsError("internal", `Sub-unit "${subUnit.title}" has no lessons`);
+    }
+  }
+
+  if (detectPlaceholder(data)) throw new HttpsError("internal", "Response contains placeholder content");
+}
+
+function validateLearningContent(data) {
+  if (!data || !Array.isArray(data.subjects) || data.subjects.length === 0) throw new HttpsError("internal", "Response missing subjects");
+  for (const subject of data.subjects) {
+    if (!subject.title || detectTemplatedTitle(subject.title)) throw new HttpsError("internal", "Subject title is invalid");
+    const units = subject.units;
+    if (!Array.isArray(units) || units.length === 0) throw new HttpsError("internal", `Subject "${subject.title}" has no units`);
+    for (const unit of units) {
+      const lessons = unit.lessons;
+      if (!Array.isArray(lessons) || lessons.length === 0) throw new HttpsError("internal", `Unit "${unit.title}" has no lessons`);
+      for (const lesson of lessons) {
+        if (!lesson.title || detectTemplatedTitle(lesson.title)) throw new HttpsError("internal", "Lesson title is invalid");
+        if (!Array.isArray(lesson.questions) || lesson.questions.length === 0) throw new HttpsError("internal", `Lesson "${lesson.title}" has no questions`);
+      }
+    }
+  }
+  if (detectPlaceholder(data)) throw new HttpsError("internal", "Response contains placeholder content");
+}
+
+async function callGeminiWithValidation(prompt, validateFn) {
   if (!isConfigured()) {
-    if (fallbackValue !== null) return fallbackValue;
     throw new HttpsError("unavailable", "Gemini API is not configured. Set GEMINI_API_KEY in Firebase config.");
   }
 
-  try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    
-    if (!text) {
-      if (fallbackValue !== null) return fallbackValue;
-      throw new HttpsError("internal", "Gemini returned no text.");
-    }
+  log.info("Calling Gemini", { promptLength: prompt.length });
 
-    return parseGeminiJson(text);
-  } catch (error) {
-    console.error("Gemini API error:", error);
-    if (fallbackValue !== null) return fallbackValue;
-    throw new HttpsError("internal", `Gemini request failed: ${error.message}`);
+  const result = await withTimeout(
+    retry(() => model.generateContent(prompt), { logger: log }),
+    45000
+  );
+  const response = await result.response;
+  const text = response.text();
+
+  if (!text || text.trim().length === 0) {
+    throw new HttpsError("internal", "Gemini returned empty response");
   }
+
+  log.info("Gemini response received", { length: text.length });
+
+  const parsed = parseGeminiJson(text);
+  validateFn(parsed);
+
+  log.info("Response validated successfully");
+  return parsed;
 }
 
 async function verifyAuthenticated(context) {
@@ -70,6 +163,19 @@ async function verifyAuthenticated(context) {
     throw new HttpsError("unauthenticated", "You must be authenticated to call this function.");
   }
   return context.auth.uid;
+}
+
+async function verifyAdmin(context) {
+  const uid = await verifyAuthenticated(context);
+  const userDoc = await db.collection("users").doc(uid).get();
+  if (!userDoc.exists) {
+    throw new HttpsError("permission-denied", "User profile not found.");
+  }
+  const data = userDoc.data();
+  if (data.isAdmin !== true && data.role !== "admin") {
+    throw new HttpsError("permission-denied", "Admin access required.");
+  }
+  return uid;
 }
 
 function validateRequest(data, requiredFields = []) {
@@ -83,7 +189,6 @@ function validateRequest(data, requiredFields = []) {
 export const generateForgeStructure = onCall(async (request) => {
   await verifyAuthenticated(request);
   validateRequest(request.data, ["sourceText"]);
-
   const { sourceText } = request.data;
 
   const prompt = `Analyze the study material and create a structured learning path.
@@ -124,39 +229,12 @@ Requirements:
 STUDY MATERIAL:
 ${sourceText}`;
 
-  const fallback = {
-    subject: {
-      title: "Generated Subject",
-      description: "AI-generated learning path from your notes.",
-      units: [
-        {
-          title: "Unit 1",
-          summary: "Core concepts from your notes.",
-          subUnits: [
-            {
-              title: "Sub Unit 1",
-              summary: "Introduction to key ideas.",
-              lessons: [
-                {
-                  title: "Lesson 1",
-                  summary: "Review the main concepts.",
-                  keyPoints: ["Key point 1", "Key point 2"],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    },
-  };
-
-  return await callGeminiJson(prompt, fallback);
+  return await callGeminiWithValidation(prompt, validateForgeStructure);
 });
 
 export const generateLearningContent = onCall(async (request) => {
   await verifyAuthenticated(request);
   validateRequest(request.data, ["sourceText"]);
-
   const { sourceText } = request.data;
 
   const prompt = `Create structured active-recall learning content from these notes.
@@ -198,46 +276,12 @@ Create concise lessons, 3-5 recall questions per lesson, and only use facts grou
 NOTES:
 ${sourceText}`;
 
-  const fallback = {
-    subjects: [
-      {
-        title: "My Notes",
-        description: "Generated from your notes.",
-        units: [
-          {
-            title: "Unit 1",
-            summary: "Core ideas from your notes.",
-            lessons: [
-              {
-                title: "Lesson 1",
-                summary: "Review the main idea and test yourself.",
-                difficulty: "medium",
-                keyPoints: ["Key point 1"],
-                questions: [
-                  {
-                    prompt: "What is the main idea?",
-                    options: ["Option A", "Option B", "Option C", "Option D"],
-                    correctAnswer: "Option A",
-                    explanation: "The correct answer is grounded in the notes.",
-                    topic: "Main idea",
-                    difficulty: "medium",
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  };
-
-  return await callGeminiJson(prompt, fallback);
+  return await callGeminiWithValidation(prompt, validateLearningContent);
 });
 
 export const aiTutorChat = onCall(async (request) => {
   await verifyAuthenticated(request);
   validateRequest(request.data, ["messages"]);
-
   const { messages, context } = request.data;
 
   const conversation = messages.map((m) => `${m.role}: ${m.content}`).join("\n");
@@ -249,17 +293,33 @@ Return JSON only: {"reply":"string"}
 Conversation:
 ${conversation}${contextStr}`;
 
-  const fallback = {
-    reply: "I'm here to help you learn. Ask me a question about your study material.",
-  };
+  if (!isConfigured()) {
+    throw new HttpsError("unavailable", "Gemini API is not configured. Set GEMINI_API_KEY in Firebase config.");
+  }
 
-  return await callGeminiJson(prompt, fallback);
+  log.info("Calling Gemini for AI tutor chat");
+  const result = await withTimeout(
+    retry(() => model.generateContent(prompt), { logger: log }),
+    30000
+  );
+  const response = await result.response;
+  const text = response.text();
+
+  if (!text || text.trim().length === 0) {
+    throw new HttpsError("internal", "Gemini returned empty response");
+  }
+
+  const parsed = parseGeminiJson(text);
+  if (!parsed.reply || typeof parsed.reply !== "string") {
+    throw new HttpsError("internal", "Invalid tutor response format");
+  }
+
+  return parsed;
 });
 
 export const generateQuestionHint = onCall(async (request) => {
   const uid = await verifyAuthenticated(request);
   validateRequest(request.data, ["questionId"]);
-
   const { questionId } = request.data;
 
   const questionDoc = await db.collection("users").doc(uid).collection("questions").doc(questionId).get();
@@ -273,17 +333,33 @@ export const generateQuestionHint = onCall(async (request) => {
 Question:
 ${JSON.stringify(question)}`;
 
-  const fallback = {
-    hint: "Eliminate the least relevant options first.",
-  };
+  if (!isConfigured()) {
+    throw new HttpsError("unavailable", "Gemini API is not configured. Set GEMINI_API_KEY in Firebase config.");
+  }
 
-  return await callGeminiJson(prompt, fallback);
+  log.info("Calling Gemini for question hint");
+  const result = await withTimeout(
+    retry(() => model.generateContent(prompt), { maxRetries: 2, baseDelay: 1000, logger: log }),
+    15000
+  );
+  const response = await result.response;
+  const text = response.text();
+
+  if (!text || text.trim().length === 0) {
+    throw new HttpsError("internal", "Gemini returned empty response");
+  }
+
+  const parsed = parseGeminiJson(text);
+  if (!parsed.hint || typeof parsed.hint !== "string") {
+    throw new HttpsError("internal", "Invalid hint response format");
+  }
+
+  return parsed;
 });
 
 export const explainWrongAnswer = onCall(async (request) => {
   const uid = await verifyAuthenticated(request);
   validateRequest(request.data, ["questionId", "selectedAnswer"]);
-
   const { questionId, selectedAnswer } = request.data;
 
   const questionDoc = await db.collection("users").doc(uid).collection("questions").doc(questionId).get();
@@ -298,17 +374,33 @@ Selected answer: ${selectedAnswer}
 Question:
 ${JSON.stringify(question)}`;
 
-  const fallback = {
-    explanation: `The correct answer is "${question.correctAnswer}". Review the lesson summary for more details.`,
-  };
+  if (!isConfigured()) {
+    throw new HttpsError("unavailable", "Gemini API is not configured. Set GEMINI_API_KEY in Firebase config.");
+  }
 
-  return await callGeminiJson(prompt, fallback);
+  log.info("Calling Gemini for wrong answer explanation");
+  const result = await withTimeout(
+    retry(() => model.generateContent(prompt), { maxRetries: 3, baseDelay: 1000, logger: log }),
+    15000
+  );
+  const response = await result.response;
+  const text = response.text();
+
+  if (!text || text.trim().length === 0) {
+    throw new HttpsError("internal", "Gemini returned empty response");
+  }
+
+  const parsed = parseGeminiJson(text);
+  if (!parsed.explanation || typeof parsed.explanation !== "string") {
+    throw new HttpsError("internal", "Invalid explanation response format");
+  }
+
+  return parsed;
 });
 
 export const askForgeAssistant = onCall(async (request) => {
   const uid = await verifyAuthenticated(request);
   validateRequest(request.data, ["messages"]);
-
   const { messages } = request.data;
 
   const subjectsSnap = await db
@@ -345,19 +437,33 @@ ${conversation}
 
 Return strict JSON only: {"reply":"your response here"}`;
 
-  const fallback = {
-    reply: subjects.length
-      ? "I can help you revise your Forge subjects. Ask about a specific unit or lesson."
-      : "Upload notes in Forge first so I can answer with your study material context.",
-  };
+  if (!isConfigured()) {
+    throw new HttpsError("unavailable", "Gemini API is not configured. Set GEMINI_API_KEY in Firebase config.");
+  }
 
-  return await callGeminiJson(prompt, fallback);
+  log.info("Calling Gemini for forge assistant");
+  const result = await withTimeout(
+    retry(() => model.generateContent(prompt), { logger: log }),
+    30000
+  );
+  const response = await result.response;
+  const text = response.text();
+
+  if (!text || text.trim().length === 0) {
+    throw new HttpsError("internal", "Gemini returned empty response");
+  }
+
+  const parsed = parseGeminiJson(text);
+  if (!parsed.reply || typeof parsed.reply !== "string") {
+    throw new HttpsError("internal", "Invalid assistant response format");
+  }
+
+  return parsed;
 });
 
 export const processUploadedNotes = onCall(async (request) => {
   const uid = await verifyAuthenticated(request);
   validateRequest(request.data, ["fileId"]);
-
   const { fileId } = request.data;
 
   const fileDoc = await db.collection("users").doc(uid).collection("files").doc(fileId).get();
@@ -366,10 +472,14 @@ export const processUploadedNotes = onCall(async (request) => {
   }
 
   const file = fileDoc.data();
-
   const sourceText = file.content || `File: ${file.name}. Uploaded URL: ${file.url || "unavailable"}.`;
 
-  const generated = await callGeminiJson(
+  if (!isConfigured()) {
+    throw new HttpsError("unavailable", "Gemini API is not configured. Set GEMINI_API_KEY in Firebase config.");
+  }
+
+  log.info("Calling Gemini for uploaded notes processing");
+  const generated = await callGeminiWithValidation(
     `Create structured active-recall learning content from these notes.
 Return strict JSON only with this exact shape:
 {
@@ -408,12 +518,8 @@ Create concise lessons, 3-5 recall questions per lesson, and only use facts grou
 
 NOTES:
 ${sourceText}`,
-    null
+    validateLearningContent
   );
-
-  if (!generated || !generated.subjects || !generated.subjects.length) {
-    throw new HttpsError("internal", "Failed to generate learning content.");
-  }
 
   const created = {
     subjects: [],
@@ -497,4 +603,9 @@ ${sourceText}`,
   });
 
   return { ok: true, created };
+});
+
+export const verifyAdminAccess = onCall(async (request) => {
+  await verifyAdmin(request);
+  return { admin: true };
 });

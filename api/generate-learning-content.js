@@ -1,33 +1,24 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createLogger, withTimeout, retry, validateLearningContent } from './lib/forge-integrity.js';
+import { requireAuth } from './lib/auth.js';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
+const log = createLogger('generate-learning-content');
 
-function setCorsHeaders(res) {
-  for (const [key, value] of Object.entries(corsHeaders)) {
-    res.setHeader(key, value);
-  }
-}
-
-let geminiApiKey;
 let genAI;
 let model;
 
 try {
-  geminiApiKey = process.env.GEMINI_API_KEY;
+  const geminiApiKey = process.env.GEMINI_API_KEY;
   const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 
   if (!geminiApiKey) {
-    console.warn('[generate-learning-content] GEMINI_API_KEY not set. AI functions will fail.');
+    log.warn('GEMINI_API_KEY not set. AI functions will fail.');
   } else {
     genAI = new GoogleGenerativeAI(geminiApiKey);
     model = genAI.getGenerativeModel({ model: geminiModel });
   }
 } catch (initError) {
-  console.error('[generate-learning-content] Module initialization error:', initError.message);
+  log.error('Module initialization error', initError);
 }
 
 function isConfigured() {
@@ -43,37 +34,33 @@ function parseGeminiJson(text) {
   return JSON.parse(cleaned);
 }
 
-async function callGeminiJson(prompt, fallbackValue = null) {
-  if (!isConfigured()) {
-    if (fallbackValue !== null) return fallbackValue;
-    throw new Error('Gemini API is not configured.');
+async function callGeminiWithValidation(prompt) {
+  log.info('Calling Gemini for learning content generation');
+
+  const result = await withTimeout(
+    retry(() => model.generateContent(prompt), { logger: log }),
+    45000
+  );
+  const response = await result.response;
+  const text = response.text();
+
+  if (!text || text.trim().length === 0) {
+    throw new Error('Gemini returned empty response');
   }
 
-  try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    
-    if (!text) {
-      if (fallbackValue !== null) return fallbackValue;
-      throw new Error('Gemini returned no text.');
-    }
+  log.info('Gemini response received', { length: text.length });
 
-    return parseGeminiJson(text);
-  } catch (error) {
-    console.error('Gemini API error:', error);
-    if (fallbackValue !== null) return fallbackValue;
-    throw new Error(`Gemini request failed: ${error.message}`);
-  }
+  const parsed = parseGeminiJson(text);
+  validateLearningContent(parsed);
+
+  log.info('Learning content validated successfully', {
+    subjectCount: parsed.subjects.length,
+  });
+
+  return parsed;
 }
 
-export default async function handler(req, res) {
-  setCorsHeaders(res);
-
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
-  }
-
+export default requireAuth(async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -83,6 +70,11 @@ export default async function handler(req, res) {
 
     if (!sourceText) {
       return res.status(400).json({ error: 'Missing required field: sourceText' });
+    }
+
+    if (!isConfigured()) {
+      log.error('Gemini API not configured');
+      return res.status(503).json({ error: 'Gemini API is not configured. Set GEMINI_API_KEY.' });
     }
 
     const prompt = `You are a premium educational AI tutor. Analyze the user's study notes and transform them into a highly interactive, structured learning curriculum.
@@ -142,43 +134,12 @@ REQUIREMENTS:
 NOTES:
 ${sourceText}`;
 
-    const fallback = {
-      subjects: [
-        {
-          title: 'My Notes',
-          description: 'Generated from your notes.',
-          units: [
-            {
-              title: 'Unit 1',
-              summary: 'Core ideas from your notes.',
-              lessons: [
-                {
-                  title: 'Lesson 1',
-                  summary: 'Review the main idea and test yourself.',
-                  difficulty: 'medium',
-                  keyPoints: ['Key point 1'],
-                  questions: [
-                    {
-                      prompt: 'What is the main idea?',
-                      options: ['Option A', 'Option B', 'Option C', 'Option D'],
-                      correctAnswer: 'Option A',
-                      explanation: 'The correct answer is grounded in the notes.',
-                      topic: 'Main idea',
-                      difficulty: 'medium',
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    };
-
-    const result = await callGeminiJson(prompt, fallback);
+    const result = await callGeminiWithValidation(prompt);
     return res.status(200).json(result);
   } catch (error) {
-    console.error('Error in generate-learning-content:', error);
-    return res.status(500).json({ error: 'Failed to generate learning content. Please try again.' });
+    log.error('Failed to generate learning content', error);
+    return res.status(500).json({
+      error: 'Failed to generate learning content. Gemini could not create a valid curriculum. Please try again with clearer notes.',
+    });
   }
-}
+});

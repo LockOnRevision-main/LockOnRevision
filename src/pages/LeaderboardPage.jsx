@@ -2,6 +2,8 @@ import { ChevronLeft, ChevronRight, Medal, RefreshCcw, Search, Trophy, User, Zap
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getLeaderboardUsers, subscribeToLeaderboard, findUserPage } from "../services/leaderboardService.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { getLeaderAvatar } from "../utils/avatar.js";
+import { ProfileIconRenderer } from "../components/Profile/ProfileIconPicker.jsx";
 
 const PAGE_SIZE = 20;
 
@@ -113,8 +115,9 @@ export function LeaderboardPage() {
       </section>
 
       <section className="overflow-hidden rounded-3xl border border-border bg-surface shadow-sm" ref={listRef}>
-        <div className="grid grid-cols-[60px_1fr_100px] gap-3 bg-background px-4 py-4 text-xs font-black uppercase tracking-widest text-text-muted border-b border-border sm:grid-cols-[80px_1fr_160px] sm:px-6">
+        <div className="grid grid-cols-[60px_44px_1fr_100px] gap-3 bg-background px-4 py-4 text-xs font-black uppercase tracking-widest text-text-muted border-b border-border sm:grid-cols-[80px_44px_1fr_160px] sm:px-6">
           <span>Rank</span>
+          <span className="text-center">Avatar</span>
           <span>Name</span>
           <span className="text-right text-[10px] sm:text-xs">Score</span>
         </div>
@@ -144,19 +147,39 @@ export function LeaderboardPage() {
             const energy = Number(leader.energy || 0);
             const total = Number(leader._score) || Number(leader.totalScore || xp + energy * 100);
             const isCurrentUser = leader.id === currentUserId;
+            const avatar = getLeaderAvatar(leader, leader.id);
             return (
               <article
                 key={leader.id}
                 data-user-id={leader.id}
-                className={`grid grid-cols-[60px_1fr_100px] items-center gap-3 px-4 py-5 transition-all sm:grid-cols-[80px_1fr_160px] sm:px-6 ${
+                className={`grid grid-cols-[60px_44px_1fr_100px] items-center gap-3 px-4 py-3 transition-all sm:grid-cols-[80px_44px_1fr_160px] sm:px-6 ${
                   isCurrentUser
                     ? "bg-primary/5 ring-1 ring-inset ring-primary/30"
                     : "hover:bg-background/50"
                 }`}
               >
-                <div className="flex items-center gap-2 font-black text-text-primary">
-                  {rank <= 3 ? <Medal className="text-warning" size={18} /> : <Trophy className="text-text-muted" size={18} />}
-                  {rank}
+                <div className="flex items-center gap-1 font-black text-text-primary sm:gap-2">
+                  {rank <= 3 ? <Medal className="text-warning shrink-0" size={18} /> : null}
+                  <span className="text-sm sm:text-base">{rank}</span>
+                </div>
+
+                <div className="flex items-center justify-center">
+                  {avatar.type === "image" ? (
+                    <img
+                      src={avatar.src}
+                      alt=""
+                      className="h-10 w-10 rounded-xl border-2 border-border bg-background object-cover"
+                    />
+                  ) : avatar.type === "icon" ? (
+                    <div className="h-10 w-10 rounded-xl border-2 border-border bg-background p-2">
+                      <ProfileIconRenderer iconId={avatar.iconId} className="h-full w-full" />
+                    </div>
+                  ) : (
+                    <div
+                      className="h-10 w-10 rounded-xl border-2 border-border bg-background p-1.5"
+                      dangerouslySetInnerHTML={{ __html: avatar.svg }}
+                    />
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 min-w-0">
@@ -169,12 +192,12 @@ export function LeaderboardPage() {
                         </span>
                       ) : null}
                     </p>
-                    <p className="mt-1 text-xs font-medium text-text-secondary truncate">
+                    <p className="mt-0.5 text-xs font-medium text-text-secondary truncate">
                       {xp.toLocaleString()} XP + {energy} energy
                     </p>
                   </div>
                 </div>
-                <p className="text-right text-base font-black text-primary sm:text-xl">{total.toLocaleString()} pts</p>
+                <p className="text-right text-sm font-black text-primary sm:text-xl">{total.toLocaleString()} pts</p>
               </article>
             );
           })}

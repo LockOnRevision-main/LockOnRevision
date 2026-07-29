@@ -13,7 +13,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { Logo } from "../components/Logo";
 import { Footer } from "../components/Footer";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -113,8 +113,11 @@ export function LandingPage() {
   const { loading, user } = useAuth();
   const navigate = useNavigate();
 
+  if (loading) return null;
+  if (user) return <Navigate to="/app" replace />;
+
   function getStarted() {
-    navigate(user ? "/app" : "/login");
+    navigate("/login");
   }
 
   return (

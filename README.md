@@ -28,10 +28,13 @@ Whether you're revising for an upcoming test or preparing months in advance, Loc
 | Route          | Description                      |
 | -------------- | -------------------------------- |
 | `/`            | Landing page                     |
+| `/about`       | About the platform               |
 | `/login`       | User authentication              |
 | `/app`         | Student dashboard                |
 | `/forge`       | AI-powered learning and revision |
+| `/timetable`   | Study timetable management       |
 | `/leaderboard` | Rankings and competition         |
+| `/profile`     | User profile settings            |
 | `/admin`       | Administrative tools             |
 
 ---
@@ -79,7 +82,7 @@ npm run dev
 ### Frontend
 
 * React
-* TypeScript
+* JavaScript
 * Vite
 * Tailwind CSS
 

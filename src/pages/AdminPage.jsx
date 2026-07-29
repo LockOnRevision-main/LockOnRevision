@@ -1,9 +1,11 @@
 import { Award, BookOpen, Search, ShieldCheck, Trophy, Users, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
+import { httpsCallable } from "firebase/functions";
 import { StatCard } from "../components/StatCard.jsx";
 import { EmptyState } from "../components/EmptyState.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { functions } from "../config/firebase.js";
 import {
   adjustUserEnergy,
   adjustUserXp,
@@ -34,16 +36,31 @@ export function AdminPage() {
   const [busy, setBusy] = useState(false);
 
   const isAdmin = canAccessAdmin(profile, user?.email);
+  const [serverVerified, setServerVerified] = useState(false);
 
   useEffect(() => {
-    if (!isAdmin || !isFirebaseConfigured) return;
-    getAdminOverview().then(setOverview).catch(() => setOverview({ available: false }));
-    searchUsers("").then(setUsers).catch(() => setUsers([]));
-    fetchAllForgeSubjects().then(setForgeContent).catch(() => setForgeContent([]));
+    if (!isAdmin || !isFirebaseConfigured || !functions) return;
+    const check = httpsCallable(functions, "verifyAdminAccess");
+    check().then(() => {
+      setServerVerified(true);
+      getAdminOverview().then(setOverview).catch(() => setOverview({ available: false }));
+      searchUsers("").then(setUsers).catch(() => setUsers([]));
+      fetchAllForgeSubjects().then(setForgeContent).catch(() => setForgeContent([]));
+    }).catch(() => {
+      setServerVerified(false);
+    });
   }, [isAdmin, isFirebaseConfigured]);
 
   if (!isAdmin) {
     return <Navigate to="/app" replace />;
+  }
+
+  if (!serverVerified) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-background text-text-primary">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+      </main>
+    );
   }
 
   const selectedUser = users.find((item) => item.id === selectedUserId);
