@@ -287,7 +287,7 @@ export const aiTutorChat = onCall(async (request) => {
   const conversation = messages.map((m) => `${m.role}: ${m.content}`).join("\n");
   const contextStr = context ? `\n\nContext:\n${JSON.stringify(context)}` : "";
 
-  const prompt = `You are LockOn Revision's AI tutor. Be concise, helpful, and active-recall focused.
+  const prompt = `You are LockOnRevision's AI tutor. Be concise, helpful, and active-recall focused.
 Return JSON only: {"reply":"string"}
 
 Conversation:
@@ -425,7 +425,7 @@ export const askForgeAssistant = onCall(async (request) => {
     .map((message) => `${message.role === "user" ? "Student" : "Assistant"}: ${message.content}`)
     .join("\n");
 
-  const prompt = `You are LockOn Revision's AI study assistant.
+  const prompt = `You are LockOnRevision's AI study assistant.
 Answer using the student's uploaded study material and generated Forge learning structure whenever possible.
 Be concise, encouraging, and focused on active recall.
 

@@ -195,13 +195,13 @@ export function AboutPage() {
         <div className="relative mx-auto max-w-6xl px-4 py-16 text-center sm:px-6 sm:py-24">
           <p className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/80 px-4 py-2 text-sm font-bold text-primary shadow-sm backdrop-blur-sm">
             <GraduationCap size={16} />
-            About LockOn Revision
+            About LockOnRevision
           </p>
           <h1 className="mt-6 text-4xl font-black tracking-tight leading-[1.1] text-text-primary sm:text-5xl md:text-6xl">
             Built to make revision measurable.
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-text-secondary sm:text-lg">
-            LockOn Revision transforms the way students approach study by turning consistency into a visible,
+            LockOnRevision transforms the way students approach study by turning consistency into a visible,
             competitive scoring system.
           </p>
         </div>
@@ -212,10 +212,10 @@ export function AboutPage() {
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-bold uppercase tracking-widest text-primary">About</p>
           <h2 className="mt-3 text-3xl font-black tracking-tight text-text-primary sm:text-4xl">
-            What is LockOn Revision?
+            What is LockOnRevision?
           </h2>
           <p className="mt-4 text-base leading-relaxed text-text-secondary sm:text-lg">
-            LockOn Revision is a competitive revision platform designed for students who want to study smarter,
+            LockOnRevision is a competitive revision platform designed for students who want to study smarter,
             stay consistent, and see their progress in real time. Instead of relying on passive rereading, students
             complete structured lessons, earn XP, collect Energy, and compete on a leaderboard that rewards genuine
             effort. The platform combines AI-powered tools — from lesson generation to intelligent tutoring — with
@@ -247,16 +247,16 @@ export function AboutPage() {
         </div>
       </Section>
 
-      {/* ───── WHY LOCKON ───── */}
+      {/* ───── WHY LOCKONREVISION ───── */}
       <Section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm font-bold uppercase tracking-widest text-primary">Why LockOn Revision?</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-primary">Why LockOnRevision?</p>
           <h2 className="mt-3 text-3xl font-black tracking-tight text-text-primary sm:text-4xl">
             Because revision needs feedback.
           </h2>
           <p className="mt-4 text-base leading-relaxed text-text-secondary sm:text-lg">
             Most study tools treat revision as a solo, invisible activity. Students put in hours without knowing
-            whether the work is compounding. LockOn Revision changes that by making progress measurable, visible,
+            whether the work is compounding. LockOnRevision changes that by making progress measurable, visible,
             and socially engaging. We exist to replace the question &ldquo;Did I study enough?&rdquo; with
             &ldquo;What do I need to do next?&rdquo;
           </p>
@@ -295,7 +295,7 @@ export function AboutPage() {
             Intelligent tools that adapt to you.
           </h2>
           <p className="mt-4 text-base leading-relaxed text-text-secondary sm:text-lg">
-            LockOn Revision leverages Google Gemini AI to power a suite of smart features that make revision
+            LockORevision leverages Google Gemini AI to power a suite of smart features that make revision
             more efficient, personalised, and interactive.
           </p>
         </div>
@@ -374,7 +374,7 @@ export function AboutPage() {
           <div className="mx-auto max-w-3xl text-center">
             <p className="text-sm font-bold uppercase tracking-widest text-primary">Roadmap</p>
             <h2 className="mt-3 text-3xl font-black tracking-tight text-text-primary sm:text-4xl">
-              What&rsquo;s next for LockOn Revision.
+              What&rsquo;s next for LockOnRevision.
             </h2>
           </div>
           <div className="mt-12 grid gap-6 sm:grid-cols-2">
@@ -419,7 +419,7 @@ export function AboutPage() {
             The people behind LockOn.
           </h2>
           <p className="mt-4 text-base leading-relaxed text-text-secondary">
-            LockOn Revision is being built by a small, dedicated team committed to improving how students revise.
+            LockOnRevision is being built by a small, dedicated team committed to improving how students revise.
             More team information will be added here as the project grows.
           </p>
         </div>

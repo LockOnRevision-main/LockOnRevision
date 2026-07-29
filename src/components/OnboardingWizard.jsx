@@ -122,7 +122,7 @@ export function OnboardingWizard() {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary shadow-lg shadow-secondary/20">
             <Sparkles size={28} className="text-white" />
           </div>
-          <h1 className="text-2xl font-black tracking-tight text-text-primary">LockOn Revision</h1>
+          <h1 className="text-2xl font-black tracking-tight text-text-primary">LockOnRevision</h1>
         </div>
 
         {/* Step indicator */}
@@ -254,7 +254,7 @@ export function OnboardingWizard() {
               <h2 className="text-3xl font-black tracking-tight text-text-primary">
                 Welcome, {(profile?.name && profile.name !== PLACEHOLDER_NAME ? profile.name : name) || emailPrefix}
               </h2>
-              <p className="mt-2 text-text-secondary">Here&apos;s what you can do with LockOn Revision</p>
+              <p className="mt-2 text-text-secondary">Here&apos;s what you can do with LockOnRevision</p>
             </div>
 
             <div className="grid gap-4">

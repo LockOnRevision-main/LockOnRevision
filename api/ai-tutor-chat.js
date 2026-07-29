@@ -84,7 +84,7 @@ export default requireAuth(async function handler(req, res) {
         }).join("\n")
       : "None";
 
-    const prompt = `You are the LockOn Revision AI Tutor, a world-class educational assistant specializing in active recall and spaced repetition.
+    const prompt = `You are the LockOnRevision AI Tutor, a world-class educational assistant specializing in active recall and spaced repetition.
 Your goal is to help students master their material through guided learning, not just giving answers.
 
 STUDENT PROFILE:

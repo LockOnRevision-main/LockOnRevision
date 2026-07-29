@@ -41,7 +41,7 @@ export function AppShell({ children }) {
                 <Logo variant="icon" className="h-full w-full" />
               </div>
               <div className="flex-col hidden sm:flex">
-                <p className="font-black tracking-tight text-text-primary leading-none text-sm sm:text-base">LockOn Revision</p>
+                <p className="font-black tracking-tight text-text-primary leading-none text-sm sm:text-base">LockOnRevision</p>
                 <p className="text-xs font-medium text-text-secondary mt-1">{profile?.name || "Local Learner"}</p>
               </div>
             </NavLink>

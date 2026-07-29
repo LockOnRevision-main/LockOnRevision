@@ -92,7 +92,7 @@ export default requireAuth(async function handler(req, res) {
       .map((message) => `${message.role === 'user' ? 'Student' : 'Assistant'}: ${message.content}`)
       .join('\n');
 
-    const prompt = `You are the LockOn Revision Forge Assistant. You have access to the student's structured learning path (Units, Sub-Units, and Lessons).
+    const prompt = `You are the LockOnRevision Forge Assistant. You have access to the student's structured learning path (Units, Sub-Units, and Lessons).
 Your goal is to help the student navigate their curriculum and master the specific concepts outlined in the Forge structure.
 
 CAPABILITIES:

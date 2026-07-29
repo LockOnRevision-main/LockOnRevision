@@ -29,6 +29,6 @@ export function Logo({ variant = "horizontal", theme = "dark", className = "" })
   }
 
   return (
-    <img src={src} alt="LockOn Revision" className={`h-10 w-auto object-contain ${className}`} />
+    <img src={src} alt="LockOnRevision" className={`h-10 w-auto object-contain ${className}`} />
   );
 }

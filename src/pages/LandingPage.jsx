@@ -165,13 +165,13 @@ export function LandingPage() {
               Competitive revision for students
             </p>
             <h1 className="text-4xl font-black tracking-tight leading-[1.1] sm:text-5xl md:text-7xl lg:text-8xl text-text-primary">
-              LockOn Revision
+              LockOnRevision
             </h1>
             <p className="max-w-2xl text-lg font-semibold leading-relaxed text-text-secondary sm:text-xl">
               Smarter revision starts here.
             </p>
             <p className="max-w-2xl text-base leading-relaxed text-text-secondary/90 sm:text-lg">
-              LockOn Revision turns study consistency into a visible scoring system. Students complete lessons, gain XP,
+              LockOnRevision turns study consistency into a visible scoring system. Students complete lessons, gain XP,
               earn Energy, and compare progress through a focused leaderboard.
             </p>
             <div className="mt-2 flex flex-wrap gap-4">

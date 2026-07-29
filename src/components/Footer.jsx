@@ -24,7 +24,7 @@ export function Footer() {
           <div>
             <Logo theme="dark" className="h-10 w-auto" />
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/70">
-              LockOn Revision turns study consistency into a visible scoring system. Students complete lessons, gain XP,
+              LockOnRevision turns study consistency into a visible scoring system. Students complete lessons, gain XP,
               earn Energy, and compare progress through a focused leaderboard.
             </p>
           </div>
@@ -65,7 +65,7 @@ export function Footer() {
         </div>
 
         <div className="mt-10 border-t border-white/10 pt-6 text-center text-sm text-white/50">
-          &copy; {year} LockOn Revision. All rights reserved.
+          &copy; {year} LockOnRevision. All rights reserved.
         </div>
       </div>
     </footer>
