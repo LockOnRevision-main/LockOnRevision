@@ -4,7 +4,7 @@ Firebase is currently unavailable, so backend code is intentionally not implemen
 
 Planned backend responsibilities:
 
-- Authenticated score update endpoints
+- Authenticated score update endpoint
 - Admin-only cohort and moderation endpoints
 - Leaderboard maintenance jobs if needed
 - Firestore rule validation support
