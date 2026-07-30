@@ -17,7 +17,6 @@ export const isFirebaseConfigured = [
   firebaseConfig.apiKey,
   firebaseConfig.authDomain,
   firebaseConfig.projectId,
-  firebaseConfig.storageBucket,
   firebaseConfig.messagingSenderId,
   firebaseConfig.appId,
 ].every(Boolean);
@@ -25,5 +24,5 @@ export const isFirebaseConfigured = [
 export const app = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
 export const auth = app ? getAuth(app) : null;
 export const db = app ? getFirestore(app) : null;
-export const storage = app ? getStorage(app) : null;
 export const functions = app ? getFunctions(app) : null;
+export const storage = app ? getStorage(app) : null;

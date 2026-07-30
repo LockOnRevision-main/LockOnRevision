@@ -15,7 +15,10 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return signedIn() && userDoc(request.auth.uid).role == 'admin';
+      return signedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             (userDoc(request.auth.uid).isAdmin == true || 
+              userDoc(request.auth.uid).role == 'admin');
     }
 
     match /users/{userId} {
@@ -24,46 +27,61 @@ service cloud.firestore {
         && request.resource.data.xp == 0
         && request.resource.data.energy == 0
         && request.resource.data.totalScore == 0
-        && (request.resource.data.role == 'user' || request.resource.data.role == 'admin');
+        && request.resource.data.isAdmin != true
+        && request.resource.data.role == 'user';
       allow update: if ownsUserDoc(userId)
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
           'email',
           'createdAt',
-          'role'
+          'isAdmin',
+          'adminRewards'
         ])
         || isAdmin();
       allow delete: if false;
 
+      match /{document=**} {
+        allow read: if ownsUserDoc(userId) || isAdmin();
+        allow write: if isAdmin();
+      }
+
       match /subjects/{docId} {
-        allow read, write: if ownsUserDoc(userId) || isAdmin();
+        allow write: if ownsUserDoc(userId) || isAdmin();
       }
 
       match /units/{docId} {
-        allow read, write: if ownsUserDoc(userId) || isAdmin();
+        allow write: if ownsUserDoc(userId) || isAdmin();
       }
 
       match /subUnits/{docId} {
-        allow read, write: if ownsUserDoc(userId) || isAdmin();
+        allow write: if ownsUserDoc(userId) || isAdmin();
       }
 
       match /lessons/{docId} {
-        allow read, write: if ownsUserDoc(userId) || isAdmin();
+        allow write: if ownsUserDoc(userId) || isAdmin();
       }
 
       match /questions/{docId} {
-        allow read, write: if ownsUserDoc(userId) || isAdmin();
+        allow write: if ownsUserDoc(userId) || isAdmin();
       }
 
       match /answers/{docId} {
-        allow read, write: if ownsUserDoc(userId) || isAdmin();
+        allow write: if ownsUserDoc(userId) || isAdmin();
+      }
+
+      match /exerciseAnswers/{docId} {
+        allow write: if ownsUserDoc(userId) || isAdmin();
       }
 
       match /files/{docId} {
-        allow read, write: if ownsUserDoc(userId) || isAdmin();
+        allow write: if ownsUserDoc(userId) || isAdmin();
       }
 
       match /forgeSources/{docId} {
-        allow read, write: if ownsUserDoc(userId) || isAdmin();
+        allow write: if ownsUserDoc(userId) || isAdmin();
+      }
+
+      match /timetables/{docId} {
+        allow write: if ownsUserDoc(userId) || isAdmin();
       }
     }
   }

@@ -9,7 +9,7 @@ const starterState = {
 export function createDefaultProfile(user) {
   return {
     id: user.uid,
-    displayName: user.displayName || "LockOn Learner",
+    displayName: user.displayName || user.email?.split('@')[0] || "Learner",
     email: user.email,
     photoURL: user.photoURL || "",
     energy: 100,
@@ -56,7 +56,7 @@ export function ensureLocalUser({ name, email }) {
   const user = {
     uid,
     email,
-    displayName: name || email.split("@")[0] || "LockOn Learner",
+    displayName: name || email.split("@")[0] || "Learner",
     photoURL: "",
     isLocal: true,
   };

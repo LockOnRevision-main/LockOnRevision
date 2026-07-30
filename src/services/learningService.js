@@ -2,6 +2,7 @@ import {
   addDoc,
   collection,
   doc,
+  getDoc,
   getDocs,
   increment,
   limit,
@@ -11,57 +12,15 @@ import {
   serverTimestamp,
   updateDoc,
   where,
+  writeBatch,
 } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
-import { httpsCallable } from "firebase/functions";
-import { db, functions, isFirebaseConfigured, storage } from "../config/firebase.js";
+import { db, isFirebaseConfigured } from "../config/firebase.js";
 import { getLocalUser, makeId, subscribeLocalState, updateLocalUser } from "./localStore.js";
-
-const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
-const geminiModel = import.meta.env.VITE_GEMINI_MODEL || "gemini-1.5-flash";
-
-function hasGeminiKey() {
-  return Boolean(geminiApiKey);
-}
-
-function parseGeminiJson(text) {
-  const cleaned = text
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/```$/i, "")
-    .trim();
-  return JSON.parse(cleaned);
-}
-
-async function callGeminiJson(prompt, fallbackValue) {
-  if (!hasGeminiKey()) return fallbackValue;
-
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiApiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.35,
-            responseMimeType: "application/json",
-          },
-        }),
-      },
-    );
-
-    if (!response.ok) throw new Error(`Gemini request failed: ${response.status}`);
-    const payload = await response.json();
-    const text = payload.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) throw new Error("Gemini returned no text.");
-    return parseGeminiJson(text);
-  } catch (error) {
-    console.warn(error);
-    return fallbackValue;
-  }
-}
+import { uploadToCloudinary } from "../utils/cloudinary.js";
+import { apiFetch } from "../utils/apiFetch.js";
+import { emitLessonCompleted } from "./forgeEvents.js";
+import { emitScoreChanged } from "./forgeEvents.js";
+import { calculateLessonReward } from "./energyService.js";
 
 function localList(uid, name) {
   return getLocalUser(uid)?.[name] || [];
@@ -80,320 +39,6 @@ function emitLocalCollection(uid, name, callback) {
     }
     callback(sortByUpdated(items).slice(0, name === "lessons" ? 24 : undefined));
   });
-}
-
-function splitSentences(text) {
-  return text
-    .replace(/\s+/g, " ")
-    .split(/(?<=[.!?])\s+|\n+/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 28);
-}
-
-function titleFromText(text, fallback) {
-  const firstLine = text
-    .split(/\n+/)
-    .map((line) => line.trim())
-    .find(Boolean);
-  return (firstLine || fallback || "Uploaded Notes").slice(0, 72);
-}
-
-function buildLocalCourse(uid, sourceText, sourceFileId = null) {
-  const now = new Date().toISOString();
-  const cleanText = sourceText.trim() || "Active recall revision notes. Add clearer notes for better generated questions.";
-  const sentences = splitSentences(cleanText);
-  const chunks = [];
-  for (let index = 0; index < Math.max(1, sentences.length); index += 4) {
-    chunks.push(sentences.slice(index, index + 4));
-  }
-  const selectedChunks = chunks.slice(0, 6);
-
-  const subject = {
-    id: makeId("subject"),
-    title: titleFromText(cleanText, "My Notes"),
-    description: "Generated locally from your notes.",
-    unitCount: Math.max(1, Math.ceil(selectedChunks.length / 2)),
-    sourceFileId,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  const units = [];
-  const lessons = [];
-  const questions = [];
-
-  selectedChunks.forEach((chunk, index) => {
-    const unitIndex = Math.floor(index / 2) + 1;
-    let unit = units.find((item) => item.title === `Unit ${unitIndex}`);
-    if (!unit) {
-      unit = {
-        id: makeId("unit"),
-        subjectId: subject.id,
-        subjectName: subject.title,
-        title: `Unit ${unitIndex}`,
-        summary: chunk[0] || "Core ideas from your notes.",
-        sourceFileId,
-        createdAt: now,
-        updatedAt: now,
-      };
-      units.push(unit);
-    }
-
-    const lessonText = chunk.join(" ");
-    const lesson = {
-      id: makeId("lesson"),
-      subjectId: subject.id,
-      unitId: unit.id,
-      subjectName: subject.title,
-      unitName: unit.title,
-      title: chunk[0]?.replace(/[.!?]$/, "").slice(0, 64) || `Lesson ${index + 1}`,
-      summary: lessonText || "Review the main idea and test yourself.",
-      keyPoints: chunk.slice(0, 4),
-      mastery: 45,
-      difficulty: index > 2 ? "hard" : index > 0 ? "medium" : "easy",
-      sourceFileId,
-      createdAt: now,
-      updatedAt: now,
-    };
-    lessons.push(lesson);
-
-    const answer = chunk[0] || lesson.title;
-    questions.push({
-      id: makeId("question"),
-      subjectId: subject.id,
-      unitId: unit.id,
-      lessonId: lesson.id,
-      subjectName: subject.title,
-      unitName: unit.title,
-      lessonTitle: lesson.title,
-      prompt: `Which statement best captures this lesson: "${lesson.title}"?`,
-      options: [
-        answer,
-        "It is unrelated to the uploaded notes.",
-        "It only describes formatting, not meaning.",
-        "It says revision is unnecessary.",
-      ],
-      correctAnswer: answer,
-      explanation: `The correct answer is taken directly from the lesson summary: ${answer}`,
-      topic: lesson.title,
-      difficulty: lesson.difficulty,
-      mastery: 45,
-      attempts: 0,
-      correctAttempts: 0,
-      sourceFileId,
-      createdAt: now,
-      updatedAt: now,
-    });
-  });
-
-  updateLocalUser(uid, (userData) => ({
-    ...userData,
-    subjects: [subject, ...userData.subjects],
-    units: [...units, ...userData.units],
-    lessons: [...lessons, ...userData.lessons],
-    questions: [...questions, ...userData.questions],
-    profile: {
-      ...userData.profile,
-      dailyUsage: {
-        ...userData.profile.dailyUsage,
-        aiRequests: Number(userData.profile.dailyUsage?.aiRequests || 0) + 1,
-        uploadsProcessed: Number(userData.profile.dailyUsage?.uploadsProcessed || 0) + 1,
-      },
-    },
-  }));
-
-  return { subject, units, lessons, questions };
-}
-
-function fallbackCourseJson(sourceText) {
-  const cleanText = sourceText.trim() || "Active recall revision notes.";
-  const sentences = splitSentences(cleanText);
-  const chunks = [];
-  for (let index = 0; index < Math.max(1, sentences.length); index += 4) {
-    chunks.push(sentences.slice(index, index + 4));
-  }
-
-  return {
-    subjects: [
-      {
-        title: titleFromText(cleanText, "My Notes"),
-        description: "Generated from your notes.",
-        units: chunks.slice(0, 3).map((chunk, index) => ({
-          title: `Unit ${index + 1}`,
-          summary: chunk[0] || "Core ideas from your notes.",
-          lessons: [
-            {
-              title: (chunk[0] || `Lesson ${index + 1}`).replace(/[.!?]$/, "").slice(0, 64),
-              summary: chunk.join(" ") || "Review the main idea and test yourself.",
-              difficulty: index > 1 ? "hard" : index > 0 ? "medium" : "easy",
-              keyPoints: chunk.slice(0, 4),
-              questions: [
-                {
-                  prompt: `Which statement best captures this lesson?`,
-                  options: [
-                    chunk[0] || "The main idea from the notes.",
-                    "It is unrelated to the uploaded notes.",
-                    "It only describes formatting, not meaning.",
-                    "It says revision is unnecessary.",
-                  ],
-                  correctAnswer: chunk[0] || "The main idea from the notes.",
-                  explanation: "The correct answer is grounded in the notes you provided.",
-                  topic: chunk[0] || "Main idea",
-                  difficulty: index > 1 ? "hard" : index > 0 ? "medium" : "easy",
-                },
-              ],
-            },
-          ],
-        })),
-      },
-    ],
-  };
-}
-
-function writeGeminiCourse(uid, generated, sourceFileId = null) {
-  const now = new Date().toISOString();
-  const subjects = [];
-  const units = [];
-  const lessons = [];
-  const questions = [];
-
-  (generated.subjects || []).forEach((subjectInput) => {
-    const subject = {
-      id: makeId("subject"),
-      title: subjectInput.title || "Generated Subject",
-      description: subjectInput.description || "Generated by Gemini from your notes.",
-      unitCount: subjectInput.units?.length || 0,
-      sourceFileId,
-      createdAt: now,
-      updatedAt: now,
-    };
-    subjects.push(subject);
-
-    (subjectInput.units || []).forEach((unitInput) => {
-      const unit = {
-        id: makeId("unit"),
-        subjectId: subject.id,
-        subjectName: subject.title,
-        title: unitInput.title || "Generated Unit",
-        summary: unitInput.summary || "",
-        sourceFileId,
-        createdAt: now,
-        updatedAt: now,
-      };
-      units.push(unit);
-
-      (unitInput.lessons || []).forEach((lessonInput) => {
-        const lesson = {
-          id: makeId("lesson"),
-          subjectId: subject.id,
-          unitId: unit.id,
-          subjectName: subject.title,
-          unitName: unit.title,
-          title: lessonInput.title || "Generated Lesson",
-          summary: lessonInput.summary || "",
-          keyPoints: lessonInput.keyPoints || [],
-          mastery: 45,
-          difficulty: lessonInput.difficulty || "medium",
-          sourceFileId,
-          createdAt: now,
-          updatedAt: now,
-        };
-        lessons.push(lesson);
-
-        (lessonInput.questions || []).forEach((questionInput) => {
-          const options = Array.isArray(questionInput.options) ? questionInput.options.slice(0, 4) : [];
-          questions.push({
-            id: makeId("question"),
-            subjectId: subject.id,
-            unitId: unit.id,
-            lessonId: lesson.id,
-            subjectName: subject.title,
-            unitName: unit.title,
-            lessonTitle: lesson.title,
-            prompt: questionInput.prompt || `What is the key idea in ${lesson.title}?`,
-            options,
-            correctAnswer: questionInput.correctAnswer || options[0],
-            explanation: questionInput.explanation || "",
-            topic: questionInput.topic || lesson.title,
-            difficulty: questionInput.difficulty || lesson.difficulty,
-            mastery: 45,
-            attempts: 0,
-            correctAttempts: 0,
-            sourceFileId,
-            createdAt: now,
-            updatedAt: now,
-          });
-        });
-      });
-    });
-  });
-
-  if (!subjects.length || !questions.length) {
-    return buildLocalCourse(uid, "Gemini returned too little content. Please paste clearer notes.", sourceFileId);
-  }
-
-  updateLocalUser(uid, (userData) => ({
-    ...userData,
-    subjects: [...subjects, ...userData.subjects],
-    units: [...units, ...userData.units],
-    lessons: [...lessons, ...userData.lessons],
-    questions: [...questions, ...userData.questions],
-    profile: {
-      ...userData.profile,
-      dailyUsage: {
-        ...userData.profile.dailyUsage,
-        aiRequests: Number(userData.profile.dailyUsage?.aiRequests || 0) + 1,
-        uploadsProcessed: Number(userData.profile.dailyUsage?.uploadsProcessed || 0) + 1,
-      },
-    },
-  }));
-
-  return { subjects, units, lessons, questions };
-}
-
-async function buildGeminiCourse(uid, sourceText, sourceFileId = null) {
-  const prompt = `Create structured active-recall learning content from these notes.
-Return strict JSON only with this exact shape:
-{
-  "subjects": [
-    {
-      "title": "string",
-      "description": "string",
-      "units": [
-        {
-          "title": "string",
-          "summary": "string",
-          "lessons": [
-            {
-              "title": "string",
-              "summary": "string",
-              "difficulty": "easy|medium|hard",
-              "keyPoints": ["string"],
-              "questions": [
-                {
-                  "prompt": "string",
-                  "options": ["A", "B", "C", "D"],
-                  "correctAnswer": "must exactly match one option",
-                  "explanation": "string",
-                  "topic": "string",
-                  "difficulty": "easy|medium|hard"
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
-Create concise lessons, 3-5 recall questions per lesson, and only use facts grounded in the notes.
-
-NOTES:
-${sourceText}`;
-
-  const fallback = null;
-  const generated = await callGeminiJson(prompt, fallback);
-  return generated ? writeGeminiCourse(uid, generated, sourceFileId) : buildLocalCourse(uid, sourceText, sourceFileId);
 }
 
 async function writeFirebaseCourse(uid, generated, sourceFileId = null) {
@@ -428,20 +73,21 @@ async function writeFirebaseCourse(uid, generated, sourceFileId = null) {
       created.units.push(unitRef.id);
 
       for (const lessonInput of unitInput.lessons || []) {
-        const lessonRef = await addDoc(collection(db, "users", uid, "lessons"), {
-          subjectId: subjectRef.id,
-          unitId: unitRef.id,
-          subjectName: subjectInput.title || "Generated Subject",
-          unitName: unitInput.title || "Generated Unit",
-          title: lessonInput.title || "Generated Lesson",
-          summary: lessonInput.summary || "",
-          keyPoints: lessonInput.keyPoints || [],
-          mastery: 45,
-          difficulty: lessonInput.difficulty || "medium",
-          sourceFileId,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
+         const lessonRef = await addDoc(collection(db, "users", uid, "lessons"), {
+           subjectId: subjectRef.id,
+           unitId: unitRef.id,
+           subjectName: subjectInput.title || "Generated Subject",
+           unitName: unitInput.title || "Generated Unit",
+           title: lessonInput.title || "Generated Lesson",
+           summary: lessonInput.summary || "",
+           explanation: lessonInput.explanation || "",
+           examples: lessonInput.examples || [],
+           mastery: 45,
+           difficulty: lessonInput.difficulty || "medium",
+           sourceFileId,
+           createdAt: serverTimestamp(),
+           updatedAt: serverTimestamp(),
+         });
         created.lessons.push(lessonRef.id);
 
         for (const questionInput of lessonInput.questions || []) {
@@ -482,46 +128,17 @@ async function writeFirebaseCourse(uid, generated, sourceFileId = null) {
 }
 
 async function buildFirebaseGeminiCourse(uid, sourceText, sourceFileId = null) {
-  const prompt = `Create structured active-recall learning content from these notes.
-Return strict JSON only with this exact shape:
-{
-  "subjects": [
-    {
-      "title": "string",
-      "description": "string",
-      "units": [
-        {
-          "title": "string",
-          "summary": "string",
-          "lessons": [
-            {
-              "title": "string",
-              "summary": "string",
-              "difficulty": "easy|medium|hard",
-              "keyPoints": ["string"],
-              "questions": [
-                {
-                  "prompt": "string",
-                  "options": ["A", "B", "C", "D"],
-                  "correctAnswer": "must exactly match one option",
-                  "explanation": "string",
-                  "topic": "string",
-                  "difficulty": "easy|medium|hard"
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
-Create concise lessons, 3-5 recall questions per lesson, and only use facts grounded in the notes.
+  const response = await apiFetch('/api/generate-learning-content', {
+    method: 'POST',
+    body: JSON.stringify({ sourceText }),
+  });
 
-NOTES:
-${sourceText}`;
+  if (!response.ok) {
+    const errBody = await response.json().catch(() => ({}));
+    throw new Error(errBody.error || `API request failed: ${response.status}`);
+  }
 
-  const generated = await callGeminiJson(prompt, fallbackCourseJson(sourceText));
+  const generated = await response.json();
   return writeFirebaseCourse(uid, generated, sourceFileId);
 }
 
@@ -584,116 +201,133 @@ export async function uploadNoteFile(uid, file, onProgress) {
     return localFile;
   }
 
-  const cleanName = file.name.replace(/[^\w.\-]+/g, "-").toLowerCase();
-  const path = `users/${uid}/uploads/${Date.now()}-${cleanName}`;
-  const fileRef = ref(storage, path);
-  const uploadTask = uploadBytesResumable(fileRef, file, {
-    contentType: file.type,
-    customMetadata: { owner: uid },
+  onProgress?.(20);
+
+  const resourceType = file.type === 'application/pdf' ? 'raw' : 'auto';
+  const uploadResult = await uploadToCloudinary(file, {
+    folder: `lockon-revision/${uid}/learning`,
+    resourceType,
   });
 
-  await new Promise((resolve, reject) => {
-    uploadTask.on(
-      "state_changed",
-      (snapshot) => onProgress?.(Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)),
-      reject,
-      resolve,
-    );
-  });
+  onProgress?.(80);
 
-  const url = await getDownloadURL(fileRef);
   const fileDoc = await addDoc(collection(db, "users", uid, "files"), {
     name: file.name,
     size: file.size,
     type: file.type,
-    storagePath: path,
-    url,
+    cloudinaryPublicId: uploadResult.publicId,
+    url: uploadResult.url,
+    format: uploadResult.format,
+    width: uploadResult.width,
+    height: uploadResult.height,
     status: "uploaded",
     createdAt: serverTimestamp(),
   });
 
-  return { id: fileDoc.id, url, storagePath: path };
+  onProgress?.(100);
+
+  return { id: fileDoc.id, url: uploadResult.url, cloudinaryPublicId: uploadResult.publicId };
 }
 
-export async function processUploadedFile(fileId) {
+export async function processUploadedFile(uid, fileId) {
   if (!isFirebaseConfigured) {
-    const state = JSON.parse(localStorage.getItem("lockon-revision-local-state") || "{}");
-    const uid = state.currentUserId;
-    const file = uid ? state.users?.[uid]?.files?.find((item) => item.id === fileId) : null;
-    if (!uid || !file) throw new Error("Local file not found.");
-    await buildGeminiCourse(uid, file.content || file.name, fileId);
-    return { data: { ok: true } };
+    throw new Error("Gemini API is not available in local mode. Configure Firebase to use AI generation.");
   }
-  return httpsCallable(functions, "processUploadedNotes")({ fileId });
+
+  const fileSnap = await getDoc(doc(db, "users", uid, "files", fileId));
+  if (!fileSnap.exists()) throw new Error("File not found in database.");
+  const fileData = fileSnap.data();
+
+  const response = await apiFetch('/api/process-uploaded-notes', {
+    method: 'POST',
+    body: JSON.stringify({
+      uid,
+      fileId,
+      url: fileData.url,
+      mimeType: fileData.type
+    }),
+  });
+
+  if (!response.ok) {
+    const errBody = await response.json().catch(() => ({}));
+    throw new Error(errBody.error || `API request failed: ${response.status}`);
+  }
+
+  return await response.json();
 }
 
 export async function processRawNotes(uid, text) {
   if (!isFirebaseConfigured) {
-    return buildGeminiCourse(uid, text);
+    throw new Error("Gemini API is not available in local mode. Configure Firebase to use AI generation.");
   }
   return buildFirebaseGeminiCourse(uid, text);
 }
 
-export async function askTutor(messages, context) {
+export async function getUserLearningContext(uid) {
   if (!isFirebaseConfigured) {
-    const last = messages[messages.length - 1]?.content || "";
-    return callGeminiJson(
-      `You are LockOn Revision's AI tutor. Be concise, helpful, and active-recall focused.
-Return JSON only: {"reply":"string"}
+    const state = JSON.parse(localStorage.getItem("lockon-revision-local-state") || "{}");
+    const userData = state.users?.[uid];
+    if (!userData) return null;
 
-Conversation:
-${messages.map((message) => `${message.role}: ${message.content}`).join("\n")}`,
-      {
-      reply:
-        last.length > 0
-          ? `Local tutor: ${last} connects back to your uploaded lessons. Try answering it as a question first, then compare against your lesson summaries.`
-          : "Local tutor ready. Ask about a topic from your notes.",
-      },
-    );
+    return {
+      subjects: userData.subjects || [],
+      units: userData.units || [],
+      lessons: userData.lessons || [],
+    };
   }
-  const result = await httpsCallable(functions, "aiTutorChat")({ messages, context });
-  return result.data;
+
+  try {
+    const subjectsSnap = await getDocs(collection(db, "users", uid, "subjects"));
+    const unitsSnap = await getDocs(collection(db, "users", uid, "units"));
+    const lessonsSnap = await getDocs(collection(db, "users", uid, "lessons"));
+
+    return {
+      subjects: subjectsSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+      units: unitsSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+      lessons: lessonsSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+    };
+  } catch (error) {
+    console.error("Error fetching learning context:", error);
+    return null;
+  }
 }
 
 export async function getHint(questionId) {
   if (!isFirebaseConfigured) {
-    const state = JSON.parse(localStorage.getItem("lockon-revision-local-state") || "{}");
-    const uid = state.currentUserId;
-    const question = uid ? state.users?.[uid]?.questions?.find((item) => item.id === questionId) : null;
-    const fallback = question
-      ? `Look for the option that directly matches: ${question.topic}.`
-      : "Eliminate the least relevant options first.";
-    const result = await callGeminiJson(
-      `Return JSON only: {"hint":"one short hint that helps without revealing the answer"}
-Question:
-${JSON.stringify(question)}`,
-      { hint: fallback },
-    );
-    return result.hint;
+    throw new Error("Gemini API is not available in local mode. Configure Firebase to use AI generation.");
   }
-  const result = await httpsCallable(functions, "generateQuestionHint")({ questionId });
-  return result.data.hint;
+
+  const response = await apiFetch('/api/generate-question-hint', {
+    method: 'POST',
+    body: JSON.stringify({ questionId }),
+  });
+
+  if (!response.ok) {
+    const errBody = await response.json().catch(() => ({}));
+    throw new Error(errBody.error || `API request failed: ${response.status}`);
+  }
+
+  const result = await response.json();
+  return result.hint;
 }
 
 export async function explainWrongAnswer(questionId, selectedAnswer) {
   if (!isFirebaseConfigured) {
-    const state = JSON.parse(localStorage.getItem("lockon-revision-local-state") || "{}");
-    const uid = state.currentUserId;
-    const question = uid ? state.users?.[uid]?.questions?.find((item) => item.id === questionId) : null;
-    const fallback = question
-      ? `"${selectedAnswer}" is not the best match. The answer is "${question.correctAnswer}" because it is grounded in the uploaded lesson.`
-      : "Review the lesson summary, then retry the question.";
-    const result = await callGeminiJson(
-      `Return JSON only: {"explanation":"brief explanation of why the selected answer is wrong and why the correct answer is right"}
-Selected answer: ${selectedAnswer}
-Question:
-${JSON.stringify(question)}`,
-      { explanation: fallback },
-    );
-    return result.explanation;
+    throw new Error("Gemini API is not available in local mode. Configure Firebase to use AI generation.");
   }
-  const result = await httpsCallable(functions, "explainWrongAnswer")({ questionId, selectedAnswer });
-  return result.data.explanation;
+
+  const response = await apiFetch('/api/explain-wrong-answer', {
+    method: 'POST',
+    body: JSON.stringify({ questionId, selectedAnswer }),
+  });
+
+  if (!response.ok) {
+    const errBody = await response.json().catch(() => ({}));
+    throw new Error(errBody.error || `API request failed: ${response.status}`);
+  }
+
+  const result = await response.json();
+  return result.explanation;
 }
 
 export async function recordAnswer(uid, question, selectedAnswer) {
@@ -717,32 +351,16 @@ export async function recordAnswer(uid, question, selectedAnswer) {
         },
         ...userData.answers,
       ],
-      questions: userData.questions.map((item) =>
-        item.id === question.id
-          ? {
-              ...item,
-              mastery: Math.max(0, Math.min(100, Number(item.mastery || 50) + (isCorrect ? 8 : -12))),
-              attempts: Number(item.attempts || 0) + 1,
-              correctAttempts: Number(item.correctAttempts || 0) + (isCorrect ? 1 : 0),
-              updatedAt: now,
-            }
-          : item,
-      ),
-      profile: {
-        ...userData.profile,
-        energy: Math.max(0, Number(userData.profile.energy || 0) - (isCorrect ? 2 : 4)),
-        streak: Number(userData.profile.streak || 0) + (isCorrect ? 1 : 0),
-        dailyUsage: {
-          ...userData.profile.dailyUsage,
-          quizzesCompleted: Number(userData.profile.dailyUsage?.quizzesCompleted || 0) + 1,
-        },
-      },
+      xp: userData.xp + (isCorrect ? 10 : 0),
+      totalScore: (userData.totalScore || 0) + (isCorrect ? 10 : 0),
     }));
-    return isCorrect;
+    emitScoreChanged({ uid, reason: "answer", xpEarned: isCorrect ? 10 : 0 });
+    return { isCorrect, xpEarned: isCorrect ? 10 : 0 };
   }
 
   const isCorrect = selectedAnswer === question.correctAnswer;
-  const masteryDelta = isCorrect ? 8 : -12;
+  const xpEarned = isCorrect ? 10 : 0;
+  const now = serverTimestamp();
 
   await addDoc(collection(db, "users", uid, "answers"), {
     questionId: question.id,
@@ -752,23 +370,160 @@ export async function recordAnswer(uid, question, selectedAnswer) {
     selectedAnswer,
     correctAnswer: question.correctAnswer,
     isCorrect,
-    answeredAt: serverTimestamp(),
-  });
-
-  await updateDoc(doc(db, "users", uid, "questions", question.id), {
-    mastery: Math.max(0, Math.min(100, Number(question.mastery || 50) + masteryDelta)),
-    attempts: increment(1),
-    correctAttempts: increment(isCorrect ? 1 : 0),
-    updatedAt: serverTimestamp(),
+    answeredAt: now,
+    updatedAt: now,
   });
 
   await updateDoc(doc(db, "users", uid), {
-    energy: increment(isCorrect ? -2 : -4),
-    "dailyUsage.quizzesCompleted": increment(1),
-    updatedAt: serverTimestamp(),
+    xp: increment(xpEarned),
+    totalScore: increment(xpEarned),
+    "dailyUsage.answersCount": increment(1),
+    updatedAt: now,
   });
 
-  return isCorrect;
+  emitScoreChanged({ uid, reason: "answer", xpEarned });
+  return { isCorrect, xpEarned };
+}
+
+export async function completeLesson(uid, lessonId, xpEarned, perfectLesson = false, options = {}) {
+  const bonusXP = perfectLesson ? 5 : 0;
+  const totalXP = xpEarned + bonusXP;
+
+  const difficulty = options.difficulty || "medium";
+  const grade = options.grade;
+  const curriculum = options.curriculum;
+  const subjectName = options.subjectName;
+
+  const accuracy = options.accuracy !== undefined ? options.accuracy : 100;
+
+  const energyAward = calculateLessonReward(
+    { difficulty, accuracy, perfect: perfectLesson, subjectName },
+    { grade, curriculum },
+  );
+
+  if (!isFirebaseConfigured) {
+    const localState = JSON.parse(localStorage.getItem("lockon-revision-local-state") || "{}");
+    const localUser = localState.users?.[uid];
+    const localLesson = (localUser?.lessons || []).find((l) => l.id === lessonId);
+    if (localLesson?.completed) {
+      return { success: false, totalXP: 0, energyAward: 0, reason: "already-completed" };
+    }
+    const today = new Date().toISOString().split("T")[0];
+    updateLocalUser(uid, (userData) => {
+      const now = new Date().toISOString();
+      const existing = userData.activity?.[today] || 0;
+      return {
+        ...userData,
+        lessons: (userData.lessons || []).map((l) =>
+          l.id === lessonId
+            ? { ...l, completed: true, completedAt: now, xpEarned: totalXP, perfect: perfectLesson }
+            : l,
+        ),
+        xp: (userData.xp || 0) + totalXP,
+        energy: (userData.energy || 0) + energyAward,
+        totalScore: (userData.totalScore || 0) + totalXP + energyAward * 100,
+        streak: (userData.streak || 0) + 1,
+        totalStudyHours: (userData.totalStudyHours || 0) + 0.25,
+        completedLessons: ((userData.completedLessons || 0)) + 1,
+        activity: { ...(userData.activity || {}), [today]: existing + 0.25 },
+      };
+    });
+    emitLessonCompleted({ lessonId, uid, xpEarned: totalXP, energyAward, perfect: perfectLesson });
+    return { success: true, totalXP, energyAward };
+  }
+
+  const lessonRef = doc(db, "users", uid, "lessons", lessonId);
+  const lessonSnap = await getDoc(lessonRef);
+  const alreadyCompleted = lessonSnap.exists() && lessonSnap.data()?.completed === true;
+
+  if (alreadyCompleted) {
+    return { success: false, totalXP: 0, energyAward: 0, reason: "already-completed" };
+  }
+
+  const now = serverTimestamp();
+  const today = new Date().toISOString().split("T")[0];
+
+  const batch = writeBatch(db);
+
+  batch.set(lessonRef, {
+    completed: true,
+    completedAt: now,
+    xpEarned: totalXP,
+    perfect: perfectLesson,
+    updatedAt: now,
+  }, { merge: true });
+
+  batch.update(doc(db, "users", uid), {
+    xp: increment(totalXP),
+    energy: increment(energyAward),
+    totalScore: increment(totalXP + energyAward * 100),
+    streak: increment(1),
+    totalStudyHours: increment(0.25),
+    completedLessons: increment(1),
+    [`activity.${today}`]: increment(0.25),
+    updatedAt: now,
+  });
+
+  await batch.commit();
+
+  emitLessonCompleted({ lessonId, uid, xpEarned: totalXP, energyAward, perfect: perfectLesson });
+
+  return { success: true, totalXP, energyAward };
+}
+
+export async function submitExerciseAnswer(uid, lessonId, exerciseId, answer) {
+  let exercise;
+  if (!isFirebaseConfigured) {
+    const state = JSON.parse(localStorage.getItem("lockon-revision-local-state") || "{}");
+    const userData = state.users?.[uid];
+    const lesson = userData?.lessons?.find(l => l.id === lessonId);
+    exercise = lesson?.exercises?.find(e => e.id === exerciseId);
+    
+    if (!exercise) {
+      throw new Error("Exercise not found");
+    }
+
+    const isCorrect = answer === exercise.correctAnswer;
+    const now = new Date().toISOString();
+    
+    updateLocalUser(uid, (userData) => ({
+      ...userData,
+      exerciseAnswers: [
+        {
+          id: makeId("exercise-answer"),
+          lessonId,
+          exerciseId,
+          answer,
+          correctAnswer: exercise.correctAnswer,
+          isCorrect,
+          answeredAt: now,
+        },
+        ...(userData.exerciseAnswers || []),
+      ],
+    }));
+
+    return { isCorrect, explanation: exercise.explanation };
+  }
+
+  const lessonSnap = await getDoc(doc(db, "users", uid, "lessons", lessonId));
+  if (!lessonSnap.exists()) throw new Error("Lesson not found");
+  const lessonData = lessonSnap.data();
+  exercise = (lessonData.exercises || []).find(e => e.id === exerciseId);
+  if (!exercise) throw new Error("Exercise not found in lesson");
+
+  const isCorrect = answer === exercise.correctAnswer;
+  const now = serverTimestamp();
+  
+  await addDoc(collection(db, "users", uid, "exerciseAnswers"), {
+    lessonId,
+    exerciseId,
+    answer,
+    correctAnswer: exercise.correctAnswer,
+    isCorrect,
+    answeredAt: now,
+  });
+
+  return { isCorrect, explanation: exercise.explanation };
 }
 
 export function findNextLesson(lessons = [], questions = []) {

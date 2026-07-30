@@ -2,28 +2,48 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
+  updatePassword,
   updateProfile,
 } from "firebase/auth";
 import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db, isFirebaseConfigured } from "../config/firebase.js";
-import { resolveRole } from "../utils/permissions.js";
+import { canAccessAdmin } from "../utils/permissions.js";
+import { signOutLocalUser } from "../services/localStore.js";
 
 const AuthContext = createContext(null);
 
+const PLACEHOLDER_NAME = "Lock-on Learner";
+
 function createUserProfile(user, name) {
-  const role = resolveRole(null, user.email);
   return {
-    name: name || user.displayName || "LockOn Learner",
+    name: name || user.displayName || user.email?.split('@')[0] || PLACEHOLDER_NAME,
     email: user.email,
-    role,
+    username: user.email?.split('@')[0] || "learner",
+    bio: "",
+    avatarUrl: "",
+    avatarIcon: "",
+    hasCustomAvatar: false,
+    isAdmin: canAccessAdmin(null, user.email),
     xp: 0,
     energy: 0,
     totalScore: 0,
+    streak: 0,
+    totalStudyHours: 0,
+    completedLessons: 0,
     completedTests: [],
     completedUnits: [],
     lastTestAttempt: null,
+    goals: "",
+    grade: "",
+    curriculum: "",
+    favoriteSubjects: [],
+    theme: "system",
+    activity: {},
+    onboardingCompleted: false,
+    referralSource: "",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -42,18 +62,54 @@ async function ensureUserDocument(user, name) {
 
   const data = snapshot.data();
   const patch = {};
-  const xp = typeof data.xp === "number" ? data.xp : 0;
-  const energy = typeof data.energy === "number" ? data.energy : 0;
 
-  if (!data.name) patch.name = name || user.displayName || "LockOn Learner";
+  // Core Identity
+  if (!data.name) patch.name = name || user.displayName || user.email?.split('@')[0] || PLACEHOLDER_NAME;
   if (!data.email) patch.email = user.email;
+  if (!data.username) patch.username = user.email?.split('@')[0] || "learner";
+
+  // Migrate role -> isAdmin
+  if (data.role === "admin" && data.isAdmin !== true) {
+    patch.isAdmin = true;
+  }
+  if (data.isAdmin === undefined && data.role !== "admin") {
+    patch.isAdmin = canAccessAdmin(data, user.email);
+  }
+
+  // If the display name is the placeholder, treat as incomplete onboarding
+  if (data.name === PLACEHOLDER_NAME) {
+    patch.onboardingCompleted = false;
+  }
+
+  // Gamification Defaults
   if (typeof data.xp !== "number") patch.xp = 0;
   if (typeof data.energy !== "number") patch.energy = 0;
-  if (typeof data.totalScore !== "number") patch.totalScore = xp + energy * 100;
+  if (typeof data.streak !== "number") patch.streak = 0;
+  if (typeof data.totalStudyHours !== "number") patch.totalStudyHours = 0;
+  if (typeof data.completedLessons !== "number") patch.completedLessons = 0;
+  const expectedTotal = (data.xp || 0) + (data.energy || 0) * 100;
+  if (typeof data.totalScore !== "number" || data.totalScore !== expectedTotal) patch.totalScore = expectedTotal;
+
+  // Data Structures
   if (!Array.isArray(data.completedTests)) patch.completedTests = [];
   if (!Array.isArray(data.completedUnits)) patch.completedUnits = [];
+  if (!Array.isArray(data.favoriteSubjects)) patch.favoriteSubjects = [];
+  if (typeof data.activity !== "object" || data.activity === null) patch.activity = {};
   if (!("lastTestAttempt" in data)) patch.lastTestAttempt = null;
-  if (!data.role) patch.role = resolveRole(data, user.email);
+
+  // Profile Settings
+  if (data.bio === undefined) patch.bio = "";
+  if (data.goals === undefined) patch.goals = "";
+  if (data.grade === undefined) patch.grade = "";
+  if (data.curriculum === undefined) patch.curriculum = "";
+  if (data.theme === undefined) patch.theme = "system";
+  if (data.avatarUrl === undefined) patch.avatarUrl = "";
+  if (data.avatarIcon === undefined) patch.avatarIcon = "";
+  if (data.hasCustomAvatar === undefined) patch.hasCustomAvatar = false;
+
+  // Onboarding
+  if (data.onboardingCompleted === undefined) patch.onboardingCompleted = false;
+  if (data.referralSource === undefined) patch.referralSource = "";
 
   if (Object.keys(patch).length) {
     patch.updatedAt = serverTimestamp();
@@ -83,6 +139,21 @@ export function AuthProvider({ children }) {
     });
   }, []);
 
+  // Apply theme whenever profile changes
+  useEffect(() => {
+    if (!profile?.theme) return;
+    const root = document.documentElement;
+    if (profile.theme === "dark") {
+      root.classList.add("dark");
+    } else if (profile.theme === "light") {
+      root.classList.remove("dark");
+    } else {
+      // system preference
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      root.classList.toggle("dark", prefersDark);
+    }
+  }, [profile?.theme]);
+
   useEffect(() => {
     if (!user || !db) return undefined;
     return onSnapshot(doc(db, "users", user.uid), (snapshot) => {
@@ -106,7 +177,18 @@ export function AuthProvider({ children }) {
         await updateProfile(result.user, { displayName: name });
         await ensureUserDocument(result.user, name);
       },
-      logout: () => (auth ? signOut(auth) : undefined),
+      async resetPassword(email) {
+        if (!auth) throw new Error("Firebase is not configured.");
+        await sendPasswordResetEmail(auth, email);
+      },
+      async changePassword(newPassword) {
+        if (!auth || !auth.currentUser) throw new Error("Not authenticated.");
+        await updatePassword(auth.currentUser, newPassword);
+      },
+      logout: () => {
+        signOutLocalUser();
+        return auth ? signOut(auth) : undefined;
+      },
     }),
     [loading, profile, user],
   );

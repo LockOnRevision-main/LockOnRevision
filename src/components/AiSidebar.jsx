@@ -1,17 +1,68 @@
 import { Loader2, MessageSquare, Send, Sparkles, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
-import { askForgeAssistant } from "../services/aiChatService.js";
 import { EmptyState } from "./EmptyState.jsx";
+import { MessageContent } from "./MessageContent.jsx";
+import { getAiContext } from "../services/aiContextService.js";
+
+const MESSAGES_KEY = "lockon-ai-messages";
+
+function loadMessages() {
+  try {
+    const raw = localStorage.getItem(MESSAGES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveMessages(messages) {
+  try {
+    localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages.slice(-50)));
+  } catch { /* noop */ }
+}
 
 export function AiSidebar() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(loadMessages);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [context, setContext] = useState(null);
   const scrollRef = useRef(null);
+  const triggerRef = useRef(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (open) {
+      // Small delay to ensure the element is visible and focusable
+      setTimeout(() => inputRef.current?.focus(), 100);
+    } else {
+      triggerRef.current?.focus();
+    }
+  }, [open]);
+
+  useEffect(() => {
+    async function loadContext() {
+      if (user) {
+        try {
+          const ctx = await getAiContext(user.uid, profile);
+          setContext(ctx);
+        } catch {
+          setContext(null);
+        }
+      }
+    }
+    loadContext();
+  }, [user, profile]);
+
+  // Persist messages to localStorage
+  const setMessagesAndPersist = useCallback((updater) => {
+    setMessages((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      saveMessages(next);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -19,118 +70,169 @@ export function AiSidebar() {
     }
   }, [messages, loading, open]);
 
+  const abortRef = useRef(null);
+
   async function handleSubmit(event) {
     event.preventDefault();
     if (!input.trim() || loading || !user) return;
 
-    const nextMessages = [...messages, { role: "user", content: input.trim() }];
-    setMessages(nextMessages);
+    // Cancel any previous in-flight request
+    if (abortRef.current) {
+      abortRef.current.abort();
+    }
+    const abortController = new AbortController();
+    abortRef.current = abortController;
+
+    const userMessage = { role: "user", content: input.trim(), _id: `msg-${Date.now()}` };
+    const nextMessages = [...messages, userMessage];
+    setMessagesAndPersist(nextMessages);
     setInput("");
     setError("");
     setLoading(true);
 
     try {
-      const response = await askForgeAssistant(user.uid, nextMessages);
-      setMessages([...nextMessages, { role: "assistant", content: response.reply }]);
+      const token = user ? await user.getIdToken() : null;
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const response = await fetch('/api/ai-tutor-chat', {
+        method: 'POST',
+        headers,
+        signal: abortController.signal,
+        body: JSON.stringify({ 
+          messages: nextMessages,
+          context: context
+        }),
+      });
+
+      if (!response.ok) {
+        let errorDetail = '';
+        try {
+          const errData = await response.json();
+          errorDetail = errData.error || '';
+        } catch {}
+        throw new Error(`API request failed: ${response.status}${errorDetail ? ` - ${errorDetail}` : ''}`);
+      }
+
+      const data = await response.json();
+      const reply = data.reply || data.error || "I'm having trouble responding right now.";
+      setMessagesAndPersist([...nextMessages, { role: "assistant", content: reply }]);
     } catch (err) {
-      setError(err.message);
-      setMessages([
+      if (err.name === "AbortError") return;
+      console.error("AI Assistant Error:", err);
+      const userMessage = err.message?.includes("500")
+        ? "My brain is having a moment. Let me know if it persists!"
+        : "I'm having trouble connecting to my brain right now. Please try again in a moment!";
+      setError(err.message || "An unexpected error occurred.");
+      setMessagesAndPersist([
         ...nextMessages,
-        { role: "assistant", content: "Sorry, I couldn't process that request. Please try again." },
+        { role: "assistant", content: userMessage },
       ]);
     } finally {
       setLoading(false);
+      if (abortRef.current === abortController) {
+        abortRef.current = null;
+      }
     }
   }
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className={`fixed bottom-6 right-6 z-30 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-blue-600 to-cyan-400 text-white shadow-lg transition-all duration-300 hover:scale-105 ${
-          open ? "pointer-events-none scale-0 opacity-0" : "scale-100 opacity-100"
-        }`}
-        aria-label="Open AI assistant"
-      >
-        <Sparkles size={22} />
-      </button>
+    <button
+      ref={triggerRef}
+      type="button"
+      onClick={() => setOpen(true)}
+      className={`fixed bottom-6 right-6 z-30 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-secondary to-primary text-white shadow-xl transition-all duration-300 hover:scale-110 hover:shadow-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+        open ? "pointer-events-none scale-0 opacity-0" : "scale-100 opacity-100"
+      }`}
+      aria-label="Open AI assistant"
+    >
+      <Sparkles size={22} />
+    </button>
 
-      <aside
-        className={`fixed inset-y-0 right-0 z-40 flex w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
-          open ? "translate-x-0" : "translate-x-full"
-        }`}
-        aria-hidden={!open}
-      >
-        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="text-blue-600" size={18} />
-            <div>
-              <p className="text-sm font-black">AI Assistant</p>
-              <p className="text-xs text-slate-500">Context from your Forge subjects</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            className="rounded-lg border border-slate-200 p-2 text-slate-500"
-            aria-label="Close AI assistant"
-          >
-            <X size={18} />
-          </button>
-        </div>
 
-        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto bg-slate-50 p-4">
-          {messages.length ? (
-            <div className="grid gap-3">
-              {messages.map((message, index) => (
-                <div
-                  key={`${message.role}-${index}`}
-                  className={`max-w-[90%] rounded-xl px-3 py-2 text-sm leading-6 ${
-                    message.role === "user"
-                      ? "ml-auto bg-blue-600 text-white"
-                      : "border border-slate-200 bg-white text-slate-700"
-                  }`}
-                >
-                  {message.content}
-                </div>
-              ))}
-              {loading ? (
-                <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">
-                  <Loader2 size={16} className="animate-spin" />
-                  Thinking...
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <EmptyState
-              title="Ask about your notes"
-              copy="The assistant uses your Forge subjects, units, sub-units, lessons, and uploaded material whenever possible."
-            />
-          )}
-        </div>
-
-        {error ? <p className="border-t border-red-100 bg-red-50 px-4 py-2 text-xs font-bold text-red-700">{error}</p> : null}
-
-        <form onSubmit={handleSubmit} className="border-t border-slate-200 p-4">
-          <div className="flex gap-2">
-            <input
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              placeholder="Ask a study question..."
-              className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400"
-              disabled={loading}
-            />
+       <aside
+          className={`fixed inset-y-0 right-0 z-40 flex w-full max-w-md flex-col border-l border-border bg-surface shadow-2xl transition-transform duration-300 ease-in-out ${
+            open ? "translate-x-0" : "translate-x-full"
+          }`}
+          inert={!open}
+          aria-hidden={!open}
+          style={{ visibility: open ? 'visible' : 'hidden' }}
+       >
+        <div className="flex items-center justify-between border-b border-border px-4 py-4">
+           <div className="flex items-center gap-2">
+             <MessageSquare className="text-primary" size={18} />
+             <div>
+               <p className="text-sm font-black text-text-primary">AI Assistant</p>
+                <p className="text-xs text-text-secondary">Personalized from your progress & subjects</p>
+             </div>
+           </div>
             <button
-              type="submit"
-              disabled={loading || !input.trim()}
-              className="rounded-lg bg-slate-950 px-3 py-2 text-white disabled:bg-slate-300"
-              aria-label="Send message"
+              type="button"
+              onClick={() => setOpen(false)}
+              className="rounded-xl border border-border bg-surface p-2 text-text-secondary transition-colors hover:bg-primary hover:text-white"
+              aria-label="Close AI assistant"
             >
-              <Send size={18} />
+              <X size={18} />
             </button>
-          </div>
-        </form>
+
+         </div>
+
+         <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto bg-background p-4">
+           {messages.length ? (
+             <div className="grid gap-3">
+               {messages.map((message, index) => (
+                 <div
+                   key={message._id || `${message.role}-${index}`}
+                   className={`max-w-[90%] rounded-2xl px-4 py-2 text-sm leading-relaxed transition-all ${
+                      message.role === "user"
+                        ? "ml-auto bg-secondary text-white shadow-sm"
+                        : "border border-border bg-surface text-text-primary shadow-sm"
+
+                   }`}
+                 >
+                    <MessageContent content={message.content} />
+                 </div>
+               ))}
+               {loading ? (
+                 <div className="inline-flex items-center gap-2 rounded-2xl border border-border bg-surface px-4 py-2 text-sm text-text-secondary">
+                   <Loader2 size={16} className="animate-spin text-primary" />
+                   Thinking...
+                 </div>
+               ) : null}
+             </div>
+           ) : (
+             <EmptyState
+               title="Ask about your notes"
+               copy="The assistant uses your Forge subjects, units, sub-units, lessons, and uploaded material whenever possible."
+             />
+           )}
+         </div>
+
+         {error ? <p className="border-t border-status-error/20 bg-status-error/10 px-4 py-2 text-xs font-bold text-status-error">{error}</p> : null}
+
+         <form onSubmit={handleSubmit} className="border-t border-border p-4 bg-surface">
+           <div className="flex gap-2">
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                placeholder="Ask a study question..."
+                className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm text-text-primary outline-none focus:border-primary transition-all"
+                disabled={loading}
+              />
+
+              <button
+                type="submit"
+                disabled={loading || !input.trim()}
+                className="rounded-xl bg-primary px-3 py-2 text-white transition-all hover:bg-primary-active disabled:bg-background disabled:text-text-muted"
+                aria-label="Send message"
+              >
+                <Send size={18} />
+              </button>
+
+           </div>
+         </form>
       </aside>
     </>
   );

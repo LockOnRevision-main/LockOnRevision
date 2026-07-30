@@ -1,115 +1,176 @@
-import {
-  collection,
-  doc,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  runTransaction,
-  serverTimestamp,
-} from "firebase/firestore";
-import { db } from "../config/firebase.js";
+import { db, isFirebaseConfigured } from "../config/firebase.js";
+import { emitScoreChanged } from "./forgeEvents.js";
+import { calculateUnitReward } from "./energyService.js";
 
+import { doc, updateDoc, increment, serverTimestamp, arrayUnion, arrayRemove, getDocs, getDoc, query, orderBy, collection, limit } from "firebase/firestore";
+
+const ADMIN_FIELDS = new Set(["isAdmin", "role"]);
+
+function stripAdminFields(obj) {
+  if (!obj || typeof obj !== "object") return obj;
+  const cleaned = { ...obj };
+  for (const key of ADMIN_FIELDS) delete cleaned[key];
+  return cleaned;
+}
+
+export async function fetchLeaderboard(limitCount = 50) {
+  if (!isFirebaseConfigured) {
+    const { readLocalState } = await import("./localStore.js");
+    const state = readLocalState();
+    const users = Object.entries(state.users || {}).map(([uid, data]) => stripAdminFields({
+      id: uid,
+      ...data.profile,
+      xp: data.xp ?? data.profile?.xp ?? 0,
+      energy: data.energy ?? data.profile?.energy ?? 0,
+      totalScore: data.totalScore ?? data.profile?.totalScore ?? 0,
+    }));
+    return users.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0)).slice(0, limitCount);
+  }
+  if (!db) throw new Error("Firebase is not configured.");
+  const usersSnap = await getDocs(
+    query(collection(db, "users"), orderBy("totalScore", "desc"), limit(limitCount))
+  );
+  return usersSnap.docs.map(doc => stripAdminFields({ id: doc.id, ...doc.data() }));
+}
+
+export function calculateTotalScore(profile) {
+  const xp = Number(profile?.xp || 0);
+  const energy = Number(profile?.energy || 0);
+  return xp + energy * 100;
+}
+
+// PRESERVED for future development — Mock Tests backend logic
+// Currently no user-facing UI; may be re-enabled in a later roadmap release.
 export const TESTS = [
-  { id: "foundations-easy", title: "Foundations Sprint", difficulty: "Easy", energy: 1, xp: 100 },
-  { id: "mixed-medium", title: "Mixed Recall", difficulty: "Medium", energy: 2, xp: 180 },
-  { id: "deep-hard", title: "Deep Focus Trial", difficulty: "Hard", energy: 3, xp: 260 },
+  { id: 'test-1', title: 'Foundations of Knowledge', difficulty: 'Easy', energy: 10, xp: 100 },
+  { id: 'test-2', title: 'Intermediate Concepts', difficulty: 'Medium', energy: 20, xp: 250 },
+  { id: 'test-3', title: 'Advanced Mastery', difficulty: 'Hard', energy: 40, xp: 500 },
 ];
-
-export const UNITS = [
-  { id: "unit-active-recall", title: "Active Recall Basics", xp: 60 },
-  { id: "unit-spaced-repetition", title: "Spaced Repetition", xp: 60 },
-  { id: "unit-exam-strategy", title: "Exam Strategy", xp: 60 },
-];
-
-const TEN_MINUTES = 10 * 60 * 1000;
-
-export function calculateTotalScore(xp = 0, energy = 0) {
-  return Number(xp || 0) + Number(energy || 0) * 100;
-}
-
-function lastAttemptMs(value) {
-  if (!value) return 0;
-  if (typeof value.toMillis === "function") return value.toMillis();
-  if (typeof value === "string") return Date.parse(value);
-  return Number(value) || 0;
-}
 
 export async function completeMockTest(uid, testId, score) {
   if (!db) throw new Error("Firebase is not configured.");
-
-  const test = TESTS.find((item) => item.id === testId);
+  const test = TESTS.find(t => t.id === testId);
   if (!test) throw new Error("Test not found.");
-  if (Number(score) < 60) throw new Error("Score must be at least 60% to earn energy.");
+
+  const earnedEnergy = score >= 60 ? test.energy : 0;
+  const earnedXp = score >= 60 ? test.xp : Math.round(test.xp * (score / 100));
+  const earnedTotal = earnedXp + earnedEnergy * 100;
 
   const userRef = doc(db, "users", uid);
+  await updateDoc(userRef, {
+    xp: increment(earnedXp),
+    energy: increment(earnedEnergy),
+    totalScore: increment(earnedTotal),
+    completedTests: arrayUnion(testId),
+    updatedAt: serverTimestamp(),
+  });
 
-  return runTransaction(db, async (transaction) => {
-    const snapshot = await transaction.get(userRef);
-    if (!snapshot.exists()) throw new Error("User profile not found.");
+  emitScoreChanged({ uid, reason: "mock-test", totalChange: earnedTotal });
+  return { earnedEnergy, earnedXp };
+}
 
-    const data = snapshot.data();
-    const completedTests = data.completedTests || [];
-    if (completedTests.includes(testId)) throw new Error("This test has already awarded energy.");
+export async function completeUnit(uid, unitId, profile = {}) {
+  if (!db) throw new Error("Firebase is not configured.");
+  
+  const userRef = doc(db, "users", uid);
+  const userSnap = await getDoc(userRef);
+  const userData = userSnap.exists() ? userSnap.data() : {};
+  const completedUnits = userData.completedUnits || [];
+  if (completedUnits.includes(unitId)) {
+    return { earnedEnergy: 0, earnedXp: 0, alreadyCompleted: true };
+  }
+  
+  const earnedEnergy = calculateUnitReward(profile);
+  const earnedXp = 150;
+  const earnedTotal = earnedXp + earnedEnergy * 100;
+  
+  await updateDoc(userRef, {
+    xp: increment(earnedXp),
+    energy: increment(earnedEnergy),
+    totalScore: increment(earnedTotal),
+    completedUnits: arrayUnion(unitId),
+    updatedAt: serverTimestamp(),
+  });
+  
+  emitScoreChanged({ uid, reason: "complete-unit", totalChange: earnedTotal });
+  return { earnedEnergy, earnedXp };
+}
 
-    const lastAttempt = lastAttemptMs(data.lastTestAttempt);
-    if (lastAttempt && Date.now() - lastAttempt < TEN_MINUTES) {
-      const remaining = Math.ceil((TEN_MINUTES - (Date.now() - lastAttempt)) / 60000);
-      throw new Error(`Mock test cooldown active. Try again in ${remaining} min.`);
-    }
+const PROFILE_ALLOWED_FIELDS = [
+  "name", "username", "bio", "avatarUrl", "avatarIcon", "hasCustomAvatar",
+  "grade", "curriculum", "goals", "theme",
+  "favoriteSubjects", "referralSource", "onboardingCompleted",
+];
 
-    const nextXp = Number(data.xp || 0) + test.xp;
-    const nextEnergy = Number(data.energy || 0) + test.energy;
-    const nextTotal = calculateTotalScore(nextXp, nextEnergy);
-
-    transaction.update(userRef, {
-      xp: nextXp,
-      energy: nextEnergy,
-      totalScore: nextTotal,
-      completedTests: [...completedTests, testId],
-      lastTestAttempt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-
-    return { earnedEnergy: test.energy, earnedXp: test.xp, totalScore: nextTotal };
+export async function updateUserProfile(uid, updates) {
+  if (!isFirebaseConfigured) {
+    const { updateLocalUser } = await import("./localStore.js");
+    updateLocalUser(uid, (userData) => ({
+      ...userData,
+      profile: { ...userData.profile, ...updates, updatedAt: new Date().toISOString() },
+    }));
+    return;
+  }
+  if (!db) throw new Error("Firebase is not configured.");
+  const userRef = doc(db, "users", uid);
+  const safeUpdates = Object.fromEntries(
+    Object.entries(updates).filter(([key]) => PROFILE_ALLOWED_FIELDS.includes(key)),
+  );
+  return updateDoc(userRef, {
+    ...safeUpdates,
+    updatedAt: serverTimestamp(),
   });
 }
 
-export async function completeUnit(uid, unitId) {
+export async function trackStudyTime(uid, minutes) {
   if (!db) throw new Error("Firebase is not configured.");
-
-  const unit = UNITS.find((item) => item.id === unitId);
-  if (!unit) throw new Error("Unit not found.");
-
   const userRef = doc(db, "users", uid);
-
-  return runTransaction(db, async (transaction) => {
-    const snapshot = await transaction.get(userRef);
-    if (!snapshot.exists()) throw new Error("User profile not found.");
-
-    const data = snapshot.data();
-    const completedUnits = data.completedUnits || [];
-    if (completedUnits.includes(unitId)) throw new Error("This unit has already awarded energy.");
-
-    const nextXp = Number(data.xp || 0) + unit.xp;
-    const nextEnergy = Number(data.energy || 0) + 1;
-    const nextTotal = calculateTotalScore(nextXp, nextEnergy);
-
-    transaction.update(userRef, {
-      xp: nextXp,
-      energy: nextEnergy,
-      totalScore: nextTotal,
-      completedUnits: [...completedUnits, unitId],
-      updatedAt: serverTimestamp(),
-    });
-
-    return { earnedEnergy: 1, earnedXp: unit.xp, totalScore: nextTotal };
+  const today = new Date().toISOString().split('T')[0];
+  
+  return updateDoc(userRef, {
+    totalStudyHours: increment(minutes / 60),
+    [`activity.${today}`]: increment(minutes / 60),
+    updatedAt: serverTimestamp(),
   });
 }
 
-export async function fetchLeaderboard() {
+export async function updateGoal(uid, goalId, goalData) {
   if (!db) throw new Error("Firebase is not configured.");
+  const userRef = doc(db, "users", uid);
+  
+  return updateDoc(userRef, {
+    [`goals.${goalId}`]: goalData,
+    updatedAt: serverTimestamp(),
+  });
+}
 
-  const snapshot = await getDocs(query(collection(db, "users"), orderBy("totalScore", "desc"), limit(50)));
-  return snapshot.docs.map((item, index) => ({ id: item.id, rank: index + 1, ...item.data() }));
+export async function toggleFavoriteSubject(uid, subjectName, currentlyFavorites) {
+  if (!db) throw new Error("Firebase is not configured.");
+  const userRef = doc(db, "users", uid);
+  const isFavorited = currentlyFavorites?.includes(subjectName);
+  return updateDoc(userRef, {
+    favoriteSubjects: isFavorited ? arrayRemove(subjectName) : arrayUnion(subjectName),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export function calculateLevel(xp) {
+  return Math.floor(Math.sqrt(xp / 100)) + 1;
+}
+
+export function getRank(level) {
+  if (level < 5) return "Novice";
+  if (level < 15) return "Apprentice";
+  if (level < 30) return "Scholar";
+  if (level < 50) return "Expert";
+  return "Master";
+}
+
+export function getBadge(xp, lessonsCompleted, streak) {
+  const badges = [];
+  if (xp >= 1000) badges.push({ id: 'xp-1k', label: '1k XP Club', icon: '🏆' });
+  if (lessonsCompleted >= 50) badges.push({ id: 'lesson-50', label: 'Consistent Learner', icon: '📚' });
+  if (streak >= 7) badges.push({ id: 'streak-7', label: 'Week Warrior', icon: '🔥' });
+  if (streak >= 30) badges.push({ id: 'streak-30', label: 'Month Master', icon: '🌟' });
+  return badges;
 }

@@ -8,15 +8,40 @@ import {
   runTransaction,
   serverTimestamp,
 } from "firebase/firestore";
-import { db, isFirebaseConfigured } from "../config/firebase.js";
+import { httpsCallable } from "firebase/functions";
+import { db, functions, isFirebaseConfigured } from "../config/firebase.js";
 import { deleteForgeSubject, fetchForgeSubjects } from "./forgeService.js";
 import { calculateTotalScore } from "./userService.js";
+import { emitScoreChanged } from "./forgeEvents.js";
+import { applyCompetitionRanking, mapUserData } from "./leaderboardService.js";
+
+const ADMIN_FIELDS = new Set(["isAdmin", "role"]);
+
+function stripAdminFields(obj) {
+  if (!obj || typeof obj !== "object") return obj;
+  const cleaned = { ...obj };
+  for (const key of ADMIN_FIELDS) delete cleaned[key];
+  return cleaned;
+}
+
+async function verifyAdminServer() {
+  if (!functions) throw new Error("Firebase is not configured.");
+  const check = httpsCallable(functions, "verifyAdminAccess");
+  const result = await check();
+  return result.data.admin === true;
+}
+
+async function requireAdmin() {
+  const isAdmin = await verifyAdminServer();
+  if (!isAdmin) throw new Error("Admin access required.");
+}
 
 export async function searchUsers(searchTerm = "", max = 50) {
   if (!db) throw new Error("Firebase is not configured.");
+  await requireAdmin();
 
   const snapshot = await getDocs(query(collection(db, "users"), limit(max)));
-  const users = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+  const users = snapshot.docs.map((item) => stripAdminFields({ id: item.id, ...item.data() }));
   const term = searchTerm.trim().toLowerCase();
 
   if (!term) return users;
@@ -30,6 +55,7 @@ export async function searchUsers(searchTerm = "", max = 50) {
 
 export async function adjustUserXp(uid, delta) {
   if (!db) throw new Error("Firebase is not configured.");
+  await requireAdmin();
   const userRef = doc(db, "users", uid);
 
   return runTransaction(db, async (transaction) => {
@@ -38,7 +64,7 @@ export async function adjustUserXp(uid, delta) {
 
     const data = snapshot.data();
     const nextXp = Math.max(0, Number(data.xp || 0) + Number(delta || 0));
-    const nextTotal = calculateTotalScore(nextXp, data.energy || 0);
+    const nextTotal = calculateTotalScore({ xp: nextXp, energy: data.energy || 0 });
 
     transaction.update(userRef, {
       xp: nextXp,
@@ -46,12 +72,14 @@ export async function adjustUserXp(uid, delta) {
       updatedAt: serverTimestamp(),
     });
 
+    emitScoreChanged({ uid, reason: "admin-xp-adjust", totalChange: nextTotal - calculateTotalScore({ xp: data.xp || 0, energy: data.energy || 0 }) });
     return { xp: nextXp, energy: data.energy || 0, totalScore: nextTotal };
   });
 }
 
 export async function adjustUserEnergy(uid, delta) {
   if (!db) throw new Error("Firebase is not configured.");
+  await requireAdmin();
   const userRef = doc(db, "users", uid);
 
   return runTransaction(db, async (transaction) => {
@@ -60,7 +88,7 @@ export async function adjustUserEnergy(uid, delta) {
 
     const data = snapshot.data();
     const nextEnergy = Math.max(0, Number(data.energy || 0) + Number(delta || 0));
-    const nextTotal = calculateTotalScore(data.xp || 0, nextEnergy);
+    const nextTotal = calculateTotalScore({ xp: data.xp || 0, energy: nextEnergy });
 
     transaction.update(userRef, {
       energy: nextEnergy,
@@ -68,12 +96,14 @@ export async function adjustUserEnergy(uid, delta) {
       updatedAt: serverTimestamp(),
     });
 
+    emitScoreChanged({ uid, reason: "admin-energy-adjust", totalChange: nextTotal - calculateTotalScore({ xp: data.xp || 0, energy: data.energy || 0 }) });
     return { xp: data.xp || 0, energy: nextEnergy, totalScore: nextTotal };
   });
 }
 
 export async function setUserTotalScore(uid, totalScore) {
   if (!db) throw new Error("Firebase is not configured.");
+  await requireAdmin();
   const userRef = doc(db, "users", uid);
 
   return runTransaction(db, async (transaction) => {
@@ -85,12 +115,14 @@ export async function setUserTotalScore(uid, totalScore) {
       updatedAt: serverTimestamp(),
     });
 
+    emitScoreChanged({ uid, reason: "admin-set-score", totalChange: 0 });
     return { totalScore: Math.max(0, Number(totalScore || 0)) };
   });
 }
 
 export async function grantLeaderboardReward(uid, { xp = 0, energy = 0, reason = "Admin reward" }) {
   if (!db) throw new Error("Firebase is not configured.");
+  await requireAdmin();
   const userRef = doc(db, "users", uid);
 
   return runTransaction(db, async (transaction) => {
@@ -100,7 +132,7 @@ export async function grantLeaderboardReward(uid, { xp = 0, energy = 0, reason =
     const data = snapshot.data();
     const nextXp = Math.max(0, Number(data.xp || 0) + Number(xp || 0));
     const nextEnergy = Math.max(0, Number(data.energy || 0) + Number(energy || 0));
-    const nextTotal = calculateTotalScore(nextXp, nextEnergy);
+    const nextTotal = calculateTotalScore({ xp: nextXp, energy: nextEnergy });
     const rewards = Array.isArray(data.adminRewards) ? data.adminRewards : [];
 
     transaction.update(userRef, {
@@ -114,12 +146,14 @@ export async function grantLeaderboardReward(uid, { xp = 0, energy = 0, reason =
       updatedAt: serverTimestamp(),
     });
 
+    emitScoreChanged({ uid, reason: "admin-reward", totalChange: nextTotal - calculateTotalScore({ xp: data.xp || 0, energy: data.energy || 0 }) });
     return { xp: nextXp, energy: nextEnergy, totalScore: nextTotal };
   });
 }
 
 export async function fetchAllForgeSubjects() {
   if (!db) throw new Error("Firebase is not configured.");
+  await requireAdmin();
 
   const usersSnap = await getDocs(query(collection(db, "users"), limit(100)));
   const results = [];
@@ -140,11 +174,13 @@ export async function fetchAllForgeSubjects() {
 }
 
 export async function moderateForgeSubject(userId, subjectId) {
+  await requireAdmin();
   await deleteForgeSubject(userId, subjectId);
   return { ok: true };
 }
 
 export async function getAdminOverview() {
+  await requireAdmin();
   if (!isFirebaseConfigured) {
     return {
       available: false,
@@ -153,12 +189,14 @@ export async function getAdminOverview() {
   }
 
   const usersSnap = await getDocs(query(collection(db, "users"), orderBy("totalScore", "desc"), limit(10)));
+  const rawUsers = usersSnap.docs.map(mapUserData);
+  const ranked = applyCompetitionRanking(rawUsers);
   return {
     available: true,
-    topUsers: usersSnap.docs.map((item, index) => ({
+    topUsers: ranked.map((item) => stripAdminFields({
       id: item.id,
-      rank: index + 1,
-      ...item.data(),
+      rank: item._rank,
+      ...item,
     })),
   };
 }

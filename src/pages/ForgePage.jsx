@@ -1,64 +1,63 @@
-import { FileUp, RefreshCw, Save, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
-import { ForgeStructureEditor } from "../components/ForgeStructureEditor.jsx";
-import { EmptyState } from "../components/EmptyState.jsx";
+import { BookOpen, FileUp, RefreshCw, Trophy, Zap } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import { hasGeminiKey } from "../services/geminiService.js";
 import {
+  cleanupUploadedFiles,
   generateForgeStructure,
-  getForgeContext,
-  regenerateForgeStructure,
-  saveForgeStructure,
   subscribeForgeSubjects,
+  subscribeForgeLessons,
   uploadForgeFiles,
 } from "../services/forgeService.js";
 
 export function ForgePage() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [subjects, setSubjects] = useState([]);
-  const [selectedId, setSelectedId] = useState("");
-  const [draft, setDraft] = useState(null);
+  const [lessons, setLessons] = useState([]);
   const [pastedNotes, setPastedNotes] = useState("");
-  const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => subscribeForgeSubjects(user.uid, setSubjects), [user.uid]);
+  const [status, setStatus] = useState("");
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    if (!selectedId && subjects.length) {
-      setSelectedId(subjects[0].id);
+    if (!user?.uid) return;
+    const unsub1 = subscribeForgeSubjects(user.uid, setSubjects);
+    const unsub2 = subscribeForgeLessons(user.uid, setLessons);
+    return () => { unsub1(); unsub2(); };
+  }, [user?.uid]);
+
+  const handleContinueLearning = useCallback(() => {
+    if (subjects.length > 0) {
+      navigate(`/forge/subject/${subjects[0].id}`);
     }
-  }, [subjects, selectedId]);
-
-  useEffect(() => {
-    const selected = subjects.find((item) => item.id === selectedId);
-    setDraft(selected ? structuredClone(selected) : null);
-  }, [subjects, selectedId]);
+  }, [subjects, navigate]);
 
   async function handleUpload(event) {
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
+
+    let uploaded = [];
 
     setBusy(true);
     setStatus("Uploading files...");
     setProgress(0);
 
     try {
-      const { uploaded, combinedText } = await uploadForgeFiles(user.uid, files, setProgress);
+      const result = await uploadForgeFiles(user.uid, files, setProgress);
+      uploaded = result.uploaded;
+      const combinedText = result.combinedText;
       const sourceText = [pastedNotes.trim(), combinedText].filter(Boolean).join("\n\n---\n\n");
       if (!sourceText.trim()) throw new Error("No readable content found in uploaded files.");
 
       setStatus("Generating learning structure with Gemini...");
-      const generated = await generateForgeStructure(
-        user.uid,
-        sourceText,
-        uploaded.map((item) => item.id),
-      );
-      setSelectedId(generated.id);
+      const generated = await generateForgeStructure(user.uid, sourceText, uploaded.map((item) => item.id), uploaded);
+      await cleanupUploadedFiles(uploaded);
+      navigate(`/forge/subject/${generated.id}`);
       setPastedNotes("");
       setStatus("Learning path generated successfully.");
     } catch (error) {
+      await cleanupUploadedFiles(uploaded).catch(() => {});
       setStatus(error.message);
     } finally {
       setBusy(false);
@@ -78,7 +77,7 @@ export function ForgePage() {
 
     try {
       const generated = await generateForgeStructure(user.uid, pastedNotes.trim(), []);
-      setSelectedId(generated.id);
+      navigate(`/forge/subject/${generated.id}`);
       setPastedNotes("");
       setStatus("Learning path generated successfully.");
     } catch (error) {
@@ -88,81 +87,47 @@ export function ForgePage() {
     }
   }
 
-  async function handleRegenerate() {
-    if (!draft) return;
-
-    setBusy(true);
-    setStatus("Regenerating structure...");
-    try {
-      const context = await getForgeContext(user.uid);
-      const sourceText = context.sourceText || pastedNotes.trim();
-      if (!sourceText) throw new Error("No source material available to regenerate from.");
-
-      const regenerated = await regenerateForgeStructure(user.uid, draft.id, sourceText);
-      setSelectedId(regenerated.id);
-      setStatus("Structure regenerated.");
-    } catch (error) {
-      setStatus(error.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleSave() {
-    if (!draft) return;
-
-    setBusy(true);
-    setStatus("Saving changes...");
-    try {
-      const saved = await saveForgeStructure(user.uid, draft);
-      setSelectedId(saved.id);
-      setStatus("Changes saved.");
-    } catch (error) {
-      setStatus(error.message);
-    } finally {
-      setBusy(false);
-    }
-  }
+  const totalLessons = lessons.length;
+  const completedLessons = lessons.filter((l) => l.completed).length;
+  const totalXp = lessons.reduce((sum, l) => sum + (l.xpEarned || 0), 0);
+  const hasSubjects = subjects.length > 0;
 
   return (
-    <div className="grid gap-6">
-      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="bg-gradient-to-r from-blue-600 to-cyan-400 p-6 text-white">
-          <div className="flex items-center gap-3">
-            <Sparkles size={24} />
-            <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-white/75">Forge</p>
-              <h1 className="text-4xl font-black tracking-tight">Build your learning path</h1>
+    <div className="relative space-y-6">
+      {busy && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4 p-8 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center shadow-lg shadow-secondary/20">
+              <RefreshCw className="w-8 h-8 text-white animate-spin" />
             </div>
+            <div className="text-lg font-bold text-text-primary">{status || "Processing..."}</div>
+            {progress > 0 && (
+              <div className="w-64 h-2 bg-background rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            )}
           </div>
-          <p className="mt-3 max-w-2xl text-white/85">
-            Upload study materials and let Gemini generate an editable subject hierarchy with units, sub-units, and
-            lessons.
-          </p>
         </div>
-      </section>
+      )}
 
-      {!hasGeminiKey() ? (
-        <p className="rounded-lg border border-amber-100 bg-amber-50 p-3 text-sm font-bold text-amber-900">
-          Add VITE_GEMINI_API_KEY to your environment for AI generation. A local fallback structure will be used
-          without it.
-        </p>
-      ) : null}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 space-y-6">
+        {/* Generate New Subject */}
+        <section className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
+          <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">Forge New</p>
+          <h2 className="mt-1 text-2xl font-black text-text-primary">Generate Subject</h2>
 
-      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-bold uppercase tracking-widest text-slate-500">Upload</p>
-          <h2 className="mt-1 text-2xl font-black">Study materials</h2>
-
-          <label className="mt-4 grid cursor-pointer place-items-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center transition hover:border-blue-400">
-            <FileUp size={32} className="text-blue-600" />
-            <strong className="mt-3">Upload notes or documents</strong>
-            <span className="mt-1 text-sm text-slate-500">PDF, text, or images up to 20MB each</span>
+          <label className="mt-4 grid cursor-pointer place-items-center rounded-2xl border-2 border-dashed border-border bg-background p-8 text-center transition hover:border-primary focus-within:ring-2 focus-within:ring-primary/50">
+            <FileUp size={32} className="text-primary" />
+            <strong className="mt-3 text-text-primary">Upload notes or documents</strong>
+            <span className="mt-1 text-sm text-text-secondary">PDF, text, or images up to 20MB each</span>
             <input
               className="hidden"
               type="file"
               multiple
-              accept=".pdf,.txt,.md,.png,.jpg,.jpeg,.csv,.json"
+              accept=".pdf,.txt,.md,.png,.jpg,.jpeg,.webp,.gif,.svg,.docx,.pptx"
               onChange={handleUpload}
               disabled={busy}
             />
@@ -171,94 +136,77 @@ export function ForgePage() {
           <textarea
             value={pastedNotes}
             onChange={(event) => setPastedNotes(event.target.value)}
-            className="mt-4 min-h-40 w-full resize-y rounded-lg border border-slate-200 px-4 py-3 text-sm leading-6 outline-none focus:border-blue-400"
+            className="mt-4 min-h-40 w-full resize-y rounded-xl border border-border bg-background px-4 py-3 text-sm leading-6 text-text-primary outline-none focus:border-primary transition-colors placeholder:text-text-muted"
             placeholder="Or paste notes here..."
             disabled={busy}
           />
 
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || !pastedNotes.trim()}
             onClick={handleGenerateFromPaste}
-            className="mt-3 w-full rounded-lg bg-slate-950 px-4 py-3 font-black text-white disabled:bg-slate-300"
+            className="mt-3 w-full rounded-xl bg-secondary px-4 py-3 font-black text-white disabled:bg-text-muted disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-colors hover:bg-secondary-hover"
           >
             Generate from pasted notes
           </button>
-
-          {busy || status ? (
-            <div className="mt-4 rounded-lg bg-slate-50 p-4">
-              <div className="h-2 overflow-hidden rounded-full bg-slate-200">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-blue-600 to-cyan-400 transition-all"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <p className="mt-3 text-sm font-bold text-slate-600">{status || "Working..."}</p>
-            </div>
-          ) : null}
-
-          {subjects.length ? (
-            <div className="mt-5">
-              <p className="text-sm font-bold uppercase tracking-widest text-slate-500">Your subjects</p>
-              <div className="mt-2 grid gap-2">
-                {subjects.map((subject) => (
-                  <button
-                    key={subject.id}
-                    type="button"
-                    onClick={() => setSelectedId(subject.id)}
-                    className={`rounded-lg border px-3 py-2 text-left text-sm font-bold ${
-                      selectedId === subject.id
-                        ? "border-blue-300 bg-blue-50 text-blue-800"
-                        : "border-slate-200 text-slate-700"
-                    }`}
-                  >
-                    {subject.title}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
         </section>
 
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-slate-500">Structure</p>
-              <h2 className="text-2xl font-black">Edit learning path</h2>
-            </div>
-            {draft ? (
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={handleRegenerate}
-                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-50"
-                >
-                  <RefreshCw size={16} />
-                  Regenerate
-                </button>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={handleSave}
-                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-black text-white disabled:bg-blue-300"
-                >
-                  <Save size={16} />
-                  Save changes
-                </button>
+        {/* Continue Previous Learning */}
+        {hasSubjects && (
+          <button
+            onClick={handleContinueLearning}
+            className="w-full rounded-3xl border border-border bg-surface p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-left group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-secondary/10 flex items-center justify-center shrink-0">
+                  <BookOpen size={24} className="text-secondary" />
+                </div>
+                <div>
+                  <p className="text-lg font-black text-text-primary group-hover:text-primary transition-colors">Continue Previous Learning</p>
+                  <p className="text-sm text-text-secondary mt-0.5">
+                    Resume &ldquo;{subjects[0]?.title}&rdquo; &middot; {subjects.length} subject{subjects.length !== 1 ? 's' : ''} available
+                  </p>
+                </div>
               </div>
-            ) : null}
-          </div>
+              <span className="text-xl text-text-muted group-hover:text-primary transition-colors">&rarr;</span>
+            </div>
+          </button>
+        )}
 
-          {draft ? (
-            <ForgeStructureEditor tree={draft} onChange={setDraft} />
-          ) : (
-            <EmptyState
-              title="No structure yet"
-              copy="Upload notes or paste content to generate your first Forge learning path."
-            />
-          )}
-        </section>
+        {/* Recent Progress Summary */}
+        {hasSubjects && (
+          <section className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <Zap size={20} className="text-primary" />
+              <h2 className="text-lg font-black text-text-primary">Recent Progress</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="p-4 rounded-2xl bg-background border border-border text-center">
+                <p className="text-2xl font-black text-text-primary">{subjects.length}</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">Subjects</p>
+              </div>
+              <div className="p-4 rounded-2xl bg-background border border-border text-center">
+                <p className="text-2xl font-black text-text-primary">{completedLessons}/{totalLessons}</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">Lessons</p>
+              </div>
+              <div className="p-4 rounded-2xl bg-background border border-border text-center">
+                <p className="text-2xl font-black text-text-primary">
+                  {totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0}%
+                </p>
+                <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">Complete</p>
+              </div>
+              <div className="p-4 rounded-2xl bg-background border border-border text-center">
+                <p className="text-2xl font-black text-text-primary">
+                  <span className="flex items-center justify-center gap-1">
+                    {totalXp} <Trophy size={16} className="text-warning" />
+                  </span>
+                </p>
+                <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">XP Earned</p>
+              </div>
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );
