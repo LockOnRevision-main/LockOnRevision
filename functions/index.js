@@ -1,11 +1,7 @@
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import {
-  onCall,
-  HttpsError,
-} from "firebase-functions/v2/https";
+import { HttpsError, onCall } from "firebase-functions/v2/https";
 
 initializeApp();
 const db = getFirestore();
@@ -60,7 +56,7 @@ async function retry(fn, { maxRetries = 2, baseDelay = 1000, logger } = {}) {
       if (attempt >= maxRetries || !isRetryable) break;
       const delay = baseDelay * Math.pow(2, attempt);
       logger?.warn(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`, { error: error.message });
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
   throw lastError;
@@ -77,16 +73,16 @@ function parseGeminiJson(text) {
 
 function detectTemplatedTitle(title) {
   if (!title || typeof title !== "string") return true;
-  return [/^generated\s+(subject|unit|lesson)/i, /^new\s+(unit|sub\s*unit|lesson)/i, /^unit\s+\d+$/i, /^lesson\s+\d+$/i, /^sub\s*unit\s+\d+$/i].some(p => p.test(title.trim()));
+  return [/^generated\s+(subject|unit|lesson)/i, /^new\s+(unit|sub\s*unit|lesson)/i, /^unit\s+\d+$/i, /^lesson\s+\d+$/i, /^sub\s*unit\s+\d+$/i].some((p) => p.test(title.trim()));
 }
 
 function detectPlaceholder(value) {
   if (!value) return false;
   if (typeof value === "string") {
-    return [/option\s*a/i, /option\s*b/i, /option\s*c/i, /option\s*d/i, /sample\s*question/i, /example\s*question/i, /placeholder/i].some(p => p.test(value));
+    return [/option\s*a/i, /option\s*b/i, /option\s*c/i, /option\s*d/i, /sample\s*question/i, /example\s*question/i, /placeholder/i].some((p) => p.test(value));
   }
-  if (Array.isArray(value)) return value.some(v => detectPlaceholder(v));
-  if (typeof value === "object") return Object.values(value).some(v => detectPlaceholder(v));
+  if (Array.isArray(value)) return value.some((v) => detectPlaceholder(v));
+  if (typeof value === "object") return Object.values(value).some((v) => detectPlaceholder(v));
   return false;
 }
 
@@ -138,10 +134,7 @@ async function callGeminiWithValidation(prompt, validateFn) {
 
   log.info("Calling Gemini", { promptLength: prompt.length });
 
-  const result = await withTimeout(
-    retry(() => model.generateContent(prompt), { logger: log }),
-    45000
-  );
+  const result = await withTimeout(retry(() => model.generateContent(prompt), { logger: log }), 45000);
   const response = await result.response;
   const text = response.text();
 
@@ -307,10 +300,7 @@ ${conversation}${contextStr}`;
   }
 
   log.info("Calling Gemini for AI tutor chat");
-  const result = await withTimeout(
-    retry(() => model.generateContent(prompt), { logger: log }),
-    30000
-  );
+  const result = await withTimeout(retry(() => model.generateContent(prompt), { logger: log }), 30000);
   const response = await result.response;
   const text = response.text();
 
@@ -349,10 +339,7 @@ ${JSON.stringify(question)}`;
   }
 
   log.info("Calling Gemini for question hint");
-  const result = await withTimeout(
-    retry(() => model.generateContent(prompt), { maxRetries: 2, baseDelay: 1000, logger: log }),
-    15000
-  );
+  const result = await withTimeout(retry(() => model.generateContent(prompt), { maxRetries: 2, baseDelay: 1000, logger: log }), 15000);
   const response = await result.response;
   const text = response.text();
 
@@ -392,10 +379,7 @@ ${JSON.stringify(question)}`;
   }
 
   log.info("Calling Gemini for wrong answer explanation");
-  const result = await withTimeout(
-    retry(() => model.generateContent(prompt), { maxRetries: 3, baseDelay: 1000, logger: log }),
-    15000
-  );
+  const result = await withTimeout(retry(() => model.generateContent(prompt), { maxRetries: 3, baseDelay: 1000, logger: log }), 15000);
   const response = await result.response;
   const text = response.text();
 
@@ -417,12 +401,7 @@ export const askForgeAssistant = onCall(async (request) => {
   const { messages, preferredLanguage } = request.data;
   const lang = preferredLanguage || "en";
 
-  const subjectsSnap = await db
-    .collection("users")
-    .doc(uid)
-    .collection("subjects")
-    .where("forge", "==", true)
-    .get();
+  const subjectsSnap = await db.collection("users").doc(uid).collection("subjects").where("forge", "==", true).get();
 
   const subjects = subjectsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
@@ -435,9 +414,7 @@ export const askForgeAssistant = onCall(async (request) => {
         .join("\n\n")
     : "No Forge subjects have been generated yet.";
 
-  const conversation = messages
-    .map((message) => `${message.role === "user" ? "Student" : "Assistant"}: ${message.content}`)
-    .join("\n");
+  const conversation = messages.map((message) => `${message.role === "user" ? "Student" : "Assistant"}: ${message.content}`).join("\n");
 
   const prompt = `You are LockOnRevision's AI study assistant.
 Answer using the student's uploaded study material and generated Forge learning structure whenever possible.
@@ -458,10 +435,7 @@ Return strict JSON only: {"reply":"your response here"}`;
   }
 
   log.info("Calling Gemini for forge assistant");
-  const result = await withTimeout(
-    retry(() => model.generateContent(prompt), { logger: log }),
-    30000
-  );
+  const result = await withTimeout(retry(() => model.generateContent(prompt), { logger: log }), 30000);
   const response = await result.response;
   const text = response.text();
 
@@ -537,7 +511,7 @@ Create concise lessons, 3-5 recall questions per lesson, and only use facts grou
 
 NOTES:
 ${sourceText}`,
-    validateLearningContent
+    validateLearningContent,
   );
 
   const created = {
