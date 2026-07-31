@@ -2,6 +2,7 @@ import { RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ForgeCurriculumView } from "../components/ForgeCurriculumView.jsx";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext.jsx";
 import {
   getForgeContext,
@@ -16,6 +17,7 @@ export function ForgeSubjectPage() {
   const { subjectId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [subjects, setSubjects] = useState([]);
   const [units, setUnits] = useState([]);
   const [subUnits, setSubUnits] = useState([]);
@@ -50,14 +52,14 @@ export function ForgeSubjectPage() {
     if (!draft) return;
 
     setBusy(true);
-    setStatus("Regenerating structure...");
+    setStatus(t('forge_subject.regenerating'));
     try {
       const context = await getForgeContext(user.uid);
       const sourceText = context.sourceText || "";
-      if (!sourceText) throw new Error("No source material available to regenerate from.");
+      if (!sourceText) throw new Error(t('forge_subject.no_source'));
 
       await regenerateForgeStructure(user.uid, draft.id, sourceText);
-      setStatus("Structure regenerated.");
+      setStatus(t('forge_subject.regenerated'));
     } catch (error) {
       setStatus(error.message);
     } finally {
@@ -73,12 +75,12 @@ export function ForgeSubjectPage() {
   if (!selectedSubject) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 text-center">
-        <p className="text-lg font-bold text-text-primary mb-4">Subject not found</p>
+        <p className="text-lg font-bold text-text-primary mb-4">{t("forge.subject_not_found")}</p>
         <button
           onClick={handleBackToSubjects}
           className="px-6 py-3 bg-primary text-white rounded-xl font-black"
         >
-          Back to Forge
+          {t("forge.back_to_forge")}
         </button>
       </div>
     );
@@ -92,7 +94,7 @@ export function ForgeSubjectPage() {
             <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center shadow-lg shadow-secondary/20">
               <RefreshCw className="w-8 h-8 text-white animate-spin" />
             </div>
-            <div className="text-lg font-bold text-text-primary">{status || "Processing..."}</div>
+            <div className="text-lg font-bold text-text-primary">{status || t("common.processing")}</div>
           </div>
         </div>
       )}
@@ -103,7 +105,7 @@ export function ForgeSubjectPage() {
             onClick={handleBackToSubjects}
             className="inline-flex items-center gap-2 text-sm font-bold text-text-secondary hover:text-text-primary transition-colors"
           >
-            &larr; All Subjects
+            {t("forge.all_subjects")}
           </button>
           <div className="flex gap-2">
             <button
@@ -112,7 +114,7 @@ export function ForgeSubjectPage() {
               className="flex items-center gap-2 px-4 py-2 bg-background border border-border text-text-secondary rounded-xl text-sm font-bold hover:bg-surface transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               <RefreshCw className={`w-4 h-4 ${busy ? "animate-spin" : ""}`} />
-              Regenerate
+              {t("forge.regenerate")}
             </button>
           </div>
         </div>

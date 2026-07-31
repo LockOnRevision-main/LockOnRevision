@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   logoHorizontalDark,
   logoHorizontalLight,
@@ -14,21 +15,22 @@ const logoMap = {
 };
 
 export function Logo({ variant = "horizontal", theme = "dark", className = "" }) {
+  const { t } = useTranslation();
   const src = logoMap[variant]?.[theme] || logoHorizontalDark;
 
   if (variant === "icon") {
-    return <img src={src} alt="LockOn" className={`w-10 h-10 object-contain ${className}`} />;
+    return <img src={src} alt={t('logo.alt_icon')} className={`w-10 h-10 object-contain ${className}`} />;
   }
 
   if (variant === "stacked") {
     return (
       <div className={`flex flex-col items-center ${className}`}>
-        <img src={src} alt="LockOn" className="w-16 h-16 object-contain" />
+        <img src={src} alt={t('logo.alt_stacked')} className="w-16 h-16 object-contain" />
       </div>
     );
   }
 
   return (
-    <img src={src} alt="LockOnRevision" className={`h-10 w-auto object-contain ${className}`} />
+    <img src={src} alt={t('logo.alt_horizontal')} className={`h-10 w-auto object-contain ${className}`} />
   );
 }

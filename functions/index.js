@@ -189,9 +189,12 @@ function validateRequest(data, requiredFields = []) {
 export const generateForgeStructure = onCall(async (request) => {
   await verifyAuthenticated(request);
   validateRequest(request.data, ["sourceText"]);
-  const { sourceText } = request.data;
+  const { sourceText, preferredLanguage } = request.data;
+  const lang = preferredLanguage || "en";
 
-  const prompt = `Analyze the study material and create a structured learning path.
+  const prompt = `IMPORTANT: Generate all content ONLY in the user's preferred language: "${lang}". All titles, descriptions, summaries, and any text must be in this language. Maintain educational terminology appropriate for that language. Never translate from English afterwards.
+
+Analyze the study material and create a structured learning path.
 Return strict JSON only with this exact shape:
 {
   "subject": {
@@ -235,9 +238,12 @@ ${sourceText}`;
 export const generateLearningContent = onCall(async (request) => {
   await verifyAuthenticated(request);
   validateRequest(request.data, ["sourceText"]);
-  const { sourceText } = request.data;
+  const { sourceText, preferredLanguage } = request.data;
+  const lang = preferredLanguage || "en";
 
-  const prompt = `Create structured active-recall learning content from these notes.
+  const prompt = `IMPORTANT: Generate all content ONLY in the user's preferred language: "${lang}". All titles, descriptions, summaries, key points, questions, options, correct answers, and explanations must be in this language. Maintain educational terminology appropriate for that language. Never translate from English afterwards.
+
+Create structured active-recall learning content from these notes.
 Return strict JSON only with this exact shape:
 {
   "subjects": [
@@ -282,13 +288,16 @@ ${sourceText}`;
 export const aiTutorChat = onCall(async (request) => {
   await verifyAuthenticated(request);
   validateRequest(request.data, ["messages"]);
-  const { messages, context } = request.data;
+  const { messages, context, preferredLanguage } = request.data;
+  const lang = preferredLanguage || "en";
 
   const conversation = messages.map((m) => `${m.role}: ${m.content}`).join("\n");
   const contextStr = context ? `\n\nContext:\n${JSON.stringify(context)}` : "";
 
   const prompt = `You are LockOnRevision's AI tutor. Be concise, helpful, and active-recall focused.
 Return JSON only: {"reply":"string"}
+
+IMPORTANT: Respond ONLY in the user's preferred language: "${lang}". Maintain educational terminology appropriate for that language. Never translate from English afterwards. If the user changes language, immediately continue the conversation in the newly selected language.
 
 Conversation:
 ${conversation}${contextStr}`;
@@ -320,7 +329,8 @@ ${conversation}${contextStr}`;
 export const generateQuestionHint = onCall(async (request) => {
   const uid = await verifyAuthenticated(request);
   validateRequest(request.data, ["questionId"]);
-  const { questionId } = request.data;
+  const { questionId, preferredLanguage } = request.data;
+  const lang = preferredLanguage || "en";
 
   const questionDoc = await db.collection("users").doc(uid).collection("questions").doc(questionId).get();
   if (!questionDoc.exists) {
@@ -329,7 +339,8 @@ export const generateQuestionHint = onCall(async (request) => {
 
   const question = questionDoc.data();
 
-  const prompt = `Return JSON only: {"hint":"one short hint that helps without revealing the answer"}
+  const prompt = `IMPORTANT: Respond ONLY in the user's preferred language: "${lang}". Never translate from English afterwards.
+Return JSON only: {"hint":"one short hint that helps without revealing the answer"}
 Question:
 ${JSON.stringify(question)}`;
 
@@ -360,7 +371,8 @@ ${JSON.stringify(question)}`;
 export const explainWrongAnswer = onCall(async (request) => {
   const uid = await verifyAuthenticated(request);
   validateRequest(request.data, ["questionId", "selectedAnswer"]);
-  const { questionId, selectedAnswer } = request.data;
+  const { questionId, selectedAnswer, preferredLanguage } = request.data;
+  const lang = preferredLanguage || "en";
 
   const questionDoc = await db.collection("users").doc(uid).collection("questions").doc(questionId).get();
   if (!questionDoc.exists) {
@@ -369,7 +381,8 @@ export const explainWrongAnswer = onCall(async (request) => {
 
   const question = questionDoc.data();
 
-  const prompt = `Return JSON only: {"explanation":"brief explanation of why the selected answer is wrong and why the correct answer is right"}
+  const prompt = `IMPORTANT: Respond ONLY in the user's preferred language: "${lang}". Never translate from English afterwards.
+Return JSON only: {"explanation":"brief explanation of why the selected answer is wrong and why the correct answer is right"}
 Selected answer: ${selectedAnswer}
 Question:
 ${JSON.stringify(question)}`;
@@ -401,7 +414,8 @@ ${JSON.stringify(question)}`;
 export const askForgeAssistant = onCall(async (request) => {
   const uid = await verifyAuthenticated(request);
   validateRequest(request.data, ["messages"]);
-  const { messages } = request.data;
+  const { messages, preferredLanguage } = request.data;
+  const lang = preferredLanguage || "en";
 
   const subjectsSnap = await db
     .collection("users")
@@ -428,6 +442,8 @@ export const askForgeAssistant = onCall(async (request) => {
   const prompt = `You are LockOnRevision's AI study assistant.
 Answer using the student's uploaded study material and generated Forge learning structure whenever possible.
 Be concise, encouraging, and focused on active recall.
+
+IMPORTANT: Respond ONLY in the user's preferred language: "${lang}". Maintain educational terminology appropriate for that language. Never translate from English afterwards. If the user changes language, immediately continue the conversation in the newly selected language.
 
 Generated learning structure:
 ${structureSummary}
@@ -464,7 +480,8 @@ Return strict JSON only: {"reply":"your response here"}`;
 export const processUploadedNotes = onCall(async (request) => {
   const uid = await verifyAuthenticated(request);
   validateRequest(request.data, ["fileId"]);
-  const { fileId } = request.data;
+  const { fileId, preferredLanguage } = request.data;
+  const lang = preferredLanguage || "en";
 
   const fileDoc = await db.collection("users").doc(uid).collection("files").doc(fileId).get();
   if (!fileDoc.exists) {
@@ -480,7 +497,9 @@ export const processUploadedNotes = onCall(async (request) => {
 
   log.info("Calling Gemini for uploaded notes processing");
   const generated = await callGeminiWithValidation(
-    `Create structured active-recall learning content from these notes.
+    `IMPORTANT: Generate all content ONLY in the user's preferred language: "${lang}". All titles, descriptions, summaries, key points, questions, options, correct answers, and explanations must be in this language. Maintain educational terminology appropriate for that language. Never translate from English afterwards.
+
+Create structured active-recall learning content from these notes.
 Return strict JSON only with this exact shape:
 {
   "subjects": [

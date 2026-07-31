@@ -133,7 +133,7 @@ export default requireAuth(async function handler(req, res) {
   }
 
   try {
-    const { url, mimeType, files: requestedFiles } = req.body;
+    const { url, mimeType, files: requestedFiles, preferredLanguage } = req.body;
 
     const filesToProcess = [];
     if (url && mimeType) {
@@ -177,7 +177,10 @@ export default requireAuth(async function handler(req, res) {
       });
     }
 
+    const lang = preferredLanguage || "en";
     const prompt = `You are an expert educational AI. Your goal is to transform the uploaded study notes into a premium, interactive, and structured learning experience.
+
+IMPORTANT: Generate all content ONLY in the user's preferred language: "${lang}". All titles, descriptions, summaries, concepts, exercises, questions, options, correct answers, and explanations must be in this language. Maintain educational terminology appropriate for that language. Never translate from English afterwards.
     
 Analyze the provided files and generate a highly structured JSON response representing a complete subject curriculum.
  

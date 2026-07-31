@@ -1,6 +1,7 @@
 import { BookOpen, FileUp, RefreshCw, Trophy, Zap } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext.jsx";
 import {
   cleanupUploadedFiles,
@@ -13,6 +14,7 @@ import {
 export function ForgePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [subjects, setSubjects] = useState([]);
   const [lessons, setLessons] = useState([]);
   const [pastedNotes, setPastedNotes] = useState("");
@@ -40,7 +42,7 @@ export function ForgePage() {
     let uploaded = [];
 
     setBusy(true);
-    setStatus("Uploading files...");
+    setStatus(t('forge_page.uploading_files'));
     setProgress(0);
 
     try {
@@ -48,9 +50,9 @@ export function ForgePage() {
       uploaded = result.uploaded;
       const combinedText = result.combinedText;
       const sourceText = [pastedNotes.trim(), combinedText].filter(Boolean).join("\n\n---\n\n");
-      if (!sourceText.trim()) throw new Error("No readable content found in uploaded files.");
+      if (!sourceText.trim()) throw new Error(t('forge_page.no_readable_content'));
 
-      setStatus("Generating learning structure with Gemini...");
+      setStatus(t('forge_page.generating_structure'));
       const generated = await generateForgeStructure(user.uid, sourceText, uploaded.map((item) => item.id), uploaded);
       await cleanupUploadedFiles(uploaded);
       navigate(`/forge/subject/${generated.id}`);
@@ -67,19 +69,19 @@ export function ForgePage() {
 
   async function handleGenerateFromPaste() {
     if (!pastedNotes.trim()) {
-      setStatus("Paste notes or upload files first.");
+      setStatus(t('forge_page.paste_or_upload_first'));
       return;
     }
 
     setBusy(true);
     setProgress(100);
-    setStatus("Generating learning structure with Gemini...");
+    setStatus(t('forge_page.generating_structure'));
 
     try {
       const generated = await generateForgeStructure(user.uid, pastedNotes.trim(), []);
       navigate(`/forge/subject/${generated.id}`);
       setPastedNotes("");
-      setStatus("Learning path generated successfully.");
+      setStatus(t('forge_page.generated_success'));
     } catch (error) {
       setStatus(error.message);
     } finally {
@@ -100,7 +102,7 @@ export function ForgePage() {
             <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center shadow-lg shadow-secondary/20">
               <RefreshCw className="w-8 h-8 text-white animate-spin" />
             </div>
-            <div className="text-lg font-bold text-text-primary">{status || "Processing..."}</div>
+            <div className="text-lg font-bold text-text-primary">{status || t("common.processing")}</div>
             {progress > 0 && (
               <div className="w-64 h-2 bg-background rounded-full overflow-hidden">
                 <div
@@ -116,13 +118,13 @@ export function ForgePage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 space-y-6">
         {/* Generate New Subject */}
         <section className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
-          <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">Forge New</p>
-          <h2 className="mt-1 text-2xl font-black text-text-primary">Generate Subject</h2>
+          <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">{t("forge.new_label")}</p>
+          <h2 className="mt-1 text-2xl font-black text-text-primary">{t("forge.generate_subject")}</h2>
 
           <label className="mt-4 grid cursor-pointer place-items-center rounded-2xl border-2 border-dashed border-border bg-background p-8 text-center transition hover:border-primary focus-within:ring-2 focus-within:ring-primary/50">
             <FileUp size={32} className="text-primary" />
-            <strong className="mt-3 text-text-primary">Upload notes or documents</strong>
-            <span className="mt-1 text-sm text-text-secondary">PDF, text, or images up to 20MB each</span>
+            <strong className="mt-3 text-text-primary">{t("forge.upload_notes")}</strong>
+            <span className="mt-1 text-sm text-text-secondary">{t("forge.upload_hint")}</span>
             <input
               className="hidden"
               type="file"
@@ -137,7 +139,7 @@ export function ForgePage() {
             value={pastedNotes}
             onChange={(event) => setPastedNotes(event.target.value)}
             className="mt-4 min-h-40 w-full resize-y rounded-xl border border-border bg-background px-4 py-3 text-sm leading-6 text-text-primary outline-none focus:border-primary transition-colors placeholder:text-text-muted"
-            placeholder="Or paste notes here..."
+            placeholder={t("forge.paste_placeholder")}
             disabled={busy}
           />
 
@@ -147,7 +149,7 @@ export function ForgePage() {
             onClick={handleGenerateFromPaste}
             className="mt-3 w-full rounded-xl bg-secondary px-4 py-3 font-black text-white disabled:bg-text-muted disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-colors hover:bg-secondary-hover"
           >
-            Generate from pasted notes
+            {t("forge.generate_from_paste")}
           </button>
         </section>
 
@@ -163,9 +165,9 @@ export function ForgePage() {
                   <BookOpen size={24} className="text-secondary" />
                 </div>
                 <div>
-                  <p className="text-lg font-black text-text-primary group-hover:text-primary transition-colors">Continue Previous Learning</p>
+                  <p className="text-lg font-black text-text-primary group-hover:text-primary transition-colors">{t("forge.continue_learning")}</p>
                   <p className="text-sm text-text-secondary mt-0.5">
-                    Resume &ldquo;{subjects[0]?.title}&rdquo; &middot; {subjects.length} subject{subjects.length !== 1 ? 's' : ''} available
+                    {t("forge.resume", { title: subjects[0]?.title, count: subjects.length })}
                   </p>
                 </div>
               </div>
@@ -179,22 +181,22 @@ export function ForgePage() {
           <section className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
               <Zap size={20} className="text-primary" />
-              <h2 className="text-lg font-black text-text-primary">Recent Progress</h2>
+              <h2 className="text-lg font-black text-text-primary">{t("forge.recent_progress")}</h2>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="p-4 rounded-2xl bg-background border border-border text-center">
                 <p className="text-2xl font-black text-text-primary">{subjects.length}</p>
-                <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">Subjects</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">{t("forge.subjects_stat")}</p>
               </div>
               <div className="p-4 rounded-2xl bg-background border border-border text-center">
                 <p className="text-2xl font-black text-text-primary">{completedLessons}/{totalLessons}</p>
-                <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">Lessons</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">{t("forge.lessons_stat")}</p>
               </div>
               <div className="p-4 rounded-2xl bg-background border border-border text-center">
                 <p className="text-2xl font-black text-text-primary">
                   {totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0}%
                 </p>
-                <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">Complete</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">{t("forge.complete_stat")}</p>
               </div>
               <div className="p-4 rounded-2xl bg-background border border-border text-center">
                 <p className="text-2xl font-black text-text-primary">
@@ -202,7 +204,7 @@ export function ForgePage() {
                     {totalXp} <Trophy size={16} className="text-warning" />
                   </span>
                 </p>
-                <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">XP Earned</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">{t("forge.xp_earned_stat")}</p>
               </div>
             </div>
           </section>

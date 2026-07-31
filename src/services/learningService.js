@@ -19,6 +19,7 @@ import { getLocalUser, makeId, subscribeLocalState, updateLocalUser } from "./lo
 import { uploadToCloudinary } from "../utils/cloudinary.js";
 import { apiFetch } from "../utils/apiFetch.js";
 import { emitLessonCompleted } from "./forgeEvents.js";
+import i18n from "../i18n/index.js";
 import { emitScoreChanged } from "./forgeEvents.js";
 import { calculateLessonReward } from "./energyService.js";
 
@@ -130,7 +131,7 @@ async function writeFirebaseCourse(uid, generated, sourceFileId = null) {
 async function buildFirebaseGeminiCourse(uid, sourceText, sourceFileId = null) {
   const response = await apiFetch('/api/generate-learning-content', {
     method: 'POST',
-    body: JSON.stringify({ sourceText }),
+    body: JSON.stringify({ sourceText, preferredLanguage: i18n.language }),
   });
 
   if (!response.ok) {
@@ -244,7 +245,8 @@ export async function processUploadedFile(uid, fileId) {
       uid,
       fileId,
       url: fileData.url,
-      mimeType: fileData.type
+      mimeType: fileData.type,
+      preferredLanguage: i18n.language
     }),
   });
 
@@ -299,7 +301,7 @@ export async function getHint(questionId) {
 
   const response = await apiFetch('/api/generate-question-hint', {
     method: 'POST',
-    body: JSON.stringify({ questionId }),
+    body: JSON.stringify({ questionId, preferredLanguage: i18n.language }),
   });
 
   if (!response.ok) {
@@ -318,7 +320,7 @@ export async function explainWrongAnswer(questionId, selectedAnswer) {
 
   const response = await apiFetch('/api/explain-wrong-answer', {
     method: 'POST',
-    body: JSON.stringify({ questionId, selectedAnswer }),
+    body: JSON.stringify({ questionId, selectedAnswer, preferredLanguage: i18n.language }),
   });
 
   if (!response.ok) {

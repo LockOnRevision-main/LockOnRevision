@@ -178,7 +178,10 @@ function buildPrompt(prefs) {
     ? examDates.map((e) => `- "${e.subject}" on ${e.date}`).join("\n")
     : "None specified yet.";
 
+  const lang = prefs.preferredLanguage || "en";
   return `You are a study timetable planner. Generate a balanced weekly revision timetable in valid JSON.
+
+IMPORTANT: Generate all content ONLY in the user's preferred language: "${lang}". All subject names, topic names, and any text in the timetable must be in this language. Maintain educational terminology appropriate for that language. Never translate from English afterwards.
 
 STUDENT INFO:
 - Grade: ${grade || "Not specified"}

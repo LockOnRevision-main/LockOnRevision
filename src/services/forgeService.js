@@ -13,6 +13,7 @@ import { db, isFirebaseConfigured } from "../config/firebase.js";
 import { getLocalUser, makeId, subscribeLocalState, updateLocalUser } from "./localStore.js";
 import { uploadTempFile, deleteStorageFile, uploadAndGetContent } from "../utils/storage.js";
 import { apiFetch } from "../utils/apiFetch.js";
+import i18n from "../i18n/index.js";
 
 function sortByOrder(items) {
   return [...items].sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0));
@@ -168,7 +169,7 @@ async function generateStructureFromText(sourceText) {
 
   const response = await apiFetch('/api/generate-forge-structure', {
     method: 'POST',
-    body: JSON.stringify({ sourceText }),
+    body: JSON.stringify({ sourceText, preferredLanguage: i18n.language }),
   });
 
   if (!response.ok) {
@@ -369,7 +370,8 @@ export async function generateForgeStructure(uid, sourceText, sourceFileIds = []
             mimeType: f.type || "application/octet-stream",
             publicId: f.publicId,
             resourceType: f.resourceType || "raw",
-          }))
+          })),
+          preferredLanguage: i18n.language
         }),
       });
       if (!response.ok) {

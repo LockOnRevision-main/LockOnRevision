@@ -1,18 +1,21 @@
 import { Check, LockKeyhole, X } from "lucide-react";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
-const RULES = [
-  { test: (pw) => pw.length >= 8, label: "At least 8 characters" },
-  { test: (pw) => /[a-z]/.test(pw), label: "Contains a lowercase letter" },
-  { test: (pw) => /[A-Z]/.test(pw), label: "Contains an uppercase letter" },
-  { test: (pw) => /\d/.test(pw), label: "Contains a digit" },
-  { test: (pw) => /[^a-zA-Z0-9]/.test(pw), label: "Contains a special character" },
+const RULE_KEYS = [
+  { test: (pw) => pw.length >= 8, key: "min_chars" },
+  { test: (pw) => /[a-z]/.test(pw), key: "has_lowercase" },
+  { test: (pw) => /[A-Z]/.test(pw), key: "has_uppercase" },
+  { test: (pw) => /\d/.test(pw), key: "has_digit" },
+  { test: (pw) => /[^a-zA-Z0-9]/.test(pw), key: "has_special" },
 ];
 
 export function PasswordInput({ value, onChange, id, placeholder, disabled, autoFocus, showValidation }) {
+  const { t } = useTranslation();
+  const rules = useMemo(() => RULE_KEYS.map((r) => ({ ...r, label: t(`password.${r.key}`) })), [t]);
   const results = useMemo(
-    () => (showValidation ? RULES.map((r) => r.test(value || "")) : []),
-    [value, showValidation],
+    () => (showValidation ? rules.map((r) => r.test(value || "")) : []),
+    [value, showValidation, rules],
   );
 
   return (
@@ -34,7 +37,7 @@ export function PasswordInput({ value, onChange, id, placeholder, disabled, auto
       </div>
       {showValidation ? (
         <div className="grid gap-1.5">
-          {RULES.map((rule, i) => (
+          {rules.map((rule, i) => (
             <div key={rule.label} className="flex items-center gap-2 text-xs">
               {results[i] ? (
                 <Check size={13} className="shrink-0 text-status-success" />

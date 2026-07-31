@@ -1,4 +1,5 @@
 import { Medal, Trophy } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { getLeaderAvatar } from "../utils/avatar.js";
 import { ProfileIconRenderer } from "./Profile/ProfileIconPicker.jsx";
 
@@ -42,13 +43,14 @@ function buildPreviewEntries(users, currentUserId) {
 }
 
 export function LeaderboardPreview({ users, currentUserId }) {
+  const { t } = useTranslation();
   const previewEntries = buildPreviewEntries(users, currentUserId);
 
   if (!previewEntries.length) {
     return (
       <div className="flex flex-col items-center justify-center py-8 text-center">
         <Medal size={36} className="text-text-muted" />
-        <p className="mt-3 text-sm font-bold text-text-secondary">No ranks available</p>
+        <p className="mt-3 text-sm font-bold text-text-secondary">{t("leaderboard.no_ranks")}</p>
       </div>
     );
   }
@@ -98,15 +100,15 @@ export function LeaderboardPreview({ users, currentUserId }) {
 
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-1.5 truncate text-sm font-black text-text-primary">
-                {entry.name || entry.email?.split("@")[0] || "Learner"}
+                {entry.name || entry.email?.split("@")[0] || t("common.learner")}
                 {isCurrentUser ? (
                   <span className="shrink-0 inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-primary">
-                    You
+                    {t("common.you")}
                   </span>
                 ) : null}
               </p>
               <p className="mt-0.5 text-xs text-text-muted">
-                {xp.toLocaleString()} XP + {energy} energy
+                {t("leaderboard.xp_energy", { xp: xp.toLocaleString(), energy })}
               </p>
             </div>
 

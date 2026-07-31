@@ -1,6 +1,8 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 export function ActivityHeatmap({ activity = {} }) {
+  const { t } = useTranslation();
   const days = [];
   const today = new Date();
   
@@ -23,24 +25,24 @@ export function ActivityHeatmap({ activity = {} }) {
 
   return (
     <div className="p-6 rounded-2xl border border-border bg-surface shadow-sm">
-      <h3 className="text-xl font-black text-text-primary mb-6 tracking-tight">Study Activity</h3>
+      <h3 className="text-xl font-black text-text-primary mb-6 tracking-tight">{t('activity.title')}</h3>
       <div className="flex flex-wrap gap-1 justify-center">
         {days.map((day, i) => (
           <div
             key={i}
-            title={`${day.date}: ${day.hours.toFixed(2)} hours`}
+            title={t('activity.hours_tooltip', { date: day.date, hours: day.hours.toFixed(2) })}
             className={`w-3 h-3 rounded-[2px] transition-all hover:scale-150 hover:z-10 ${getColor(day.hours)}`}
           />
         ))}
       </div>
       <div className="mt-6 flex items-center justify-end gap-2 text-xs font-bold text-text-muted uppercase tracking-widest">
-        <span>Less</span>
+        <span>{t('activity.less')}</span>
         <div className="w-3 h-3 rounded-[2px] bg-border" />
         <div className="w-3 h-3 rounded-[2px] bg-primary/20" />
         <div className="w-3 h-3 rounded-[2px] bg-primary/40" />
         <div className="w-3 h-3 rounded-[2px] bg-primary/70" />
         <div className="w-3 h-3 rounded-[2px] bg-primary" />
-        <span>More</span>
+        <span>{t('activity.more')}</span>
       </div>
     </div>
   );

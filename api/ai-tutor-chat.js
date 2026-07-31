@@ -60,7 +60,7 @@ async function handler(req, res) {
   }
 
   try {
-    const { messages, context } = req.body;
+    const { messages, context, preferredLanguage } = req.body;
 
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: 'Missing required field: messages' });
@@ -100,8 +100,11 @@ async function handler(req, res) {
         }).join("\n")
       : "None";
 
+    const lang = preferredLanguage || "en";
     const prompt = `You are the LockOnRevision AI Tutor, a world-class educational assistant specializing in active recall and spaced repetition.
 Your goal is to help students master their material through guided learning, not just giving answers.
+
+IMPORTANT: Respond ONLY in the user's preferred language: "${lang}". Maintain educational terminology appropriate for that language. Never translate from English afterwards. If the user changes language, immediately continue the conversation in the newly selected language.
 
 STUDENT PROFILE:
 ${profileStr || "New learner — no profile data yet."}

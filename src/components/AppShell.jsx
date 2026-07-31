@@ -1,6 +1,7 @@
 import { CalendarDays, KeyRound, LogOut, Hammer, Trophy, User, X } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AiSidebar } from "./AiSidebar.jsx";
 import { Logo } from "./Logo.jsx";
 import { PasswordInput } from "./PasswordInput.jsx";
@@ -8,6 +9,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { canAccessAdmin } from "../utils/permissions.js";
 
 export function AppShell({ children }) {
+  const { t } = useTranslation();
   const { isFirebaseConfigured, changePassword, logout, profile, user } = useAuth();
   const showAdmin = canAccessAdmin(profile, user?.email);
   const [showChangePw, setShowChangePw] = useState(false);
@@ -19,11 +21,11 @@ export function AppShell({ children }) {
     e.preventDefault();
     setPwError("");
     setPwSuccess("");
-    if (newPassword.length < 8) { setPwError("Password must be at least 8 characters."); return; }
+    if (newPassword.length < 8) { setPwError(t("app_shell.password_min_error")); return; }
     setPwBusy(true);
     try {
       await changePassword(newPassword);
-      setPwSuccess("Password changed successfully.");
+      setPwSuccess(t("app_shell.password_changed"));
       setNewPassword("");
     } catch (err) {
       setPwError(err.message);
@@ -41,8 +43,8 @@ export function AppShell({ children }) {
                 <Logo variant="icon" className="h-full w-full" />
               </div>
               <div className="flex-col hidden sm:flex">
-                <p className="font-black tracking-tight text-text-primary leading-none text-sm sm:text-base">LockOnRevision</p>
-                <p className="text-xs font-medium text-text-secondary mt-1">{profile?.name || "Local Learner"}</p>
+                <p className="font-black tracking-tight text-text-primary leading-none text-sm sm:text-base">{t("app.name")}</p>
+                <p className="text-xs font-medium text-text-secondary mt-1">{profile?.name || t("app_shell.local_learner")}</p>
               </div>
             </NavLink>
  
@@ -54,7 +56,7 @@ export function AppShell({ children }) {
                   `rounded-lg px-2 sm:px-4 py-2 text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${isActive ? "bg-primary text-white shadow-md" : "text-text-secondary hover:bg-surface hover:text-text-primary"}`
                 }
               >
-                Dashboard
+                {t("nav.dashboard")}
               </NavLink>
                <NavLink
                 to="/forge"
@@ -65,7 +67,7 @@ export function AppShell({ children }) {
                 }
               >
                 <Hammer size={14} className="sm:size-[16px]" />
-                <span className="hidden sm:inline">Forge</span>
+                <span className="hidden sm:inline">{t("nav.forge")}</span>
               </NavLink>
               <NavLink
                 to="/timetable"
@@ -76,7 +78,7 @@ export function AppShell({ children }) {
                 }
               >
                 <CalendarDays size={14} className="sm:size-[16px]" />
-                <span className="hidden sm:inline">Timetable</span>
+                <span className="hidden sm:inline">{t("nav.timetable")}</span>
               </NavLink>
               <NavLink
                 to="/leaderboard"
@@ -87,7 +89,7 @@ export function AppShell({ children }) {
                 }
               >
                 <Trophy size={14} className="sm:size-[16px]" />
-                <span className="hidden sm:inline">Leaderboard</span>
+                <span className="hidden sm:inline">{t("nav.leaderboard")}</span>
               </NavLink>
               <NavLink
                 to="/profile"
@@ -98,7 +100,7 @@ export function AppShell({ children }) {
                 }
               >
                 <User size={14} className="sm:size-[16px]" />
-                <span className="hidden sm:inline">Profile</span>
+                <span className="hidden sm:inline">{t("nav.profile")}</span>
               </NavLink>
               {showAdmin ? (
                 <NavLink
@@ -107,7 +109,7 @@ export function AppShell({ children }) {
                     `rounded-lg px-2 sm:px-4 py-2 text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${isActive ? "bg-primary text-white shadow-md" : "text-text-secondary hover:bg-surface hover:text-text-primary"}`
                   }
                 >
-                  Admin
+                  {t("nav.admin")}
                 </NavLink>
               ) : null}
 
@@ -117,7 +119,7 @@ export function AppShell({ children }) {
                     type="button"
                     onClick={() => { setShowChangePw(true); setPwError(""); setPwSuccess(""); setNewPassword(""); }}
                     className="rounded-lg border border-border bg-surface p-1.5 sm:p-2 text-text-secondary shadow-sm transition-all hover:bg-primary hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 shrink-0"
-                    aria-label="Change password"
+                    aria-label={t("profile.change_password")}
                   >
                     <KeyRound size={16} className="sm:size-[18px]" />
                   </button>
@@ -125,7 +127,7 @@ export function AppShell({ children }) {
                     type="button"
                     onClick={logout}
                     className="rounded-lg border border-border bg-surface p-1.5 sm:p-2 text-text-secondary shadow-sm transition-all hover:bg-primary hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 shrink-0"
-                    aria-label="Log out"
+                    aria-label={t("nav.logout")}
                   >
                     <LogOut size={16} className="sm:size-[18px]" />
                   </button>
@@ -142,19 +144,19 @@ export function AppShell({ children }) {
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-4" onClick={() => setShowChangePw(false)}>
           <div className="w-full max-w-md rounded-3xl border border-border bg-surface p-8 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-black tracking-tight text-text-primary">Change password</h2>
+              <h2 className="text-xl font-black tracking-tight text-text-primary">{t("profile.change_password")}</h2>
               <button
                 type="button"
                 onClick={() => setShowChangePw(false)}
                 className="rounded-xl border border-border bg-surface p-2 text-text-secondary transition-colors hover:bg-primary hover:text-white"
-                aria-label="Close"
+                aria-label={t("common.close")}
               >
                 <X size={18} />
               </button>
             </div>
             <form onSubmit={handleChangePassword} className="grid gap-4">
               <label className="grid gap-2 text-sm font-bold text-text-primary">
-                New password
+                {t("profile.new_password")}
                 <PasswordInput
                   id="change-password"
                   value={newPassword}
@@ -173,7 +175,7 @@ export function AppShell({ children }) {
                 disabled={pwBusy || newPassword.length < 8}
                 className="rounded-xl bg-primary px-4 py-3 font-black text-white transition-all hover:bg-primary-active active:scale-95 disabled:opacity-50"
               >
-                {pwBusy ? "Saving..." : "Update password"}
+                {pwBusy ? t("common.saving") : t("profile.change_password")}
               </button>
             </form>
           </div>

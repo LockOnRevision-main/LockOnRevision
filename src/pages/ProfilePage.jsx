@@ -42,8 +42,10 @@ import { EditProfileModal } from '../components/Profile/EditProfileModal';
 import { ProfileIconRenderer } from '../components/Profile/ProfileIconPicker';
 import { getLeaderAvatar } from '../utils/avatar';
 import { PasswordInput } from '../components/PasswordInput';
+import { useTranslation } from 'react-i18next';
 
 export function ProfilePage() {
+  const { t } = useTranslation();
   const { profile, user, changePassword } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [saveStatus, setSaveStatus] = useState("");
@@ -89,7 +91,7 @@ export function ProfilePage() {
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
-          <p className="text-lg font-bold text-text-secondary">Loading profile...</p>
+          <p className="text-lg font-bold text-text-secondary">{t("common.loading")}</p>
         </div>
       </div>
     );
@@ -142,11 +144,11 @@ export function ProfilePage() {
     e.preventDefault();
     setPwError("");
     setPwSuccess("");
-    if (newPassword.length < 8) { setPwError("Password must be at least 8 characters."); return; }
+    if (newPassword.length < 8) { setPwError(t("profile.password_min_chars")); return; }
     setPwBusy(true);
     try {
       await changePassword(newPassword);
-      setPwSuccess("Password changed successfully.");
+      setPwSuccess(t("profile.password_changed"));
       setNewPassword("");
     } catch (err) {
       setPwError(err.message);
@@ -158,7 +160,7 @@ export function ProfilePage() {
   const shareProfile = () => {
     const url = `${window.location.origin}/profile`;
     navigator.clipboard.writeText(url);
-    window.alert("Profile link copied to clipboard!");
+    window.alert(t("profile.link_copied"));
   };
 
   const joinedDate = profile.createdAt?.toDate
@@ -182,7 +184,7 @@ export function ProfilePage() {
               : "rgba(239, 68, 68, 0.1)"
           }}
         >
-          {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "Saved!" : "Error saving"}
+          {saveStatus === "saving" ? t("common.saving") : saveStatus === "saved" ? t("common.saved") : t("common.error_saving")}
         </div>
       )}
 
@@ -226,10 +228,10 @@ export function ProfilePage() {
             </div>
             <div className="flex-1 mb-2 text-center md:text-left">
               <h1 className="text-4xl font-black text-text-primary tracking-tight">
-                {profile.name || profile.email?.split('@')[0] || 'Learner'}
+                {profile.name || profile.email?.split('@')[0] || t("common.learner")}
               </h1>
               <p className="text-text-secondary font-medium">
-                @{profile.username || 'learner'} • Joined {joinedDate || 'Recently'}
+                @{profile.username || 'learner'} • {t("profile.join_date")} {joinedDate || t("profile.recently")}
               </p>
             </div>
             <div className="flex gap-3 mb-2">
@@ -238,13 +240,13 @@ export function ProfilePage() {
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface text-text-primary font-bold border border-border hover:bg-background transition-colors shadow-sm"
               >
                 <Share2 size={18} />
-                Share
+                {t("profile.share")}
               </button>
             </div>
           </div>
           <div className="mt-6 max-w-2xl">
             <p className="text-text-secondary leading-relaxed text-lg">
-              {profile.bio || "No bio yet. Share something about your learning journey!"}
+              {profile.bio || t("profile.no_bio")}
             </p>
           </div>
           {/* Grade & Curriculum */}
@@ -273,37 +275,37 @@ export function ProfilePage() {
           {/* Top Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <StatsCard 
-              label="Level" 
+              label={t("leaderboard.level")} 
               value={level} 
               icon={Trophy} 
               color="purple" 
             />
             <StatsCard 
-              label="Rank" 
+              label={t("leaderboard.rank")} 
               value={rank} 
               icon={Award} 
               color="orange" 
             />
             <StatsCard 
-              label="Streak" 
+              label={t("dashboard.streak")} 
               value={`${profile.streak || 0}d`} 
               icon={Flame} 
               color="red" 
             />
             <StatsCard 
-              label="Total XP" 
+              label={t("dashboard.total_xp")} 
               value={profile.xp || 0} 
               icon={Zap} 
               color="blue" 
             />
             <StatsCard 
-              label="Energy" 
+              label={t("dashboard.energy")} 
               value={profile.energy || 0} 
               icon={Battery} 
               color="green" 
             />
             <StatsCard 
-              label="Total Score" 
+              label={t("profile.total_score")} 
               value={(profile.totalScore || 0).toLocaleString()} 
               icon={TrendingUp} 
               color="slate" 
@@ -315,7 +317,7 @@ export function ProfilePage() {
             <div className="p-5 rounded-2xl border border-border bg-surface shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
               <div className="flex items-center gap-3 mb-2">
                 <Medal size={20} className="text-warning shrink-0" />
-                <span className="text-xs font-bold uppercase tracking-widest text-text-muted">Leaderboard</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-text-muted">{t("nav.leaderboard")}</span>
               </div>
               {leaderboardPos !== null ? (
                 <Link to="/leaderboard" className="group inline-flex items-center gap-2">
@@ -329,7 +331,7 @@ export function ProfilePage() {
             <div className="p-5 rounded-2xl border border-border bg-surface shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
               <div className="flex items-center gap-3 mb-2">
                 <Award size={20} className="text-warning shrink-0" />
-                <span className="text-xs font-bold uppercase tracking-widest text-text-muted">Achievements</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-text-muted">{t("profile.achievements")}</span>
               </div>
               <span className="text-3xl font-black text-text-primary tracking-tighter">
                 {badges.length} / 4
@@ -342,23 +344,23 @@ export function ProfilePage() {
             <div className="p-6 rounded-3xl border border-border bg-surface space-y-4 shadow-sm">
               <h3 className="text-lg font-black flex items-center gap-2 text-text-primary">
                 <BookOpen size={20} className="text-primary" />
-                Learning Progress
+                {t("profile.learning_progress")}
               </h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center p-3 rounded-xl bg-background border border-border">
-                  <span className="text-sm font-medium text-text-secondary">Lessons Completed</span>
+                  <span className="text-sm font-medium text-text-secondary">{t("profile.lessons_completed")}</span>
                   <span className="font-black text-text-primary">{totalLessons}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 rounded-xl bg-background border border-border">
-                  <span className="text-sm font-medium text-text-secondary">Exercises Solved</span>
+                  <span className="text-sm font-medium text-text-secondary">{t("profile.exercises_solved")}</span>
                   <span className="font-black text-text-primary">{totalExercises}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 rounded-xl bg-background border border-border">
-                  <span className="text-sm font-medium text-text-secondary">Units Completed</span>
+                  <span className="text-sm font-medium text-text-secondary">{t("profile.units_completed")}</span>
                   <span className="font-black text-text-primary">{profile.completedUnits?.length || 0}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 rounded-xl bg-background border border-border">
-                  <span className="text-sm font-medium text-text-secondary">Study Time</span>
+                  <span className="text-sm font-medium text-text-secondary">{t("profile.study_time")}</span>
                   <span className="font-black text-text-primary">{studyHours}h</span>
                 </div>
               </div>
@@ -366,7 +368,7 @@ export function ProfilePage() {
             <div className="p-6 rounded-3xl border border-border bg-surface space-y-4 shadow-sm">
               <h3 className="text-lg font-black flex items-center gap-2 text-text-primary">
                 <Target size={20} className="text-primary" />
-                Current Goals
+                {t("profile.current_goals")}
               </h3>
               <div className="space-y-3">
                 {profile.goals ? (
@@ -374,13 +376,13 @@ export function ProfilePage() {
                   &quot;{profile.goals}&quot;
                 </p>
                 ) : (
-                  <p className="text-sm text-text-muted italic p-4 bg-background rounded-xl border border-border">No goals set yet.</p>
+                  <p className="text-sm text-text-muted italic p-4 bg-background rounded-xl border border-border">{t("profile.no_goals")}</p>
                 )}
                 <button 
                   onClick={() => setIsEditing(true)}
                   className="text-xs font-bold text-primary hover:text-secondary transition-colors"
                 >
-                  Edit Goals &rarr;
+                  {t("profile.edit_goals")} &rarr;
                 </button>
               </div>
             </div>
@@ -391,7 +393,7 @@ export function ProfilePage() {
             <div className="p-6 rounded-3xl border border-border bg-surface space-y-4 shadow-sm">
               <h3 className="text-lg font-black flex items-center gap-2 text-text-primary">
                 <BookOpen size={20} className="text-primary" />
-                Current Subjects
+                {t("profile.current_subjects")}
               </h3>
               <div className="flex items-center justify-center py-8">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
@@ -401,7 +403,7 @@ export function ProfilePage() {
             <div className="p-6 rounded-3xl border border-border bg-surface space-y-4 shadow-sm">
               <h3 className="text-lg font-black flex items-center gap-2 text-text-primary">
                 <BookOpen size={20} className="text-primary" />
-                Current Subjects
+                {t("profile.current_subjects")}
               </h3>
               <div className="space-y-3">
                 {subjects.slice(0, 5).map((subject) => {
@@ -417,7 +419,7 @@ export function ProfilePage() {
                     <div key={subject.id} className="flex items-center justify-between p-3 rounded-xl bg-background border border-border">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-bold text-text-primary truncate">{subject.title}</p>
-                        <p className="text-xs text-text-muted">{completed}/{total} lessons</p>
+                        <p className="text-xs text-text-muted">{t("profile.lessons_count", { completed, total })}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="w-20 h-2 rounded-full bg-border overflow-hidden">
@@ -430,7 +432,7 @@ export function ProfilePage() {
                 })}
               </div>
               <Link to="/forge" className="text-xs font-bold text-primary hover:text-secondary transition-colors inline-flex items-center gap-1">
-                View all subjects <ExternalLink size={12} />
+                {t("profile.view_all_subjects")} <ExternalLink size={12} />
               </Link>
             </div>
           ) : null}
@@ -440,7 +442,7 @@ export function ProfilePage() {
             <div className="p-6 rounded-3xl border border-border bg-surface space-y-4 shadow-sm">
               <h3 className="text-lg font-black flex items-center gap-2 text-text-primary">
                 <Hammer size={20} className="text-primary" />
-                Forge Progress
+                {t("profile.forge_progress")}
               </h3>
               <div className="flex items-center justify-center py-8">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
@@ -450,30 +452,30 @@ export function ProfilePage() {
             <div className="p-6 rounded-3xl border border-border bg-surface space-y-4 shadow-sm">
               <h3 className="text-lg font-black flex items-center gap-2 text-text-primary">
                 <Hammer size={20} className="text-primary" />
-                Forge Progress
+                {t("profile.forge_progress")}
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-xl bg-background border border-border text-center">
                   <p className="text-2xl font-black text-text-primary">{forgeSubjects.length}</p>
-                  <p className="text-xs font-bold text-text-muted uppercase tracking-widest mt-1">Subjects</p>
+                  <p className="text-xs font-bold text-text-muted uppercase tracking-widest mt-1">{t("dashboard.subjects")}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-background border border-border text-center">
                   <p className="text-2xl font-black text-text-primary">{forgeLessonCount}</p>
-                  <p className="text-xs font-bold text-text-muted uppercase tracking-widest mt-1">Lessons</p>
+                  <p className="text-xs font-bold text-text-muted uppercase tracking-widest mt-1">{t("profile.lessons_label")}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-background border border-border text-center">
                   <p className="text-2xl font-black text-text-primary">{forgeCompletedCount}</p>
-                  <p className="text-xs font-bold text-text-muted uppercase tracking-widest mt-1">Completed</p>
+                  <p className="text-xs font-bold text-text-muted uppercase tracking-widest mt-1">{t("profile.completed_label")}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-background border border-border text-center">
                   <p className="text-2xl font-black text-text-primary">
                     {forgeLessonCount > 0 ? Math.round((forgeCompletedCount / forgeLessonCount) * 100) : 0}%
                   </p>
-                  <p className="text-xs font-bold text-text-muted uppercase tracking-widest mt-1">Progress</p>
+                  <p className="text-xs font-bold text-text-muted uppercase tracking-widest mt-1">{t("profile.progress_label")}</p>
                 </div>
               </div>
               <Link to="/forge" className="text-xs font-bold text-primary hover:text-secondary transition-colors inline-flex items-center gap-1">
-                Open Forge <ExternalLink size={12} />
+                {t("profile.open_forge")} <ExternalLink size={12} />
               </Link>
             </div>
           ) : null}
@@ -483,7 +485,7 @@ export function ProfilePage() {
             <div className="p-6 rounded-3xl border border-border bg-surface space-y-4 shadow-sm">
               <h3 className="text-lg font-black flex items-center gap-2 text-text-primary">
                 <Calendar size={20} className="text-primary" />
-                Active Timetable
+                {t("profile.active_timetable")}
               </h3>
               <div className="flex items-center justify-center py-8">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
@@ -493,22 +495,22 @@ export function ProfilePage() {
             <div className="p-6 rounded-3xl border border-border bg-surface space-y-4 shadow-sm">
               <h3 className="text-lg font-black flex items-center gap-2 text-text-primary">
                 <Calendar size={20} className="text-primary" />
-                Active Timetable
+                {t("profile.active_timetable")}
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-xl bg-background border border-border text-center">
                   <p className="text-2xl font-black text-text-primary">{activeTimetable.weeks?.length || 0}</p>
-                  <p className="text-xs font-bold text-text-muted uppercase tracking-widest mt-1">Weeks</p>
+                  <p className="text-xs font-bold text-text-muted uppercase tracking-widest mt-1">{t("profile.weeks")}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-background border border-border text-center">
                   <p className="text-2xl font-black text-text-primary">
                     {activeTimetable.preferences?.dailyMinutes || 0}m
                   </p>
-                  <p className="text-xs font-bold text-text-muted uppercase tracking-widest mt-1">Daily Target</p>
+                  <p className="text-xs font-bold text-text-muted uppercase tracking-widest mt-1">{t("profile.daily_target")}</p>
                 </div>
               </div>
               <Link to="/timetable" className="text-xs font-bold text-primary hover:text-secondary transition-colors inline-flex items-center gap-1">
-                View Timetable <ExternalLink size={12} />
+                {t("profile.view_timetable")} <ExternalLink size={12} />
               </Link>
             </div>
           ) : null}
@@ -523,7 +525,7 @@ export function ProfilePage() {
           <div className="p-6 rounded-3xl border border-border bg-surface shadow-sm">
              <h3 className="text-lg font-black mb-6 flex items-center gap-2 text-text-primary">
                <Award size={20} className="text-warning" />
-               Achievements
+               {t("profile.achievements")}
                <span className="ml-auto text-xs font-bold text-text-muted bg-background px-2 py-1 rounded-lg">{badges.length}/4</span>
              </h3>
 
@@ -534,7 +536,7 @@ export function ProfilePage() {
                 ))
               ) : (
                 <p className="col-span-3 text-sm text-text-muted text-center py-4 italic">
-                  Earn badges by studying!
+                  {t("profile.earn_badges")}
                 </p>
               )}
             </div>
@@ -544,7 +546,7 @@ export function ProfilePage() {
           <div className="p-6 rounded-3xl border border-border bg-surface shadow-sm">
             <h3 className="text-lg font-black mb-6 flex items-center gap-2 text-text-primary">
               <CheckCircle size={20} className="text-success" />
-              Favorite Subjects
+              {t("profile.favorite_subjects")}
             </h3>
             <div className="flex flex-wrap gap-2">
               {profile.favoriteSubjects?.length > 0 ? (
@@ -554,7 +556,7 @@ export function ProfilePage() {
                   </span>
                 ))
               ) : (
-                <p className="text-sm text-text-muted italic">No favorites added.</p>
+                <p className="text-sm text-text-muted italic">{t("profile.no_favorites")}</p>
               )}
             </div>
           </div>
@@ -563,33 +565,33 @@ export function ProfilePage() {
           <div className="p-6 rounded-3xl border border-border bg-surface shadow-sm">
             <h3 className="text-lg font-black mb-6 flex items-center gap-2 text-text-primary">
               <Settings size={20} className="text-primary" />
-              Account Information
+              {t("profile.account_information")}
             </h3>
             <div className="space-y-3">
               <div className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border">
                 <Mail size={16} className="text-text-muted shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-text-muted uppercase tracking-widest">Email</p>
+                  <p className="text-xs font-bold text-text-muted uppercase tracking-widest">{t("auth.email")}</p>
                   <p className="text-sm font-bold text-text-primary truncate">{profile.email || user?.email || '—'}</p>
                 </div>
                 {user?.emailVerified ? (
-                  <span className="shrink-0 text-xs font-bold text-success px-2 py-1 rounded-lg" style={{ backgroundColor: "rgba(16, 185, 129, 0.1)" }}>Verified</span>
+                  <span className="shrink-0 text-xs font-bold text-success px-2 py-1 rounded-lg" style={{ backgroundColor: "rgba(16, 185, 129, 0.1)" }}>{t("profile.verified")}</span>
                 ) : (
-                  <span className="shrink-0 text-xs font-bold text-warning px-2 py-1 rounded-lg" style={{ backgroundColor: "rgba(245, 158, 11, 0.1)" }}>Unverified</span>
+                  <span className="shrink-0 text-xs font-bold text-warning px-2 py-1 rounded-lg" style={{ backgroundColor: "rgba(245, 158, 11, 0.1)" }}>{t("profile.unverified")}</span>
                 )}
               </div>
               <div className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border">
                 <Shield size={16} className="text-text-muted shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-text-muted uppercase tracking-widest">Role</p>
-                  <p className="text-sm font-bold text-text-primary capitalize">{profile.isAdmin ? 'admin' : 'user'}</p>
+                  <p className="text-xs font-bold text-text-muted uppercase tracking-widest">{t("profile.role")}</p>
+                  <p className="text-sm font-bold text-text-primary capitalize">{profile.isAdmin ? t("profile.admin_role") : t("profile.user_role")}</p>
                 </div>
               </div>
               {joinedDate && (
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border">
                   <Calendar size={16} className="text-text-muted shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-text-muted uppercase tracking-widest">Member Since</p>
+                    <p className="text-xs font-bold text-text-muted uppercase tracking-widest">{t("profile.member_since")}</p>
                     <p className="text-sm font-bold text-text-primary">{joinedDate}</p>
                   </div>
                 </div>
@@ -600,7 +602,7 @@ export function ProfilePage() {
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-background text-text-primary font-bold border border-border hover:bg-surface hover:border-primary transition-all text-sm"
               >
                 <KeyRound size={16} />
-                Change Password
+                {t("profile.change_password")}
               </button>
             </div>
             <button
@@ -608,7 +610,7 @@ export function ProfilePage() {
               onClick={() => setIsEditing(true)}
               className="mt-4 w-full py-3 rounded-xl bg-background text-text-primary font-bold border border-border hover:bg-surface hover:border-primary transition-all text-sm"
             >
-              Edit Profile
+              {t("profile.edit_profile")}
             </button>
           </div>
         </div>
@@ -626,19 +628,19 @@ export function ProfilePage() {
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-4" onClick={() => setShowChangePw(false)}>
           <div className="w-full max-w-md rounded-3xl border border-border bg-surface p-8 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-black tracking-tight text-text-primary">Change password</h2>
+              <h2 className="text-xl font-black tracking-tight text-text-primary">{t("profile.change_password")}</h2>
               <button
                 type="button"
                 onClick={() => setShowChangePw(false)}
                 className="rounded-xl border border-border bg-surface p-2 text-text-secondary transition-colors hover:bg-primary hover:text-white"
-                aria-label="Close"
+                aria-label={t("common.close")}
               >
                 <X size={18} />
               </button>
             </div>
             <form onSubmit={handleChangePassword} className="grid gap-4">
               <label className="grid gap-2 text-sm font-bold text-text-primary">
-                New password
+                {t("profile.new_password")}
                 <PasswordInput
                   id="change-password"
                   value={newPassword}
@@ -657,7 +659,7 @@ export function ProfilePage() {
                 disabled={pwBusy || newPassword.length < 8}
                 className="rounded-xl bg-primary px-4 py-3 font-black text-white transition-all hover:bg-primary-active active:scale-95 disabled:opacity-50"
               >
-                {pwBusy ? "Saving..." : "Update password"}
+                {pwBusy ? t("common.saving") : t("profile.update_password")}
               </button>
             </form>
           </div>

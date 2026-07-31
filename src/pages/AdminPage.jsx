@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Award, BookOpen, Search, ShieldCheck, Trophy, Users, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
@@ -20,6 +21,7 @@ import { calculateTotalScore } from "../services/userService.js";
 import { canAccessAdmin } from "../utils/permissions.js";
 
 export function AdminPage() {
+  const { t } = useTranslation();
   const { isFirebaseConfigured, profile, user } = useAuth();
   const [overview, setOverview] = useState(null);
   const [users, setUsers] = useState([]);
@@ -31,7 +33,7 @@ export function AdminPage() {
   const [totalScoreInput, setTotalScoreInput] = useState("");
   const [rewardXp, setRewardXp] = useState(100);
   const [rewardEnergy, setRewardEnergy] = useState(1);
-  const [rewardReason, setRewardReason] = useState("Manual reward event");
+  const [rewardReason, setRewardReason] = useState(t("admin_page.manual_reward_event"));
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -71,7 +73,7 @@ export function AdminPage() {
     try {
       const results = await searchUsers(searchTerm);
       setUsers(results);
-      setStatus(`Found ${results.length} users.`);
+      setStatus(t("admin_page.found_users", { count: results.length }));
     } catch (error) {
       setStatus(error.message);
     } finally {
@@ -80,11 +82,11 @@ export function AdminPage() {
   }
 
   async function runXpAdjust(sign) {
-    if (!selectedUserId) return setStatus("Select a user first.");
+    if (!selectedUserId) return setStatus(t("admin_page.select_user_first"));
     setBusy(true);
     try {
       const result = await adjustUserXp(selectedUserId, sign * Number(xpDelta || 0));
-      setStatus(`XP updated. New total score: ${result.totalScore.toLocaleString()}.`);
+      setStatus(t("admin_page.xp_updated", { score: result.totalScore.toLocaleString() }));
       setUsers(await searchUsers(searchTerm));
     } catch (error) {
       setStatus(error.message);
@@ -94,11 +96,11 @@ export function AdminPage() {
   }
 
   async function runEnergyAdjust(sign) {
-    if (!selectedUserId) return setStatus("Select a user first.");
+    if (!selectedUserId) return setStatus(t("admin_page.select_user_first"));
     setBusy(true);
     try {
       const result = await adjustUserEnergy(selectedUserId, sign * Number(energyDelta || 0));
-      setStatus(`Energy updated. New total score: ${result.totalScore.toLocaleString()}.`);
+      setStatus(t("admin_page.energy_updated", { score: result.totalScore.toLocaleString() }));
       setUsers(await searchUsers(searchTerm));
     } catch (error) {
       setStatus(error.message);
@@ -108,11 +110,11 @@ export function AdminPage() {
   }
 
   async function runTotalScoreSet() {
-    if (!selectedUserId) return setStatus("Select a user first.");
+    if (!selectedUserId) return setStatus(t("admin_page.select_user_first"));
     setBusy(true);
     try {
       const result = await setUserTotalScore(selectedUserId, Number(totalScoreInput || 0));
-      setStatus(`Total score set to ${result.totalScore.toLocaleString()}.`);
+      setStatus(t("admin_page.score_set", { score: result.totalScore.toLocaleString() }));
     } catch (error) {
       setStatus(error.message);
     } finally {
@@ -121,7 +123,7 @@ export function AdminPage() {
   }
 
   async function runRewardEvent() {
-    if (!selectedUserId) return setStatus("Select a user first.");
+    if (!selectedUserId) return setStatus(t("admin_page.select_user_first"));
     setBusy(true);
     try {
       const result = await grantLeaderboardReward(selectedUserId, {
@@ -129,7 +131,7 @@ export function AdminPage() {
         energy: Number(rewardEnergy || 0),
         reason: rewardReason,
       });
-      setStatus(`Reward applied. New total score: ${result.totalScore.toLocaleString()}.`);
+      setStatus(t("admin_page.reward_applied", { score: result.totalScore.toLocaleString() }));
       setUsers(await searchUsers(searchTerm));
     } catch (error) {
       setStatus(error.message);
@@ -143,7 +145,7 @@ export function AdminPage() {
     try {
       await moderateForgeSubject(userId, subjectId);
       setForgeContent(await fetchAllForgeSubjects());
-      setStatus("Forge subject removed.");
+      setStatus(t("admin_page.forge_subject_removed"));
     } catch (error) {
       setStatus(error.message);
     } finally {
@@ -158,31 +160,27 @@ export function AdminPage() {
           <div className="flex items-center gap-3">
             <ShieldCheck size={24} />
             <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-white/75">Admin</p>
-              <h1 className="text-4xl font-black tracking-tight">Administration panel</h1>
+              <p className="text-sm font-bold uppercase tracking-widest text-white/75">{t("nav.admin")}</p>
+              <h1 className="text-4xl font-black tracking-tight">{t("admin.title")}</h1>
             </div>
           </div>
-          <p className="mt-3 max-w-2xl text-white/85">
-            Manage users, adjust rewards and progress, moderate Forge content, and run leaderboard events.
-          </p>
+          <p className="mt-3 max-w-2xl text-white/85">{t("admin.description")}</p>
         </div>
       </section>
 
       {!isFirebaseConfigured ? (
-        <p className="rounded-lg border border-warning/20 bg-warning/10 p-3 text-sm font-bold text-warning">
-          Firebase is required for admin actions.
-        </p>
+        <p className="rounded-lg border border-warning/20 bg-warning/10 p-3 text-sm font-bold text-warning">{t("admin.firebase_required")}</p>
       ) : null}
 
       {status ? <p className="rounded-lg border border-info/20 bg-info/10 p-3 text-sm font-bold text-info">{status}</p> : null}
 
       <section className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Users loaded" value={users.length} helper="Search results" tone="bg-surface" />
-        <StatCard label="Forge subjects" value={forgeContent.length} helper="Across all users" tone="bg-info/10" />
+        <StatCard label={t("admin.users_loaded")} value={users.length} helper={t("admin.search_results")} tone="bg-surface" />
+        <StatCard label={t("admin.forge_subjects")} value={forgeContent.length} helper={t("admin.across_all_users")} tone="bg-info/10" />
         <StatCard
-          label="Top score"
+          label={t("admin.top_score")}
           value={overview?.topUsers?.[0]?.totalScore?.toLocaleString() || "-"}
-          helper="Leaderboard leader"
+          helper={t("admin.leaderboard_leader")}
           tone="bg-warning/10"
         />
       </section>
@@ -192,8 +190,8 @@ export function AdminPage() {
           <div className="mb-4 flex items-center gap-3">
             <Users className="text-primary" />
             <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">User management</p>
-              <h2 className="text-2xl font-black">Search users</h2>
+              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">{t("admin.user_management")}</p>
+              <h2 className="text-2xl font-black">{t("admin.search_users")}</h2>
             </div>
           </div>
 
@@ -201,7 +199,7 @@ export function AdminPage() {
             <input
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search by name or email..."
+              placeholder={t("admin.search_placeholder")}
               className="min-w-0 flex-1 rounded-lg border border-border px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
             />
             <button
@@ -211,7 +209,7 @@ export function AdminPage() {
               className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-black text-white disabled:bg-text-muted"
             >
               <Search size={16} />
-              Search
+              {t("common.search")}
             </button>
           </div>
 
@@ -230,18 +228,18 @@ export function AdminPage() {
                   }`}
                 >
                   <span>
-                    <span className="block font-black">{item.name || "Unnamed"}</span>
+                    <span className="block font-black">{item.name || t("admin.unnamed")}</span>
                     <span className="block text-xs text-text-secondary">{item.email}</span>
                   </span>
                   <span className="text-right text-xs font-bold text-text-secondary">
-                    XP {item.xp || 0}
+                    {t("leaderboard.xp")} {item.xp || 0}
                     <br />
-                    Energy {item.energy || 0}
+                    {t("dashboard.energy")} {item.energy || 0}
                   </span>
                 </button>
               ))
             ) : (
-              <EmptyState title="No users" copy="Search to load users from Firestore." />
+              <EmptyState title={t("admin.no_users")} copy={t("admin.no_users_desc")} />
             )}
           </div>
         </article>
@@ -250,23 +248,23 @@ export function AdminPage() {
           <div className="mb-4 flex items-center gap-3">
             <Zap className="text-warning" />
             <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">Rewards & progress</p>
-              <h2 className="text-2xl font-black">Adjust selected user</h2>
+              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">{t("admin.rewards_progress")}</p>
+              <h2 className="text-2xl font-black">{t("admin.adjust_xp")}</h2>
             </div>
           </div>
 
           {selectedUser ? (
             <p className="mb-4 rounded-lg bg-background p-3 text-sm">
-              <strong>{selectedUser.name}</strong> - XP {selectedUser.xp || 0}, Energy {selectedUser.energy || 0},
-              Total {selectedUser.totalScore || calculateTotalScore(selectedUser)}
+              <strong>{selectedUser.name}</strong> - {t("leaderboard.xp")} {selectedUser.xp || 0}, {t("dashboard.energy")} {selectedUser.energy || 0},
+              {t("admin.total")} {selectedUser.totalScore || calculateTotalScore(selectedUser)}
             </p>
           ) : (
-            <p className="mb-4 text-sm text-text-secondary">Select a user to adjust rewards.</p>
+            <p className="mb-4 text-sm text-text-secondary">{t("admin.select_user")}</p>
           )}
 
           <div className="grid gap-4">
             <div className="rounded-lg border border-border p-3">
-              <p className="text-sm font-black">XP</p>
+              <p className="text-sm font-black">{t("leaderboard.xp")}</p>
               <div className="mt-2 flex items-center gap-2">
                 <input
                   type="number"
@@ -275,16 +273,16 @@ export function AdminPage() {
                   className="w-24 rounded-lg border border-border px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
                 />
                 <button type="button" disabled={busy} onClick={() => runXpAdjust(1)} className="rounded-lg bg-primary px-3 py-2 text-sm font-black text-white">
-                  Add XP
+                  {t("admin.add_xp")}
                 </button>
                 <button type="button" disabled={busy} onClick={() => runXpAdjust(-1)} className="rounded-lg border border-border px-3 py-2 text-sm font-bold">
-                  Remove XP
+                  {t("admin.remove_xp")}
                 </button>
               </div>
             </div>
 
             <div className="rounded-lg border border-border p-3">
-              <p className="text-sm font-black">Energy</p>
+              <p className="text-sm font-black">{t("dashboard.energy")}</p>
               <div className="mt-2 flex items-center gap-2">
                 <input
                   type="number"
@@ -293,16 +291,16 @@ export function AdminPage() {
                   className="w-24 rounded-lg border border-border px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
                 />
                 <button type="button" disabled={busy} onClick={() => runEnergyAdjust(1)} className="rounded-lg bg-warning px-3 py-2 text-sm font-black text-white">
-                  Add Energy
+                  {t("admin.add_energy")}
                 </button>
                 <button type="button" disabled={busy} onClick={() => runEnergyAdjust(-1)} className="rounded-lg border border-border px-3 py-2 text-sm font-bold">
-                  Remove Energy
+                  {t("admin.remove_energy")}
                 </button>
               </div>
             </div>
 
             <div className="rounded-lg border border-border p-3">
-              <p className="text-sm font-black">Total score override</p>
+              <p className="text-sm font-black">{t("admin.total_score_override")}</p>
               <div className="mt-2 flex items-center gap-2">
                 <input
                   type="number"
@@ -311,7 +309,7 @@ export function AdminPage() {
                   className="w-32 rounded-lg border border-border px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
                 />
                 <button type="button" disabled={busy} onClick={runTotalScoreSet} className="rounded-lg bg-secondary px-3 py-2 text-sm font-black text-white">
-                  Set total score
+                  {t("admin.set_total_score")}
                 </button>
               </div>
             </div>
@@ -324,8 +322,8 @@ export function AdminPage() {
           <div className="mb-4 flex items-center gap-3">
             <Trophy className="text-primary" />
             <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">Leaderboard</p>
-              <h2 className="text-2xl font-black">Reward events</h2>
+              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">{t("leaderboard.title")}</p>
+              <h2 className="text-2xl font-black">{t("admin.reward_events")}</h2>
             </div>
           </div>
 
@@ -335,20 +333,20 @@ export function AdminPage() {
               value={rewardXp}
               onChange={(event) => setRewardXp(event.target.value)}
               className="rounded-lg border border-border px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
-              placeholder="XP to grant"
+              placeholder={t("admin.xp_to_grant")}
             />
             <input
               type="number"
               value={rewardEnergy}
               onChange={(event) => setRewardEnergy(event.target.value)}
               className="rounded-lg border border-border px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
-              placeholder="Energy to grant"
+              placeholder={t("admin.energy_to_grant")}
             />
             <input
               value={rewardReason}
               onChange={(event) => setRewardReason(event.target.value)}
               className="rounded-lg border border-border px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
-              placeholder="Reason"
+              placeholder={t("admin.reason")}
             />
             <button
               type="button"
@@ -357,13 +355,13 @@ export function AdminPage() {
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary to-warning px-4 py-3 font-black text-white disabled:opacity-50"
             >
               <Award size={18} />
-              Grant reward event
+              {t("admin.grant_reward_event")}
             </button>
           </div>
 
           {overview?.topUsers?.length ? (
             <div className="mt-5">
-              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">Top leaderboard</p>
+              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">{t("admin.top_leaderboard")}</p>
               <div className="mt-2 grid gap-2">
                 {overview.topUsers.slice(0, 5).map((entry) => (
                   <div key={entry.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm">
@@ -382,8 +380,8 @@ export function AdminPage() {
           <div className="mb-4 flex items-center gap-3">
             <BookOpen className="text-warning" />
             <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">Content</p>
-              <h2 className="text-2xl font-black">Forge moderation</h2>
+              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">{t("admin.content")}</p>
+              <h2 className="text-2xl font-black">{t("admin.forge_moderation")}</h2>
             </div>
           </div>
 
@@ -396,8 +394,8 @@ export function AdminPage() {
                     {entry.userName} &bull; {entry.userEmail}
                   </p>
                   <p className="mt-1 text-sm text-text-secondary">
-                    {entry.subject.units?.length || 0} units &bull;{" "}
-                    {entry.subject.units?.reduce((acc, unit) => acc + (unit.subUnits?.length || 0), 0) || 0} sub-units
+                    {entry.subject.units?.length || 0} {t("admin.units")} &bull;{" "}
+                    {entry.subject.units?.reduce((acc, unit) => acc + (unit.subUnits?.length || 0), 0) || 0} {t("admin.sub_units")}
                   </p>
                   <button
                     type="button"
@@ -405,12 +403,12 @@ export function AdminPage() {
                     onClick={() => removeForgeSubject(entry.userId, entry.subject.id)}
                     className="mt-2 rounded-lg border border-error/20 px-3 py-1 text-xs font-bold text-error"
                   >
-                    Remove subject
+                    {t("admin.remove_subject")}
                   </button>
                 </div>
               ))
             ) : (
-              <EmptyState title="No Forge content" copy="Generated Forge subjects will appear here." />
+              <EmptyState title={t("admin.no_forge_content")} copy={t("admin.no_forge_content_desc")} />
             )}
           </div>
         </article>

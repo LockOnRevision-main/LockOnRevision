@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { AlertCircle, BookOpen, ChevronRight, Flame, Hammer, Sparkles, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -13,35 +14,36 @@ const REFERRAL_OPTIONS = [
 const WELCOME_FEATURES = [
   {
     icon: Hammer,
-    title: "Forge",
-    description: "Generate custom AI-powered lessons tailored to any topic you want to master.",
+    titleKey: "forge.title",
+    descKey: "onboarding.feature_forge_desc",
     color: "text-primary",
     bg: "bg-primary/10",
   },
   {
     icon: Trophy,
-    title: "Leaderboards",
-    description: "Earn XP through lessons and activities to climb the rankings and compete with peers.",
+    titleKey: "leaderboard.title",
+    descKey: "onboarding.feature_leaderboard_desc",
     color: "text-warning",
     bg: "bg-warning/10",
   },
   {
     icon: BookOpen,
-    title: "Generated Subjects",
-    description: "Create lessons on almost any subject — from Ancient History to Quantum Physics.",
+    titleKey: "onboarding.feature_generated_subjects",
+    descKey: "onboarding.feature_generated_subjects_desc",
     color: "text-status-success",
     bg: "bg-status-success/10",
   },
   {
     icon: Flame,
-    title: "Daily Progress",
-    description: "Track your XP, maintain streaks, and watch your study progress grow every day.",
+    titleKey: "onboarding.feature_daily_progress",
+    descKey: "onboarding.feature_daily_progress_desc",
     color: "text-status-error",
     bg: "bg-status-error/10",
   },
 ];
 
 export function OnboardingWizard() {
+  const { t } = useTranslation();
   const { profile, user } = useAuth();
   const [step, setStep] = useState("name");
   const [name, setName] = useState("");
@@ -78,7 +80,7 @@ export function OnboardingWizard() {
     if (step === "name") {
       const displayName = name.trim() || user?.email?.split('@')[0] || "Learner";
       if (displayName === PLACEHOLDER_NAME) {
-        setNameError("Please enter a different display name.");
+        setNameError(t("onboarding.name_error_placeholder"));
         return;
       }
       setNameError("");
@@ -122,7 +124,7 @@ export function OnboardingWizard() {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary shadow-lg shadow-secondary/20">
             <Sparkles size={28} className="text-white" />
           </div>
-          <h1 className="text-2xl font-black tracking-tight text-text-primary">LockOnRevision</h1>
+          <h1 className="text-2xl font-black tracking-tight text-text-primary">{t("app.name")}</h1>
         </div>
 
         {/* Step indicator */}
@@ -154,11 +156,11 @@ export function OnboardingWizard() {
         {/* Step 1: Name */}
         {step === "name" && (
           <div className="animate-fadeIn rounded-3xl border border-border bg-surface p-8 shadow-2xl shadow-primary/10">
-            <h2 className="text-2xl font-black tracking-tight text-text-primary">What should we call you?</h2>
-            <p className="mt-2 text-sm text-text-secondary">This is how you&apos;ll appear across the app.</p>
+            <h2 className="text-2xl font-black tracking-tight text-text-primary">{t("onboarding.name_title")}</h2>
+            <p className="mt-2 text-sm text-text-secondary">{t("onboarding.name_desc")}</p>
 
             <div className="mt-6">
-              <label className="sr-only" htmlFor="onboarding-name">Display name</label>
+              <label className="sr-only" htmlFor="onboarding-name">{t("profile.display_name")}</label>
               <input
                 id="onboarding-name"
                 type="text"
@@ -175,7 +177,7 @@ export function OnboardingWizard() {
                 </p>
               ) : (
                 <p className="mt-2 text-xs text-text-muted">
-                  Leave empty to use &ldquo;{emailPrefix}&rdquo;
+                  {t("onboarding.name_empty_hint", { emailPrefix })}
                 </p>
               )}
             </div>
@@ -187,7 +189,7 @@ export function OnboardingWizard() {
                 disabled={saving}
                 className="text-sm font-bold text-text-muted transition-colors hover:text-text-primary"
               >
-                Skip
+                {t("onboarding.skip")}
               </button>
               <button
                 type="button"
@@ -195,7 +197,7 @@ export function OnboardingWizard() {
                 disabled={saving}
                 className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-black text-white shadow-lg transition-all hover:bg-primary-active active:scale-95 disabled:opacity-50"
               >
-                {saving ? "Saving..." : "Continue"}
+                {saving ? t("common.saving") : t("lesson.continue")}
                 <ChevronRight size={18} />
               </button>
             </div>
@@ -205,8 +207,8 @@ export function OnboardingWizard() {
         {/* Step 2: Referral */}
         {step === "referral" && (
           <div className="animate-fadeIn rounded-3xl border border-border bg-surface p-8 shadow-2xl shadow-primary/10">
-            <h2 className="text-2xl font-black tracking-tight text-text-primary">Where did you hear about LockOnRevision?</h2>
-            <p className="mt-2 text-sm text-text-secondary">This helps us understand our community.</p>
+            <h2 className="text-2xl font-black tracking-tight text-text-primary">{t("onboarding.referral_title")}</h2>
+            <p className="mt-2 text-sm text-text-secondary">{t("onboarding.referral_desc")}</p>
 
             <div className="mt-6 grid grid-cols-2 gap-3">
               {REFERRAL_OPTIONS.map((option) => (
@@ -220,7 +222,7 @@ export function OnboardingWizard() {
                       : "border-border bg-background text-text-secondary hover:border-primary/50 hover:text-text-primary"
                   }`}
                 >
-                  {option}
+                  {["Discord", "GitHub", "Instagram", "YouTube"].includes(option) ? option : t(`onboarding.referral_${option.toLowerCase().replace(/\s+/g, "_")}`)}
                 </button>
               ))}
             </div>
@@ -232,7 +234,7 @@ export function OnboardingWizard() {
                 disabled={saving}
                 className="text-sm font-bold text-text-muted transition-colors hover:text-text-primary"
               >
-                Skip
+                {t("onboarding.skip")}
               </button>
               <button
                 type="button"
@@ -240,7 +242,7 @@ export function OnboardingWizard() {
                 disabled={saving}
                 className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-black text-white shadow-lg transition-all hover:bg-primary-active active:scale-95 disabled:opacity-50"
               >
-                {saving ? "Saving..." : "Continue"}
+                {saving ? t("common.saving") : t("lesson.continue")}
                 <ChevronRight size={18} />
               </button>
             </div>
@@ -252,15 +254,15 @@ export function OnboardingWizard() {
           <div className="animate-fadeIn">
             <div className="mb-6 text-center">
               <h2 className="text-3xl font-black tracking-tight text-text-primary">
-                Welcome, {(profile?.name && profile.name !== PLACEHOLDER_NAME ? profile.name : name) || emailPrefix}
+                {t("onboarding.welcome_user", { name: (profile?.name && profile.name !== PLACEHOLDER_NAME ? profile.name : name) || emailPrefix })}
               </h2>
-              <p className="mt-2 text-text-secondary">Here&apos;s what you can do with LockOnRevision</p>
+              <p className="mt-2 text-text-secondary">{t("onboarding.welcome_desc")}</p>
             </div>
 
             <div className="grid gap-4">
               {WELCOME_FEATURES.map((feature, i) => (
                 <div
-                  key={feature.title}
+                  key={feature.titleKey}
                   className={`rounded-3xl border border-border bg-surface p-6 shadow-sm transition-all duration-500 hover:shadow-md hover:-translate-y-0.5 ${
                     welcomeVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
                   }`}
@@ -271,8 +273,8 @@ export function OnboardingWizard() {
                       <feature.icon size={24} className={feature.color} />
                     </div>
                     <div>
-                      <h3 className="text-lg font-black text-text-primary">{feature.title}</h3>
-                      <p className="mt-1 text-sm text-text-secondary leading-relaxed">{feature.description}</p>
+                      <h3 className="text-lg font-black text-text-primary">{t(feature.titleKey)}</h3>
+                      <p className="mt-1 text-sm text-text-secondary leading-relaxed">{t(feature.descKey)}</p>
                     </div>
                   </div>
                 </div>
@@ -286,7 +288,7 @@ export function OnboardingWizard() {
                 disabled={saving}
                 className="text-sm font-bold text-text-muted transition-colors hover:text-text-primary"
               >
-                Skip
+                {t("onboarding.skip")}
               </button>
               <button
                 type="button"
@@ -294,7 +296,7 @@ export function OnboardingWizard() {
                 disabled={saving}
                 className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-3 font-black text-white shadow-lg transition-all hover:bg-primary-active active:scale-95 disabled:opacity-50"
               >
-                {saving ? "Almost there..." : "Start Learning"}
+                {saving ? t("onboarding.almost_there") : t("onboarding.start_learning")}
                 <Sparkles size={18} />
               </button>
             </div>

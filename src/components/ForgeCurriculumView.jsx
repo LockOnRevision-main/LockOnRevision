@@ -1,7 +1,9 @@
 import { ChevronDown, ChevronRight, Lock, Play, Star, Trophy, Zap } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export function ForgeCurriculumView({ subject, units, subUnits, lessons, onStartLesson }) {
+  const { t } = useTranslation();
   const [expandedUnits, setExpandedUnits] = useState(new Set());
   const [expandedSubUnits, setExpandedSubUnits] = useState(new Set());
 
@@ -82,7 +84,7 @@ export function ForgeCurriculumView({ subject, units, subUnits, lessons, onStart
               <Zap className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xs font-bold uppercase tracking-widest text-text-muted">Total XP</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-text-muted">{t("forge.total_xp_stat")}</div>
               <div className="font-black text-text-primary">
                 {sortedLessons.reduce((sum, l) => sum + (l.xpEarned || 0), 0)}
               </div>
@@ -93,7 +95,7 @@ export function ForgeCurriculumView({ subject, units, subUnits, lessons, onStart
               <Trophy className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xs font-bold uppercase tracking-widest text-text-muted">Completed</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-text-muted">{t("forge.completed_stat")}</div>
               <div className="font-black text-text-primary">
                 {sortedLessons.filter((l) => l.completed).length} / {sortedLessons.length}
               </div>
@@ -104,7 +106,7 @@ export function ForgeCurriculumView({ subject, units, subUnits, lessons, onStart
               <Star className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xs font-bold uppercase tracking-widest text-text-muted">Perfect Lessons</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-text-muted">{t("forge.perfect_lessons")}</div>
               <div className="font-black text-text-primary">
                 {sortedLessons.filter((l) => l.perfect).length}
               </div>
@@ -116,7 +118,7 @@ export function ForgeCurriculumView({ subject, units, subUnits, lessons, onStart
       <div className="space-y-6">
         {sortedUnits.length === 0 && (
           <div className="rounded-2xl border border-border bg-surface p-12 text-center">
-            <p className="text-text-muted font-medium">No units available for this subject.</p>
+            <p className="text-text-muted font-medium">{t("forge.no_units")}</p>
           </div>
         )}
         {sortedUnits.map((unit) => {
@@ -144,9 +146,9 @@ export function ForgeCurriculumView({ subject, units, subUnits, lessons, onStart
                 <div className="flex items-center gap-4 shrink-0">
                   <div className="text-right hidden sm:block">
                     <div className="text-sm font-black text-text-primary">{unitProgress}%</div>
-                    <div className="text-xs text-text-muted">
-                      {getUnitLessons(unit.id).filter((l) => l.completed).length} / {getUnitLessons(unit.id).length} lessons
-                    </div>
+                  <div className="text-xs text-text-muted">
+                    {t("forge.lessons_count", { completed: getUnitLessons(unit.id).filter((l) => l.completed).length, total: getUnitLessons(unit.id).length })}
+                  </div>
                   </div>
                   <div className="w-20 h-2 bg-background rounded-full overflow-hidden">
                     <div
@@ -161,7 +163,7 @@ export function ForgeCurriculumView({ subject, units, subUnits, lessons, onStart
                 <div className="border-t border-border bg-background/50">
                   {unitSubUnits.length === 0 && (
                     <div className="p-6 text-center text-sm text-text-muted">
-                      No sub-units in this unit.
+                      {t("forge.no_sub_units")}
                     </div>
                   )}
                   {unitSubUnits.map((subUnit) => {
@@ -205,7 +207,7 @@ export function ForgeCurriculumView({ subject, units, subUnits, lessons, onStart
                         {isSubExpanded && (
                           <div className="border-t border-border bg-surface p-4">
                             {subUnitLessons.length === 0 ? (
-                              <p className="text-center text-sm text-text-muted py-4">No lessons in this sub-unit.</p>
+                              <p className="text-center text-sm text-text-muted py-4">{t("forge.no_lessons")}</p>
                             ) : (
                               <div className="space-y-3">
                                 {subUnitLessons.map((lesson, index) => {
@@ -234,22 +236,22 @@ export function ForgeCurriculumView({ subject, units, subUnits, lessons, onStart
                                       </div>
                                       <div className="flex-1 min-w-0">
                                         <div className="font-bold text-text-primary text-sm sm:text-base">
-                                          <span className="text-text-muted mr-2">Lesson {index + 1}</span>
+                                          <span className="text-text-muted mr-2">{t("forge.lesson_number", { number: index + 1 })}</span>
                                           <span className="truncate">{lesson.title}</span>
                                         </div>
                                         {lesson.concept && (
                                           <div className="text-sm text-text-secondary truncate">{lesson.concept}</div>
                                         )}
                                         <div className="flex items-center gap-3 mt-1 text-xs font-medium text-text-muted flex-wrap">
-                                          <span>{lesson.durationMinutes || 3} min</span>
+                                          <span>{lesson.durationMinutes || 3} {t("forge.minutes")}</span>
                                           <span>&bull;</span>
-                                          <span>{lesson.xpReward || 15} XP</span>
-                                          {lesson.perfect && <span className="text-warning font-bold">&bull; Perfect!</span>}
+                                          <span>{lesson.xpReward || 15} {t("forge.xp_label")}</span>
+                                          {lesson.perfect && <span className="text-warning font-bold">&bull; {t("forge.perfect_badge")}</span>}
                                         </div>
                                       </div>
                                       {lesson.completed && (
                                         <div className="text-status-success font-black text-sm shrink-0">
-                                          +{lesson.xpEarned || 0} XP
+                                          {t("forge.xp_earned_badge", { xp: lesson.xpEarned || 0 })}
                                         </div>
                                       )}
                                     </button>

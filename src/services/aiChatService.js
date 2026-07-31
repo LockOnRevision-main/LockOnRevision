@@ -1,6 +1,7 @@
 import { isFirebaseConfigured } from "../config/firebase.js";
 import { getForgeContext } from "./forgeService.js";
 import { apiFetch } from "../utils/apiFetch.js";
+import i18n from "../i18n/index.js";
 
 export async function askForgeAssistant(uid, messages) {
   if (!isFirebaseConfigured) {
@@ -17,7 +18,7 @@ export async function askForgeAssistant(uid, messages) {
     const { subjects } = await getForgeContext(uid);
     const response = await apiFetch('/api/ask-forge-assistant', {
       method: 'POST',
-      body: JSON.stringify({ messages, subjects }),
+      body: JSON.stringify({ messages, subjects, preferredLanguage: i18n.language }),
     });
 
     if (!response.ok) {
