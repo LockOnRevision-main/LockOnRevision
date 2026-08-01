@@ -58,7 +58,7 @@ function normalizeGeneratedStructure(generated) {
 }
 
 
-function normalizeExercise(exercise, lesson, _index) {
+function normalizeExercise(exercise, lesson) {
   return {
     id: exercise?.id || makeId("exercise"),
     type: exercise?.type || "multipleChoice",
@@ -72,7 +72,7 @@ function normalizeExercise(exercise, lesson, _index) {
 
 function buildLessonExercises(lesson) {
   const provided = Array.isArray(lesson.exercises) ? lesson.exercises : [];
-  return provided.map((exercise, index) => normalizeExercise(exercise, lesson, index));
+  return provided.map((exercise, _index) => normalizeExercise(exercise, lesson));
 }
 
 
@@ -381,7 +381,7 @@ export async function generateForgeStructure(uid, sourceText, sourceFileIds = []
       const result = await response.json();
       normalized = normalizeGeneratedStructure(result.data);
     } else {
-      normalized = normalizeGeneratedStructure({ subject: { title: "Generated Subject", description: "AI-generated learning path.", units: [] } });
+      normalized = await generateStructureFromText(sourceText);
     }
   } else {
     normalized = await generateStructureFromText(sourceText);
@@ -433,34 +433,34 @@ export async function generateForgeStructure(uid, sourceText, sourceFileIds = []
     });
   });
 
-  const subUnitIdMap = new Map();
-  flat.subUnits.forEach((subUnit) => {
-    const subUnitRef = doc(collection(db, "users", uid, "subUnits"));
-    subUnitIdMap.set(subUnit.id, subUnitRef.id);
-    batch.set(subUnitRef, {
-      subjectId: subjectRef.id,
-      unitId: unitIdMap.get(subUnit.unitId),
-      unitName: subUnit.unitName,
-      title: subUnit.title,
-      summary: subUnit.summary,
-      order: subUnit.order,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-  });
-
-    flat.lessons.forEach((lesson) => {
-      const { id: _lessonId, ...lessonData } = lesson;
-      const lessonRef = doc(collection(db, "users", uid, "lessons"));
-      batch.set(lessonRef, {
-        ...lessonData,
+const subUnitIdMap = new Map();
+    flat.subUnits.forEach((subUnit) => {
+      const subUnitRef = doc(collection(db, "users", uid, "subUnits"));
+      subUnitIdMap.set(subUnit.id, subUnitRef.id);
+      batch.set(subUnitRef, {
         subjectId: subjectRef.id,
-        unitId: unitIdMap.get(lesson.unitId),
-        subUnitId: subUnitIdMap.get(lesson.subUnitId),
+        unitId: unitIdMap.get(subUnit.unitId),
+        unitName: subUnit.unitName,
+        title: subUnit.title,
+        summary: subUnit.summary,
+        order: subUnit.order,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
     });
+
+  flat.lessons.forEach((lesson) => {
+    const { id: _lessonId, ...lessonData } = lesson;
+    const lessonRef = doc(collection(db, "users", uid, "lessons"));
+    batch.set(lessonRef, {
+      ...lessonData,
+      subjectId: subjectRef.id,
+      unitId: unitIdMap.get(lesson.unitId),
+      subUnitId: subUnitIdMap.get(lesson.subUnitId),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  });
 
   batch.set(doc(db, "users", uid, "forgeSources", subjectRef.id), {
     sourceText: sourceText.slice(0, 100000),

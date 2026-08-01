@@ -42,7 +42,7 @@ export function ForgeLessonPage() {
     }
 
     loadLesson();
-  }, [lessonId, user?.uid]);
+  }, [lessonId, user?.uid, t]);
 
   const handleCompleteLesson = useCallback(async (lessonId, xpEarned, perfect, correctCount, totalCount) => {
     try {
@@ -62,7 +62,7 @@ export function ForgeLessonPage() {
     } catch (error) {
       setStatus(error.message);
     }
-  }, [user?.uid, profile, lesson]);
+  }, [user?.uid, profile, lesson, t]);
 
   const handleBack = useCallback(() => {
     if (subjectId) {
