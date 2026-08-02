@@ -48,15 +48,15 @@ export function LeaderboardPreview({ users, currentUserId }) {
 
   if (!previewEntries.length) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-center">
-        <Medal size={36} className="text-text-muted" />
-        <p className="mt-3 text-sm font-bold text-text-secondary">{t("leaderboard.no_ranks")}</p>
+      <div className="flex flex-col items-center justify-center py-10 text-center">
+        <Medal size={40} className="text-text-muted" />
+        <p className="mt-4 text-sm font-bold text-text-secondary">{t("leaderboard.no_ranks")}</p>
       </div>
     );
   }
 
   return (
-    <div className="divide-y divide-border rounded-xl border border-border bg-background">
+    <div className="divide-y divide-border rounded-xl border border-border bg-background overflow-hidden">
       {previewEntries.map((entry) => {
         const rank = entry._rank;
         const xp = Number(entry.xp || 0);
@@ -68,15 +68,15 @@ export function LeaderboardPreview({ users, currentUserId }) {
         return (
           <div
             key={entry.id}
-            className={`flex items-center gap-3 px-4 py-3 transition-all ${
+            className={`flex items-center gap-4 px-4 py-3.5 transition-all ${
               isCurrentUser
                 ? "bg-primary/5 ring-1 ring-inset ring-primary/30"
-                : ""
+                : "hover:bg-background/50"
             }`}
           >
-            <div className="flex w-8 shrink-0 items-center justify-center font-black text-text-primary text-sm">
-              {rank <= 3 ? <Medal className="text-warning" size={16} /> : <Trophy className="text-text-muted" size={14} />}
-              <span className="ml-1">{rank}</span>
+            <div className="flex w-10 shrink-0 items-center justify-center font-black text-text-primary text-sm">
+              {rank <= 3 ? <Medal className="text-warning shrink-0" size={16} /> : <Trophy className="text-text-muted shrink-0" size={14} />}
+              <span className="ml-1.5 tabular-nums">{rank}</span>
             </div>
 
             <div className="shrink-0">
@@ -84,22 +84,22 @@ export function LeaderboardPreview({ users, currentUserId }) {
                 <img
                   src={avatar.src}
                   alt=""
-                  className="h-9 w-9 rounded-lg border-2 border-border bg-background object-cover"
+                  className="h-9 w-9 rounded-xl border-2 border-border bg-background object-cover"
                 />
               ) : avatar.type === "icon" ? (
-                <div className="h-9 w-9 rounded-lg border-2 border-border bg-background p-1.5">
+                <div className="h-9 w-9 rounded-xl border-2 border-border bg-background p-1.5">
                   <ProfileIconRenderer iconId={avatar.iconId} className="h-full w-full" />
                 </div>
               ) : (
                 <div
-                  className="h-9 w-9 rounded-lg border-2 border-border bg-background p-1"
+                  className="h-9 w-9 rounded-xl border-2 border-border bg-background p-1"
                   dangerouslySetInnerHTML={{ __html: avatar.svg }}
                 />
               )}
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 truncate text-sm font-black text-text-primary">
+              <p className="flex items-center gap-2 truncate text-sm font-black text-text-primary">
                 {entry.name || entry.email?.split("@")[0] || t("common.learner")}
                 {isCurrentUser ? (
                   <span className="shrink-0 inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-primary">
@@ -112,8 +112,8 @@ export function LeaderboardPreview({ users, currentUserId }) {
               </p>
             </div>
 
-            <div className="shrink-0 text-right">
-              <span className="text-sm font-black text-primary">{total.toLocaleString()}</span>
+            <div className="shrink-0 text-right w-24">
+              <span className="text-sm font-black text-primary tabular-nums">{total.toLocaleString()}</span>
             </div>
           </div>
         );

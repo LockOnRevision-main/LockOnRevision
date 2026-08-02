@@ -47,7 +47,9 @@
     "saved": "Saved",
     "error_saving": "Error saving",
     "add": "Add",
-    "processing": "Processing..."
+    "processing": "Processing...",
+    "days": "days",
+    "unit_1": "Unit 1"
   },
   "landing": {
     "hero_title": "Master Your Studies with AI",
@@ -261,7 +263,8 @@
     "xp_energy": "{{xp}} XP + {{energy}} energy",
     "page_of": "Page {{page}} of {{totalPages}}",
     "total_count": "({{total}} total)",
-    "no_ranks": "No ranks available"
+    "no_ranks": "No ranks available",
+    "pts_suffix": " pts"
   },
   "profile": {
     "title": "Profile",
