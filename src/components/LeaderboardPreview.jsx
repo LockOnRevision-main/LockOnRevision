@@ -108,7 +108,7 @@ export function LeaderboardPreview({ users, currentUserId }) {
                 ) : null}
               </p>
               <p className="mt-0.5 text-xs text-text-muted">
-                {t("leaderboard.xp_energy", { xp: xp.toLocaleString(), energy })}
+                {t("Energy", { xp: xp.toLocaleString(), energy })}
               </p>
             </div>
 

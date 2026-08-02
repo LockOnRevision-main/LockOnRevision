@@ -293,9 +293,9 @@ function LandingPageContent() {
           </div>
           <div className="rounded-2xl border border-border bg-surface/50 p-6 shadow-xl shadow-secondary/20 backdrop-blur">
             <div className="grid grid-cols-3 gap-3 px-6 py-4 text-xs font-black uppercase tracking-widest text-text-muted border-b border-border">
-              <span>{t("leaderboard.rank")}</span>
-              <span>{t("leaderboard.name")}</span>
-              <span className="text-right">{t("leaderboard.total_score")}</span>
+              <span>{t("Rank")}</span>
+              <span>{t("Name")}</span>
+              <span className="text-right">{t("Total Score")}</span>
             </div>
             <div className="mt-4 grid gap-4">
               {[t("landing.preview_student"), t("landing.preview_xp"), t("landing.preview_energy")].map((item, index) => (

@@ -74,10 +74,10 @@ export function LeaderboardPage() {
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-primary">{t("nav.leaderboard")}</p>
-            <h1 className="mt-2 text-4xl font-black tracking-tight text-text-primary">{t("leaderboard.top_learners")}</h1>
+            <h1 className="mt-2 text-4xl font-black tracking-tight text-text-primary">{t("Leaderboard")}</h1>
             <p className="mt-2 flex items-center gap-2 text-sm font-bold text-text-secondary">
               <Zap size={16} className="text-warning" />
-              {t("leaderboard.energy_to_xp")}
+              {t("(Energyx100)+XP")}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -88,7 +88,7 @@ export function LeaderboardPage() {
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background px-5 py-3 font-black text-text-primary shadow-sm transition-all hover:bg-surface hover:border-primary active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               >
                 <User size={17} />
-                {t("leaderboard.your_rank")}
+                {t("Your Rank")}
               </button>
             ) : null}
             <button
@@ -110,7 +110,7 @@ export function LeaderboardPage() {
             type="text"
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
-            placeholder={t("leaderboard.search_placeholder")}
+            placeholder={t("Search by name or Id")}
             className="w-full rounded-xl border border-border bg-background py-3 pl-12 pr-4 text-sm font-bold text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
         </div>
@@ -118,10 +118,10 @@ export function LeaderboardPage() {
 
       <section className="overflow-hidden rounded-3xl border border-border bg-surface shadow-sm" ref={listRef}>
         <div className="grid grid-cols-[60px_44px_1fr_100px] gap-3 bg-background px-4 py-4 text-xs font-black uppercase tracking-widest text-text-muted border-b border-border sm:grid-cols-[80px_44px_1fr_160px] sm:px-6">
-          <span>{t("leaderboard.rank")}</span>
-          <span className="text-center">{t("leaderboard.avatar")}</span>
-          <span>{t("leaderboard.name")}</span>
-          <span className="text-right text-[10px] sm:text-xs">{t("leaderboard.score")}</span>
+          <span>{t("Rank")}</span>
+          <span className="text-center">{t("Avatar")}</span>
+          <span>{t("Name")}</span>
+          <span className="text-right text-[10px] sm:text-xs">{t("Score")}</span>
         </div>
 
         {loading && !result ? (
@@ -195,7 +195,7 @@ export function LeaderboardPage() {
                       ) : null}
                     </p>
                     <p className="mt-0.5 text-xs font-medium text-text-secondary truncate">
-                      {t("leaderboard.xp_energy", { xp: xp.toLocaleString(), energy })}
+                      {t("Energy", { xp: xp.toLocaleString(), energy })}
                     </p>
                   </div>
                 </div>

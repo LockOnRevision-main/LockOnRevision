@@ -256,7 +256,7 @@ export function AppPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold uppercase tracking-widest text-text-secondary">{t("nav.leaderboard")}</p>
-                <h2 className="text-2xl font-black tracking-tight text-text-primary">{t("leaderboard.top_learners")}</h2>
+                <h2 className="text-2xl font-black tracking-tight text-text-primary">{t("Leaderboard")}</h2>
               </div>
             </div>
 
@@ -280,7 +280,7 @@ export function AppPage() {
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-secondary px-6 py-3 font-black text-white shadow-lg transition-all hover:bg-secondary/90 active:scale-95"
               >
                 <Trophy size={16} />
-                {t("leaderboard.view_full")}
+                {t("View Full Leaderboard")}
               </Link>
             </div>
           </article>

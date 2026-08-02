@@ -281,7 +281,7 @@ export function ProfilePage() {
               color="purple" 
             />
             <StatsCard 
-              label={t("leaderboard.rank")} 
+              label={t("Rank")} 
               value={rank} 
               icon={Award} 
               color="orange" 
