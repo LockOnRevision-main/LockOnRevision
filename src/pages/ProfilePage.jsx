@@ -275,7 +275,7 @@ export function ProfilePage() {
           {/* Top Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <StatsCard 
-              label={t("leaderboard.level")} 
+              label={t("Leaderboard Level")} 
               value={level} 
               icon={Trophy} 
               color="purple" 

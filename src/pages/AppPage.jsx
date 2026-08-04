@@ -147,7 +147,7 @@ export function AppPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold uppercase tracking-widest text-text-secondary">{t("timetable.upcoming")}</p>
-                <h3 className="text-lg font-black tracking-tight text-text-primary">{t("timetable.lessons")}</h3>
+                <h3 className="text-lg font-black tracking-tight text-text-primary">{t("Timetable")}</h3>
               </div>
             </div>
             {upcomingLessons.length > 0 ? (
