@@ -31,9 +31,25 @@ export function AiSidebar() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [context, setContext] = useState(null);
+  const [aiStatus, setAiStatus] = useState(null);
   const scrollRef = useRef(null);
   const triggerRef = useRef(null);
   const inputRef = useRef(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/ai-status", { method: "GET" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((status) => {
+        if (active) setAiStatus(status);
+      })
+      .catch(() => {
+        if (active) setAiStatus(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -124,10 +140,15 @@ export function AiSidebar() {
     } catch (err) {
       if (err.name === "AbortError") return;
       console.error("AI Assistant Error:", err);
-      const userMessage = err.message?.includes("500")
-        ? t("ai_sidebar.error_500")
-        : t("ai_sidebar.error_connection");
-      setError(err.message || t("ai_sidebar.error_unexpected"));
+      const raw = err.message || "";
+      const userMessage = raw.includes("503") || raw.includes("gemini_not_configured")
+        ? raw.replace("API request failed: 503 - ", "")
+        : raw.includes("401")
+          ? t("ai.error_unauthorized")
+          : raw.includes("500")
+            ? t("ai_sidebar.error_500")
+            : raw || t("ai_sidebar.error_unexpected");
+      setError(userMessage);
       setMessagesAndPersist([
         ...nextMessages,
         { role: "assistant", content: userMessage },
@@ -169,6 +190,19 @@ export function AiSidebar() {
              <div>
                <p className="text-sm font-black text-text-primary">{t("ai.title")}</p>
                 <p className="text-xs text-text-secondary">{t("ai.subtitle")}</p>
+                {aiStatus ? (
+                  aiStatus.configured ? (
+                    <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-black text-status-success">
+                      <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-status-success" />
+                      {t("ai.connected_gemini", { model: aiStatus.model })}
+                    </p>
+                  ) : (
+                    <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-black text-warning">
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warning" />
+                      {t("ai.not_connected_gemini", { apiKey: "GEMINI_API_KEY" })}
+                    </p>
+                  )
+                ) : null}
              </div>
            </div>
             <button

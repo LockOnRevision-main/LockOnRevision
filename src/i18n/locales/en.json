@@ -619,7 +619,10 @@
     "empty_desc": "The assistant uses your Forge subjects, units, sub-units, lessons, and uploaded material whenever possible.",
     "placeholder": "Ask a study question...",
     "open": "Open AI assistant",
-    "send": "Send message"
+    "send": "Send message",
+    "connected_gemini": "Connected to Google Gemini ({{model}})",
+    "not_connected_gemini": "Gemini not connected — set {{apiKey}}",
+    "error_unauthorized": "Authentication failed. Please sign in again."
   },
   "about": {
     "badge": "About LockOnRevision",

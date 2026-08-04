@@ -1,4 +1,4 @@
-/* global fetch, btoa, URLSearchParams */
+/* global btoa, URLSearchParams */
 import { URL } from 'url';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { GoogleAIFileManager } from '@google/generative-ai/server';

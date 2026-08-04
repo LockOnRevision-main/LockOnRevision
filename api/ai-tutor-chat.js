@@ -8,17 +8,23 @@ let genAI;
 let model;
 let initError = null;
 
+const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+
+const VALID_KEY_RE = /^AIza[0-9A-Za-z_-]{20,}$/;
+
 try {
   const geminiApiKey = process.env.GEMINI_API_KEY;
-  const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 
   if (!geminiApiKey) {
     initError = 'GEMINI_API_KEY environment variable is not set';
     log.warn(initError);
+  } else if (!VALID_KEY_RE.test(geminiApiKey.trim())) {
+    initError = 'GEMINI_API_KEY is set but does not look like a valid Google AI Studio key (expected AIza...)';
+    log.warn(initError);
   } else {
     genAI = new GoogleGenerativeAI(geminiApiKey);
-    model = genAI.getGenerativeModel({ model: geminiModel });
-    log.info('Gemini initialized', { model: geminiModel });
+    model = genAI.getGenerativeModel({ model: modelName });
+    log.info('Gemini initialized', { model: modelName });
   }
 } catch (e) {
   initError = e.message;
@@ -54,8 +60,11 @@ async function handler(req, res) {
   if (!isConfigured()) {
     log.error('Gemini not configured', { reason: initError });
     return res.status(503).json({
-      error: initError || 'Gemini API is not configured.',
+      error: `Gemini AI is not connected. ${initError}. Add it to your environment as GEMINI_API_KEY.`,
       code: 'gemini_not_configured',
+      provider: 'Google Gemini',
+      configured: false,
+      apiKeyName: 'GEMINI_API_KEY',
     });
   }
 
@@ -141,11 +150,15 @@ Please provide your response in plain text (Markdown). Do not wrap it in JSON.`;
     const reply = await callGemini(prompt);
     log.info('Gemini response received', { length: reply.length });
 
-    return res.status(200).json({ reply });
+    return res.status(200).json({ reply, provider: 'Google Gemini', model: modelName, configured: true });
   } catch (error) {
     log.error('AI tutor chat error', { message: error.message, stack: error.stack?.split('\n').slice(0, 3).join('\n') });
     return res.status(200).json({
-      reply: "The AI tutor is temporarily unavailable. Please try again in a moment.",
+      reply: `Gemini AI (${modelName}) is configured and reachable, but the request failed: ${error.message}. Please try again in a moment.`,
+      provider: 'Google Gemini',
+      model: modelName,
+      configured: true,
+      error: error.message,
     });
   }
 }

@@ -23,6 +23,7 @@ const nodeGlobals = {
   Buffer: "readonly",
   clearTimeout: "readonly",
   console: "readonly",
+  fetch: "readonly",
   process: "readonly",
   setTimeout: "readonly",
 };
