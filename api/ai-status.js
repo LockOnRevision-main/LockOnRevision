@@ -2,7 +2,7 @@ import { createLogger } from './lib/forge-integrity.js';
 
 const log = createLogger('ai-status');
 
-const VALID_KEY_RE = /^AIza[0-9A-Za-z_-]{20,}$/;
+const VALID_KEY_RE = /^(AIza|AQ\.)[A-Za-z0-9._-]{20,}$/;
 
 let configured = false;
 let modelName = null;
@@ -16,7 +16,7 @@ try {
     reason = 'GEMINI_API_KEY environment variable is not set';
     log.warn(reason);
   } else if (!VALID_KEY_RE.test(geminiApiKey.trim())) {
-    reason = 'GEMINI_API_KEY is set but does not look like a valid Google AI Studio key (expected AIza...)';
+    reason = 'GEMINI_API_KEY is set but does not look like a valid Google AI Studio key (expected AIza... or AQ ...)';
     log.warn(reason);
   } else {
     configured = true;
