@@ -22,7 +22,7 @@ import { canAccessAdmin } from "../utils/permissions.js";
 
 export function AdminPage() {
   const { t } = useTranslation();
-  const { isFirebaseConfigured, profile, user } = useAuth();
+  const { isFirebaseConfigured, profile } = useAuth();
   const [overview, setOverview] = useState(null);
   const [users, setUsers] = useState([]);
   const [forgeContent, setForgeContent] = useState([]);
@@ -37,7 +37,7 @@ export function AdminPage() {
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const isAdmin = canAccessAdmin(profile, user?.email);
+  const isAdmin = canAccessAdmin(profile);
   const [serverVerified, setServerVerified] = useState(false);
 
   useEffect(() => {

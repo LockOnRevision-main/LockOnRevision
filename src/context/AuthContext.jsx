@@ -27,7 +27,7 @@ function createUserProfile(user, name) {
     avatarUrl: "",
     avatarIcon: "",
     hasCustomAvatar: false,
-    isAdmin: canAccessAdmin(null, user.email),
+    isAdmin: false,
     xp: 0,
     energy: 0,
     totalScore: 0,
@@ -75,7 +75,7 @@ async function ensureUserDocument(user, name) {
     patch.isAdmin = true;
   }
   if (data.isAdmin === undefined && data.role !== "admin") {
-    patch.isAdmin = canAccessAdmin(data, user.email);
+    patch.isAdmin = canAccessAdmin(data);
   }
 
   // If the display name is the placeholder, treat as incomplete onboarding
