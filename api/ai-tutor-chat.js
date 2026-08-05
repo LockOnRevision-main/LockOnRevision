@@ -10,20 +10,20 @@ let initError = null;
 
 const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
-const VALID_KEY_RE = /^AIza[0-9A-Za-z_-]{20,}$/;
+
 
 try {
   const geminiApiKey = process.env.GEMINI_API_KEY;
 
-  if (!geminiApiKey) {
+  if (!geminiApiKey?.trim()) {
     initError = 'GEMINI_API_KEY environment variable is not set';
     log.warn(initError);
-  } else if (!VALID_KEY_RE.test(geminiApiKey.trim())) {
-    initError = 'GEMINI_API_KEY is set but does not look like a valid Google AI Studio key (expected AIza...)';
-    log.warn(initError);
   } else {
+    initError = null;
+
     genAI = new GoogleGenerativeAI(geminiApiKey);
     model = genAI.getGenerativeModel({ model: modelName });
+
     log.info('Gemini initialized', { model: modelName });
   }
 } catch (e) {

@@ -2,7 +2,7 @@ import { createLogger } from './lib/forge-integrity.js';
 
 const log = createLogger('ai-status');
 
-const VALID_KEY_RE = /^(AIza|AQ\.)[A-Za-z0-9._-]{20,}$/;
+
 
 let configured = false;
 let modelName = null;
@@ -12,20 +12,17 @@ try {
   const geminiApiKey = process.env.GEMINI_API_KEY;
   const geminiModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
-  if (!geminiApiKey) {
+  if (!geminiApiKey?.trim()) {
     reason = 'GEMINI_API_KEY environment variable is not set';
-    log.warn(reason);
-  } else if (!VALID_KEY_RE.test(geminiApiKey.trim())) {
-    reason = 'GEMINI_API_KEY is set but does not look like a valid Google AI Studio key (expected AIza... or AQ ...)';
     log.warn(reason);
   } else {
     configured = true;
     modelName = geminiModel;
     log.info('Gemini configured', { model: modelName });
   }
-} catch (initError) {
-  reason = initError.message;
-  log.error('Status initialization error', initError);
+} catch (err) {
+  reason = err.message;
+  log.error('Status initialization error', err);
 }
 
 export default async function handler(req, res) {
