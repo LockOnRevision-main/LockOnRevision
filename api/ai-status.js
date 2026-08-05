@@ -10,7 +10,7 @@ let reason = null;
 
 try {
   const geminiApiKey = process.env.GEMINI_API_KEY;
-  const geminiModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const geminiModel = process.env.GEMINI_MODEL || 'gemini-3.1-flash';
 
   if (!geminiApiKey?.trim()) {
     reason = 'GEMINI_API_KEY environment variable is not set';
