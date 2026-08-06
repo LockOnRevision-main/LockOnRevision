@@ -8,7 +8,7 @@ let genAI;
 let model;
 let initError = null;
 
-const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const modelName = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 
 
 

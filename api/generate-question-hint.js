@@ -9,7 +9,7 @@ let model;
 
 try {
   const geminiApiKey = process.env.GEMINI_API_KEY;
-  const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  const geminiModel = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 
   if (!geminiApiKey) {
     log.warn('GEMINI_API_KEY not set. AI functions will fail.');
