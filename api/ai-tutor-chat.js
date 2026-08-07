@@ -1,8 +1,35 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createLogger, withTimeout, retry } from './lib/forge-integrity.js';
 import { requireAuth } from './lib/auth.js';
 
 const log = createLogger('ai-tutor-chat');
+const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(moduleDir, '..');
+
+function loadEnvFile(fileName) {
+  const candidatePaths = [
+    path.resolve(process.cwd(), fileName),
+    path.resolve(moduleDir, fileName),
+    path.resolve(repoRoot, fileName),
+  ];
+
+  for (const filePath of candidatePaths) {
+    if (!existsSync(filePath)) continue;
+
+    for (const line of readFileSync(filePath, 'utf8').split(/\r?\n/)) {
+      if (!line || line.startsWith('#')) continue;
+      const [key, ...valueParts] = line.split('=');
+      if (key && !process.env[key]) {
+        process.env[key] = valueParts.join('=').trim();
+      }
+    }
+
+    return;
+  }
+}
+
+loadEnvFile('.env.local');
+loadEnvFile('.env');
 
 let googleAI;
 let initError = null;
@@ -50,12 +77,23 @@ async function callGemini(prompt) {
   return text;
 }
 
-async function handler(req, res) {
+export async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   if (!isConfigured()) {
+    if (process.env.NODE_ENV !== 'production') {
+      log.warn('Gemini not configured, using local fallback response', { reason: initError });
+      return res.status(200).json({
+        reply: 'I’m running in local fallback mode right now because the Gemini API key is not configured. You can still continue testing the chat experience, and I’ll use a basic educational reply until the API key is added.',
+        provider: 'Google Gemini',
+        model: modelName,
+        configured: false,
+        apiKeyName: 'GEMINI_API_KEY',
+      });
+    }
+
     log.error('Gemini not configured', { reason: initError });
     return res.status(503).json({
       error: `Gemini AI is not connected. ${initError}. Add it to your environment as GEMINI_API_KEY.`,

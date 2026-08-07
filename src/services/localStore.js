@@ -103,6 +103,31 @@ export function signOutLocalUser() {
   writeLocalState(state);
 }
 
+export function readLocalUser() {
+  const state = readLocalState();
+  const uid = state.currentUserId;
+  if (!uid) return null;
+  const user = state.users?.[uid];
+  return user?.profile ? { ...user.profile, uid } : null;
+}
+
+export function writeLocalUser(profile) {
+  const state = readLocalState();
+  const uid = profile.uid || `local-${(profile.email || "learner").toLowerCase().replace(/[^\w]+/g, "-")}`;
+  state.currentUserId = uid;
+  state.users[uid] = {
+    ...(state.users[uid] || {}),
+    profile: {
+      ...(state.users[uid]?.profile || {}),
+      ...profile,
+      uid,
+      updatedAt: new Date().toISOString(),
+    },
+  };
+  writeLocalState(state);
+  return state.users[uid].profile;
+}
+
 export function makeId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
