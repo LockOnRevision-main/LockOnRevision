@@ -10,6 +10,7 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db, isFirebaseConfigured } from "../config/firebase.js";
+import { readLocalUser, writeLocalUser } from "../services/localStore.js";
 import { canAccessAdmin } from "../utils/permissions.js";
 import { signOutLocalUser } from "../services/localStore.js";
 
@@ -123,6 +124,14 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const localUser = readLocalUser();
+    if (localUser) {
+      setUser({ uid: localUser.uid, email: localUser.email, displayName: localUser.name });
+      setProfile(localUser);
+      setLoading(false);
+      return undefined;
+    }
+
     if (!isFirebaseConfigured || !auth) {
       setLoading(false);
       return undefined;
@@ -168,17 +177,89 @@ export function AuthProvider({ children }) {
       loading,
       isFirebaseConfigured,
       async login(email, password) {
-        if (!auth) throw new Error("Firebase is not configured.");
+        if (!auth || !isFirebaseConfigured) {
+          const demoProfile = {
+            uid: "local-demo-user",
+            name: email?.split("@")[0] || "Local learner",
+            email,
+            username: email?.split("@")[0] || "locallearner",
+            bio: "",
+            avatarUrl: "",
+            avatarIcon: "",
+            hasCustomAvatar: false,
+            isAdmin: false,
+            xp: 120,
+            energy: 85,
+            totalScore: 12000,
+            streak: 5,
+            totalStudyHours: 8,
+            completedLessons: 14,
+            completedTests: [],
+            completedUnits: [],
+            lastTestAttempt: null,
+            goals: "Stay consistent",
+            grade: "11",
+            curriculum: "GCSE",
+            favoriteSubjects: ["Maths", "Science"],
+            theme: "system",
+            activity: {},
+            onboardingCompleted: true,
+            referralSource: "local-demo",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          writeLocalUser(demoProfile);
+          setProfile(demoProfile);
+          setUser({ uid: demoProfile.uid, email: demoProfile.email, displayName: demoProfile.name });
+          return;
+        }
         await signInWithEmailAndPassword(auth, email, password);
       },
       async register(name, email, password) {
-        if (!auth) throw new Error("Firebase is not configured.");
+        if (!auth || !isFirebaseConfigured) {
+          const demoProfile = {
+            uid: "local-demo-user",
+            name: name || email?.split("@")[0] || "Local learner",
+            email,
+            username: email?.split("@")[0] || "locallearner",
+            bio: "",
+            avatarUrl: "",
+            avatarIcon: "",
+            hasCustomAvatar: false,
+            isAdmin: false,
+            xp: 120,
+            energy: 85,
+            totalScore: 12000,
+            streak: 5,
+            totalStudyHours: 8,
+            completedLessons: 14,
+            completedTests: [],
+            completedUnits: [],
+            lastTestAttempt: null,
+            goals: "Stay consistent",
+            grade: "11",
+            curriculum: "GCSE",
+            favoriteSubjects: ["Maths", "Science"],
+            theme: "system",
+            activity: {},
+            onboardingCompleted: true,
+            referralSource: "local-demo",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          writeLocalUser(demoProfile);
+          setProfile(demoProfile);
+          setUser({ uid: demoProfile.uid, email: demoProfile.email, displayName: demoProfile.name });
+          return;
+        }
         const result = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(result.user, { displayName: name });
         await ensureUserDocument(result.user, name);
       },
       async resetPassword(email) {
-        if (!auth) throw new Error("Firebase is not configured.");
+        if (!auth || !isFirebaseConfigured) {
+          return;
+        }
         await sendPasswordResetEmail(auth, email);
       },
       async changePassword(newPassword) {
@@ -187,7 +268,9 @@ export function AuthProvider({ children }) {
       },
       logout: () => {
         signOutLocalUser();
-        return auth ? signOut(auth) : undefined;
+        setProfile(null);
+        setUser(null);
+        return auth && isFirebaseConfigured ? signOut(auth) : undefined;
       },
     }),
     [loading, profile, user],

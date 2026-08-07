@@ -46,16 +46,15 @@ async function callGemini(prompt) {
   return text;
 }
 
-async function handler(req, res) {
+export async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   if (!isConfigured()) {
-    log.error('Gemini not configured', { reason: initError });
-    return res.status(503).json({
-      error: initError || 'Gemini API is not configured.',
-      code: 'gemini_not_configured',
+    log.warn('Gemini not configured, using local fallback response', { reason: initError });
+    return res.status(200).json({
+      reply: 'I’m running in local fallback mode right now because the Gemini API key is not configured. You can still continue testing the chat experience, and I’ll use a basic educational reply until the API key is added.',
     });
   }
 

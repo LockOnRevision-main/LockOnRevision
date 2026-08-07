@@ -129,7 +129,7 @@ export function LoginPage() {
           {error ? <p className="rounded-xl bg-status-error/20 p-3 text-sm font-bold text-status-error">{error}</p> : null}
 
           <button
-            disabled={busy || !isFirebaseConfigured || (mode === "reset" && resetSent)}
+            disabled={busy || (mode === "reset" && resetSent)}
             className="rounded-xl bg-primary px-4 py-3 font-black text-white disabled:bg-surface transition-all hover:bg-primary-active active:scale-95"
           >
             {busy ? "Working..." : mode === "register" ? "Create account" : mode === "reset" ? "Send reset link" : "Log in"}
