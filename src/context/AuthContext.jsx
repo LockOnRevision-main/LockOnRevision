@@ -136,6 +136,39 @@ export function AuthProvider({ children }) {
     }
 
     if (!isFirebaseConfigured || !auth) {
+      const demoProfile = {
+        uid: "local-demo-user",
+        name: "Local learner",
+        email: "local@example.com",
+        username: "locallearner",
+        bio: "",
+        avatarUrl: "",
+        avatarIcon: "",
+        hasCustomAvatar: false,
+        isAdmin: false,
+        xp: 120,
+        energy: 85,
+        totalScore: 12000,
+        streak: 5,
+        totalStudyHours: 8,
+        completedLessons: 14,
+        completedTests: [],
+        completedUnits: [],
+        lastTestAttempt: null,
+        goals: "Stay consistent",
+        grade: "11",
+        curriculum: "GCSE",
+        favoriteSubjects: ["Maths", "Science"],
+        theme: "system",
+        activity: {},
+        onboardingCompleted: true,
+        referralSource: "local-demo",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      writeLocalUser(demoProfile);
+      setProfile(demoProfile);
+      setUser({ uid: demoProfile.uid, email: demoProfile.email, displayName: demoProfile.name });
       setLoading(false);
       return undefined;
     }

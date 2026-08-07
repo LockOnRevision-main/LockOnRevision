@@ -1,13 +1,16 @@
 import { auth } from "../config/firebase.js";
 
-const LOCAL_API_BASE = "http://127.0.0.1:3000";
+const LOCAL_API_BASES = ["http://127.0.0.1:3000", "http://localhost:3000"];
 const VERCEL_API_BASE = import.meta.env.VITE_API_BASE_URL || "https://lockonrevision.vercel.app/api";
 
 function resolveUrl(url) {
   if (!url) return url;
   if (/^https?:\/\//i.test(url)) return url;
   if (url.startsWith("/api/")) {
-    return `${import.meta.env.DEV ? LOCAL_API_BASE : VERCEL_API_BASE}${url.replace("/api", "")}`;
+    if (import.meta.env.DEV) {
+      return `${LOCAL_API_BASES[0]}${url}`;
+    }
+    return `${VERCEL_API_BASE}${url.replace("/api", "")}`;
   }
   return url;
 }
