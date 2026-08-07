@@ -1,14 +1,13 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { createLogger, withTimeout, retry } from './lib/forge-integrity.js';
 import { requireAuth } from './lib/auth.js';
 
 const log = createLogger('ai-tutor-chat');
 
-let genAI;
-let model;
+let googleAI;
 let initError = null;
 
-const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const modelName = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 
 
 
@@ -21,8 +20,8 @@ try {
   } else {
     initError = null;
 
-    genAI = new GoogleGenerativeAI(geminiApiKey);
-    model = genAI.getGenerativeModel({ model: modelName });
+    googleAI = new GoogleGenAI({ apiKey: geminiApiKey });
+    console.log("Using model:", modelName);
 
     log.info('Gemini initialized', { model: modelName });
   }
@@ -32,18 +31,17 @@ try {
 }
 
 function isConfigured() {
-  return !!model;
+  return !!googleAI;
 }
 
 async function callGemini(prompt) {
-  if (!model) throw new Error(initError || 'Gemini not initialized');
-
+  if (!googleAI) throw new Error(initError || 'Gemini not initialized');
+  log.info("Using Gemini model", { model: modelName });
   const result = await withTimeout(
-    retry(() => model.generateContent(prompt), { logger: log }),
+    retry(() => googleAI.models.generateContent({ model: modelName, contents: prompt }), { logger: log }),
     45000
   );
-  const response = await result.response;
-  const text = response.text();
+  const text = result.text;
 
   if (!text || text.trim().length === 0) {
     throw new Error('Gemini returned empty response');

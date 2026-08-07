@@ -1,7 +1,6 @@
 /* global btoa, URLSearchParams */
 import { URL } from 'url';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { GoogleAIFileManager } from '@google/generative-ai/server';
+import { GoogleGenAI, createPartFromUri, createUserContent } from '@google/genai';
 import fs from 'fs';
 import path from 'path';
 import { pipeline } from 'stream/promises';
@@ -102,27 +101,24 @@ async function deleteCloudinarySourceFiles(files) {
 
 const log = createLogger('process-uploaded-notes');
 
-let genAI;
-let model;
-let fileManager;
+let googleAI;
+let geminiModel;
 
 try {
   const geminiApiKey = process.env.GEMINI_API_KEY;
-  const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  geminiModel = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 
   if (!geminiApiKey) {
     log.warn('GEMINI_API_KEY not set. AI functions will fail.');
   } else {
-    genAI = new GoogleGenerativeAI(geminiApiKey);
-    model = genAI.getGenerativeModel({ model: geminiModel });
-    fileManager = new GoogleAIFileManager(geminiApiKey);
+    googleAI = new GoogleGenAI({ apiKey: geminiApiKey });
   }
 } catch (initError) {
   log.error('Module initialization error', initError);
 }
 
 function isConfigured() {
-  return !!model && !!fileManager;
+  return !!googleAI;
 }
 
 function parseGeminiJson(text) {
@@ -148,22 +144,16 @@ function parseGeminiJson(text) {
 }
 
 async function callGeminiWithFiles(files, prompt) {
-  const contents = files.map(f => ({
-    fileData: {
-      mimeType: f.mimeType,
-      fileUri: f.fileUri
-    }
-  }));
+  const parts = files.map(f => createPartFromUri(f.fileUri, f.mimeType));
 
   log.info('Calling Gemini with files', { fileCount: files.length });
 
   const result = await withTimeout(
-    retry(() => model.generateContent([...contents, { text: prompt }]), { logger: log }),
+    retry(() => googleAI.models.generateContent({ model: geminiModel, contents: [createUserContent(...parts, prompt)] }), { logger: log }),
     60000
   );
 
-  const response = await result.response;
-  const text = response.text();
+  const text = result.text;
 
   if (!text || text.trim().length === 0) {
     throw new Error('Gemini returned empty response');
@@ -222,14 +212,17 @@ export default requireAuth(async function handler(req, res) {
       await pipeline(response.body, fs.createWriteStream(filePath));
       tempFiles.push(filePath);
 
-      const uploadResponse = await fileManager.uploadFile(filePath, {
-        mimeType: file.mimeType || 'application/octet-stream',
-        displayName: fileName,
+      const uploadResponse = await googleAI.files.upload({
+        file: filePath,
+        config: {
+          mimeType: file.mimeType || 'application/octet-stream',
+          displayName: fileName,
+        },
       });
-      log.info('File uploaded to Gemini', { fileUri: uploadResponse.file.uri });
+      log.info('File uploaded to Gemini', { fileUri: uploadResponse.uri });
       geminiFiles.push({
-        fileUri: uploadResponse.file.uri,
-        mimeType: file.mimeType || 'application/octet-stream'
+        fileUri: uploadResponse.uri,
+        mimeType: uploadResponse.mimeType || file.mimeType || 'application/octet-stream'
       });
     }
 

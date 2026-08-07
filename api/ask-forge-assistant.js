@@ -1,28 +1,27 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { createLogger, withTimeout, retry, validateForgeAssistantReply } from './lib/forge-integrity.js';
 import { requireAuth } from './lib/auth.js';
 
 const log = createLogger('ask-forge-assistant');
 
-let genAI;
-let model;
+let googleAI;
+let geminiModel;
 
 try {
   const geminiApiKey = process.env.GEMINI_API_KEY;
-  const geminiModel = process.env.GEMINI_MODEL || 'gemini-3.1-flash';
+  geminiModel = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 
   if (!geminiApiKey) {
     log.warn('GEMINI_API_KEY not set. AI functions will fail.');
   } else {
-    genAI = new GoogleGenerativeAI(geminiApiKey);
-    model = genAI.getGenerativeModel({ model: geminiModel });
+    googleAI = new GoogleGenAI({ apiKey: geminiApiKey });
   }
 } catch (initError) {
   log.error('Module initialization error', initError);
 }
 
 function isConfigured() {
-  return !!model;
+  return !!googleAI;
 }
 
 function parseGeminiJson(text) {
@@ -44,11 +43,10 @@ async function callGeminiWithValidation(prompt) {
   log.info('Calling Gemini for forge assistant');
 
   const result = await withTimeout(
-    retry(() => model.generateContent(prompt), { logger: log }),
+    retry(() => googleAI.models.generateContent({ model: geminiModel, contents: prompt }), { logger: log }),
     30000
   );
-  const response = await result.response;
-  const text = response.text();
+  const text = result.text;
 
   if (!text || text.trim().length === 0) {
     throw new Error('Gemini returned empty response');

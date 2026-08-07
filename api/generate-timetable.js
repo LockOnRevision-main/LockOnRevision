@@ -1,28 +1,27 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { createLogger, withTimeout, retry } from './lib/forge-integrity.js';
 import { requireAuth } from './lib/auth.js';
 
 const log = createLogger('generate-timetable');
 
-let genAI;
-let model;
+let googleAI;
+let geminiModel;
 
 try {
   const geminiApiKey = process.env.GEMINI_API_KEY;
-  const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  geminiModel = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 
   if (!geminiApiKey) {
     log.warn('GEMINI_API_KEY not set. AI functions will fail.');
   } else {
-    genAI = new GoogleGenerativeAI(geminiApiKey);
-    model = genAI.getGenerativeModel({ model: geminiModel });
+    googleAI = new GoogleGenAI({ apiKey: geminiApiKey });
   }
 } catch (initError) {
   log.error('Module initialization error', initError);
 }
 
 function isConfigured() {
-  return !!model;
+  return !!googleAI;
 }
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -137,10 +136,10 @@ export default requireAuth(async function handler(req, res) {
         log.info('Calling Gemini for timetable generation');
 
         const result = await withTimeout(
-          retry(() => model.generateContent(prompt), { logger: log }),
+          retry(() => googleAI.models.generateContent({ model: geminiModel, contents: prompt }), { logger: log }),
           30000
         );
-        const raw = result.response.text();
+        const raw = result.text;
         timetable = parseResponse(raw, preferences);
         log.info('Gemini timetable generated successfully');
       } catch (aiError) {

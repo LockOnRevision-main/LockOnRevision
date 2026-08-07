@@ -10,7 +10,7 @@
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
+    "@google/genai": "^2.15.0",
     "@vercel/speed-insights": "^2.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "firebase": "^11.10.0",
