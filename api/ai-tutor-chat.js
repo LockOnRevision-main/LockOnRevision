@@ -1,8 +1,38 @@
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createLogger, withTimeout, retry } from './lib/forge-integrity.js';
 import { requireAuth } from './lib/auth.js';
 
 const log = createLogger('ai-tutor-chat');
+const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(moduleDir, '..');
+
+function loadEnvFile(fileName) {
+  const candidatePaths = [
+    path.resolve(process.cwd(), fileName),
+    path.resolve(moduleDir, fileName),
+    path.resolve(repoRoot, fileName),
+  ];
+
+  for (const filePath of candidatePaths) {
+    if (!existsSync(filePath)) continue;
+
+    for (const line of readFileSync(filePath, 'utf8').split(/\r?\n/)) {
+      if (!line || line.startsWith('#')) continue;
+      const [key, ...valueParts] = line.split('=');
+      if (key && !process.env[key]) {
+        process.env[key] = valueParts.join('=').trim();
+      }
+    }
+
+    return;
+  }
+}
+
+loadEnvFile('.env.local');
+loadEnvFile('.env');
 
 let genAI;
 let model;
