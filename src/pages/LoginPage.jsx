@@ -5,9 +5,11 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { Logo } from "../components/Logo.jsx";
 import { Footer } from "../components/Footer.jsx";
 import { PasswordInput } from "../components/PasswordInput.jsx";
+import { useTranslation } from "react-i18next";
 
 export function LoginPage() {
   const { isFirebaseConfigured, login, register, resetPassword, user } = useAuth();
+  const { t } = useTranslation();
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState("");
@@ -51,21 +53,21 @@ export function LoginPage() {
         <div className="mb-6 flex flex-col items-center">
           <Logo variant="horizontal" theme="light" className="mb-4 scale-90" />
           <h1 className="mt-2 text-3xl font-black tracking-tight text-text-primary">
-            {mode === "register" ? "Create account" : mode === "reset" ? "Reset password" : "Welcome back"}
+            {mode === "register" ? t("auth.create_account") : mode === "reset" ? t("auth.reset_password") : t("auth.welcome_back")}
           </h1>
           <p className="mt-2 text-sm text-text-secondary text-center">
             {mode === "reset"
-              ? "Enter your email and we'll send you a reset link."
+              ? t("auth.reset_subtitle")
               : isFirebaseConfigured
-                ? "Sign in with your email and password."
-                : "Firebase config is missing."}
+                ? t("auth.login_subtitle")
+                : t("auth.config_missing")}
           </p>
         </div>
 
         <form className="grid gap-4" onSubmit={handleSubmit}>
           {mode === "register" ? (
             <label className="grid gap-2 text-sm font-bold text-text-primary">
-              Name
+              {t("profile.display_name")}
                 <span className="flex items-center gap-2 rounded-xl border border-border px-3 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/50">
                    <UserRound size={17} className="text-text-muted" />
                   <input
@@ -79,7 +81,7 @@ export function LoginPage() {
           ) : null}
 
           <label className="grid gap-2 text-sm font-bold text-text-primary">
-            Email
+            {t("auth.email")}
                 <span className="flex items-center gap-2 rounded-xl border border-border px-3 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/50">
                    <Mail size={17} className="text-text-muted" />
                   <input
@@ -95,7 +97,7 @@ export function LoginPage() {
           {mode !== "reset" ? (
             mode === "register" ? (
               <label className="grid gap-2 text-sm font-bold text-text-primary">
-                Password
+                {t("auth.password")}
                 <PasswordInput
                   id="register-password"
                   value={form.password}
@@ -105,7 +107,7 @@ export function LoginPage() {
               </label>
             ) : (
               <label className="grid gap-2 text-sm font-bold text-text-primary">
-                Password
+                {t("auth.password")}
                 <div className="flex items-center gap-2 rounded-xl border border-border px-3 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/50">
                   <LockKeyhole size={17} className="shrink-0 text-text-muted" />
                   <input
@@ -122,7 +124,7 @@ export function LoginPage() {
 
           {resetSent ? (
             <p className="rounded-xl bg-status-success/20 p-3 text-sm font-bold text-status-success">
-              Reset link sent. Check your email.
+              {t("auth.reset_sent")}
             </p>
           ) : null}
 
@@ -132,7 +134,7 @@ export function LoginPage() {
             disabled={busy || (mode === "reset" && resetSent)}
             className="rounded-xl bg-primary px-4 py-3 font-black text-white disabled:bg-surface transition-all hover:bg-primary-active active:scale-95"
           >
-            {busy ? "Working..." : mode === "register" ? "Create account" : mode === "reset" ? "Send reset link" : "Log in"}
+            {busy ? t("common.loading") : mode === "register" ? t("auth.create_account") : mode === "reset" ? t("auth.send_reset") : t("nav.login")}
           </button>
         </form>
 
@@ -143,7 +145,7 @@ export function LoginPage() {
               onClick={() => switchMode("login")}
               className="flex items-center gap-1 text-sm font-bold text-primary"
             >
-              <ArrowLeft size={16} /> Back to login
+              <ArrowLeft size={16} /> {t("auth.back_to_login")}
             </button>
           ) : (
             <>
@@ -152,14 +154,14 @@ export function LoginPage() {
                 onClick={() => switchMode("register")}
                 className="w-full text-sm font-bold text-primary"
               >
-                {mode === "register" ? "Already have an account? Log in" : "New here? Create an account"}
+                {mode === "register" ? t("auth.has_account") : t("auth.no_account")}
               </button>
               <button
                 type="button"
                 onClick={() => switchMode("reset")}
                 className="text-xs font-bold text-text-muted hover:text-primary transition-colors"
               >
-                Forgot your password?
+                {t("auth.forgot_password")}
               </button>
             </>
           )}

@@ -13,6 +13,7 @@ import { auth, db, isFirebaseConfigured } from "../config/firebase.js";
 import { readLocalUser, writeLocalUser } from "../services/localStore.js";
 import { canAccessAdmin } from "../utils/permissions.js";
 import { signOutLocalUser } from "../services/localStore.js";
+import i18n from "../i18n/index.js";
 
 const AuthContext = createContext(null);
 
@@ -27,7 +28,7 @@ function createUserProfile(user, name) {
     avatarUrl: "",
     avatarIcon: "",
     hasCustomAvatar: false,
-    isAdmin: canAccessAdmin(null, user.email),
+    isAdmin: false,
     xp: 0,
     energy: 0,
     totalScore: 0,
@@ -42,6 +43,7 @@ function createUserProfile(user, name) {
     curriculum: "",
     favoriteSubjects: [],
     theme: "system",
+    preferredLanguage: "en",
     activity: {},
     onboardingCompleted: false,
     referralSource: "",
@@ -74,7 +76,7 @@ async function ensureUserDocument(user, name) {
     patch.isAdmin = true;
   }
   if (data.isAdmin === undefined && data.role !== "admin") {
-    patch.isAdmin = canAccessAdmin(data, user.email);
+    patch.isAdmin = canAccessAdmin(data);
   }
 
   // If the display name is the placeholder, treat as incomplete onboarding
@@ -104,6 +106,7 @@ async function ensureUserDocument(user, name) {
   if (data.grade === undefined) patch.grade = "";
   if (data.curriculum === undefined) patch.curriculum = "";
   if (data.theme === undefined) patch.theme = "system";
+  if (data.preferredLanguage === undefined) patch.preferredLanguage = "en";
   if (data.avatarUrl === undefined) patch.avatarUrl = "";
   if (data.avatarIcon === undefined) patch.avatarIcon = "";
   if (data.hasCustomAvatar === undefined) patch.hasCustomAvatar = false;
@@ -162,6 +165,13 @@ export function AuthProvider({ children }) {
       root.classList.toggle("dark", prefersDark);
     }
   }, [profile?.theme]);
+
+  // Apply preferredLanguage whenever profile changes (login, snapshot update)
+  useEffect(() => {
+    if (profile?.preferredLanguage) {
+      i18n.changeLanguage(profile.preferredLanguage);
+    }
+  }, [profile?.preferredLanguage]);
 
   useEffect(() => {
     if (!user || !db) return undefined;

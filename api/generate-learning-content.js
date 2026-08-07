@@ -9,7 +9,7 @@ let model;
 
 try {
   const geminiApiKey = process.env.GEMINI_API_KEY;
-  const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  const geminiModel = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 
   if (!geminiApiKey) {
     log.warn('GEMINI_API_KEY not set. AI functions will fail.');
@@ -66,7 +66,7 @@ export default requireAuth(async function handler(req, res) {
   }
 
   try {
-    const { sourceText } = req.body;
+    const { sourceText, preferredLanguage } = req.body;
 
     if (!sourceText) {
       return res.status(400).json({ error: 'Missing required field: sourceText' });
@@ -77,7 +77,10 @@ export default requireAuth(async function handler(req, res) {
       return res.status(503).json({ error: 'Gemini API is not configured. Set GEMINI_API_KEY.' });
     }
 
+    const lang = preferredLanguage || "en";
     const prompt = `You are a premium educational AI tutor. Analyze the user's study notes and transform them into a highly interactive, structured learning curriculum.
+
+IMPORTANT: Generate all content ONLY in the user's preferred language: "${lang}". All titles, descriptions, summaries, explanations, examples, questions, options, correct answers, and explanations must be in this language. Maintain educational terminology appropriate for that language. Never translate from English afterwards.
 
 Return strict JSON only with this exact shape:
 {

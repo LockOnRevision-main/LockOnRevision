@@ -1,8 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { X, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { profileIcons, iconCategories } from './profileIcons';
 
 export function ProfileIconPicker({ currentId, onSelect, onClose }) {
+  const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState('All');
   const [hoveredId, setHoveredId] = useState(null);
 
@@ -15,7 +17,7 @@ export function ProfileIconPicker({ currentId, onSelect, onClose }) {
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-background/60 backdrop-blur-sm">
       <div className="w-full max-w-2xl rounded-3xl bg-surface border border-border shadow-2xl overflow-hidden transition-all animate-in fade-in zoom-in duration-200 max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between p-6 border-b border-border bg-surface shrink-0">
-          <h3 className="text-xl font-black text-text-primary tracking-tight">Choose Profile Icon</h3>
+          <h3 className="text-xl font-black text-text-primary tracking-tight">{t('profile_icon.title')}</h3>
           <button onClick={onClose} className="p-2 rounded-full text-text-secondary hover:bg-background hover:text-text-primary transition-colors">
             <X size={20} />
           </button>
@@ -31,7 +33,7 @@ export function ProfileIconPicker({ currentId, onSelect, onClose }) {
                   : 'bg-background text-text-secondary border border-border hover:bg-surface hover:border-primary'
               }`}
             >
-              All
+              {t('profile_icon.all')}
             </button>
             {iconCategories.map((cat) => (
               <button
@@ -83,19 +85,19 @@ export function ProfileIconPicker({ currentId, onSelect, onClose }) {
           </div>
 
           {filteredIcons.length === 0 && (
-            <p className="text-center text-text-muted py-12 text-sm">No icons found in this category.</p>
+            <p className="text-center text-text-muted py-12 text-sm">{t('profile_icon.no_icons')}</p>
           )}
         </div>
 
         <div className="p-4 border-t border-border bg-surface/50 shrink-0 flex justify-between items-center">
           <p className="text-xs text-text-muted">
-            {currentId ? 'Currently selected icon shown with highlight' : 'Pick an icon from the grid'}
+            {currentId ? t('profile_icon.selected_hint') : t('profile_icon.pick_hint')}
           </p>
           <button
             onClick={onClose}
             className="px-6 py-2.5 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary-active transition-all shadow-sm active:scale-95"
           >
-            Done
+            {t('profile_icon.done')}
           </button>
         </div>
       </div>

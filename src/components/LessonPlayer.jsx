@@ -1,7 +1,9 @@
 import { ArrowRight, CheckCircle, XCircle, Zap } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
+  const { t } = useTranslation();
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState({});
   const [showResults, setShowResults] = useState(false);
@@ -67,24 +69,24 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
         <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-6 bg-status-success/20 rounded-full flex items-center justify-center text-status-success shadow-inner">
           <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12" />
         </div>
-        <h2 className="text-2xl sm:text-3xl font-black text-text-primary mb-2 tracking-tight">Lesson Complete!</h2>
+        <h2 className="text-2xl sm:text-3xl font-black text-text-primary mb-2 tracking-tight">{t("lesson.completed")}</h2>
         <p className="text-text-secondary mb-8">{lesson.title}</p>
         <div className="flex justify-center gap-8 sm:gap-12 mb-10">
           <div className="text-center">
             <div className="text-3xl sm:text-4xl font-black text-primary">
               {exercises.filter((ex) => userAnswers[ex.id] === ex.correctAnswer).length}/{exercises.length}
             </div>
-            <div className="text-xs font-bold uppercase tracking-widest text-text-muted">Correct</div>
+            <div className="text-xs font-bold uppercase tracking-widest text-text-muted">{t("lesson.correct")}</div>
           </div>
           <div className="text-center">
             <div className="text-3xl sm:text-4xl font-black text-warning flex items-center gap-2 justify-center">
               <Zap className="w-6 h-6 sm:w-8 sm:h-8" />
               {xpEarned}
             </div>
-            <div className="text-xs font-bold uppercase tracking-widest text-text-muted">XP Earned</div>
+            <div className="text-xs font-bold uppercase tracking-widest text-text-muted">{t("lesson.xp_earned")}</div>
           </div>
         </div>
-        <p className="text-sm text-text-muted">Your progress has been saved.</p>
+        <p className="text-sm text-text-muted">{t("lesson.progress_saved")}</p>
       </div>
     );
   }
@@ -92,7 +94,7 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
   if (showResults) {
     return (
       <div className="max-w-2xl mx-auto p-4 sm:p-6">
-        <h2 className="text-2xl sm:text-3xl font-black text-text-primary mb-6 sm:mb-8 tracking-tight">Lesson Results</h2>
+        <h2 className="text-2xl sm:text-3xl font-black text-text-primary mb-6 sm:mb-8 tracking-tight">{t("lesson.results")}</h2>
         <div className="space-y-4">
           {exercises.map((exercise, index) => {
             const userAnswer = userAnswers[exercise.id];
@@ -118,10 +120,10 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
                       {index + 1}. {exercise.question}
                     </div>
                     <div className="text-sm text-text-secondary mb-2">
-                      Your answer: <span className="font-medium">{userAnswer || "No answer"}</span>
+                      {t("lesson.your_answer")}<span className="font-medium">{userAnswer || t("lesson.no_answer")}</span>
                     </div>
                     <div className="text-sm text-text-secondary">
-                      Correct answer: <span className="font-bold text-text-primary">{exercise.correctAnswer}</span>
+                      {t("lesson.correct_answer")}<span className="font-bold text-text-primary">{exercise.correctAnswer}</span>
                     </div>
                     {exercise.explanation && (
                       <div className="mt-3 text-sm text-text-secondary bg-surface p-3 rounded-lg border border-border italic">
@@ -139,7 +141,7 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
           disabled={isSubmitting || saved}
           className="mt-8 w-full px-6 py-4 bg-primary text-white rounded-xl font-black transition-all hover:bg-primary-active shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isSubmitting ? "Saving..." : saved ? "Saved" : "Complete Lesson"}
+          {isSubmitting ? t("common.saving") : saved ? t("common.saved") : t("lesson.complete_lesson")}
         </button>
       </div>
     );
@@ -148,14 +150,14 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
   if (!currentExercise) {
     return (
       <div className="max-w-2xl mx-auto p-6 text-center">
-        <h2 className="text-xl font-black text-text-primary mb-4">No exercises available</h2>
-        <p className="text-text-secondary mb-6">This lesson has no exercises yet. Try generating the course again.</p>
+        <h2 className="text-xl font-black text-text-primary mb-4">{t("lesson.no_exercises")}</h2>
+        <p className="text-text-secondary mb-6">{t("lesson.no_exercises_desc")}</p>
         <button
           onClick={() => handleComplete()}
           disabled={isSubmitting || saved}
           className="px-8 py-3 bg-primary text-white rounded-xl font-black transition-all hover:bg-primary-active disabled:opacity-50"
         >
-          {isSubmitting ? "Saving..." : saved ? "Saved" : "Mark as Complete"}
+          {isSubmitting ? t("common.saving") : saved ? t("common.saved") : t("lesson.mark_complete")}
         </button>
       </div>
     );
@@ -165,7 +167,7 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
     <div className="max-w-2xl mx-auto p-4 sm:p-6">
       <div className="mb-8">
         <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-text-muted mb-2">
-          <span>Exercise {currentExerciseIndex + 1} of {exercises.length}</span>
+          <span>{t("lesson.exercise_of", { current: currentExerciseIndex + 1, total: exercises.length })}</span>
           <span>{Math.round(progress)}%</span>
         </div>
         <div className="w-full h-2 bg-background rounded-full overflow-hidden border border-border">
@@ -186,7 +188,7 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
           <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
             <h3 className="font-black text-text-primary mb-3 flex items-center gap-2 uppercase tracking-widest text-xs">
               <Zap className="w-4 h-4 text-primary" />
-              Core Concept
+              {t("lesson.core_concept")}
             </h3>
             <div className="text-text-secondary leading-relaxed whitespace-pre-wrap">
               {lesson.explanation}
@@ -196,7 +198,7 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
 
         {lesson.examples && lesson.examples.length > 0 && (
           <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
-            <h3 className="font-black text-text-primary mb-3 uppercase tracking-widest text-xs">Examples</h3>
+            <h3 className="font-black text-text-primary mb-3 uppercase tracking-widest text-xs">{t("lesson.examples")}</h3>
             <ul className="list-disc pl-5 space-y-2 text-text-secondary">
               {lesson.examples.map((example, index) => (
                 <li key={index} className="pl-1">{example}</li>
@@ -221,14 +223,14 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
           disabled={currentExerciseIndex === 0}
           className="px-6 py-3 bg-surface text-text-primary rounded-xl font-bold transition-all hover:bg-card disabled:opacity-50 disabled:cursor-not-allowed border border-border"
         >
-          Previous
+          {t("common.back")}
         </button>
         <button
           onClick={handleNext}
           disabled={!userAnswers[currentExercise.id]}
           className="px-6 py-3 bg-primary text-white rounded-xl font-black transition-all hover:bg-primary-active disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-primary/20"
         >
-          {currentExerciseIndex === exercises.length - 1 ? "Finish" : "Next"}
+          {currentExerciseIndex === exercises.length - 1 ? t("common.finish") : t("common.next")}
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>
@@ -256,11 +258,12 @@ function ExerciseRenderer({ exercise, userAnswer, onAnswer }) {
 }
 
 function TrueFalse({ exercise, userAnswer, onAnswer }) {
+  const { t } = useTranslation();
   return (
     <div>
       <h3 className="text-lg font-bold text-text-primary mb-4">{exercise.question}</h3>
       <div className="flex gap-4">
-        {["True", "False"].map((option) => (
+        {[t("lesson.true"), t("lesson.false")].map((option) => (
           <button
             key={option}
             onClick={() => onAnswer(option)}
@@ -302,6 +305,7 @@ function MultipleChoice({ exercise, userAnswer, onAnswer }) {
 }
 
 function FillBlank({ exercise, userAnswer, onAnswer }) {
+  const { t } = useTranslation();
   return (
     <div>
       <h3 className="text-lg font-bold text-text-primary mb-4">{exercise.question}</h3>
@@ -309,7 +313,7 @@ function FillBlank({ exercise, userAnswer, onAnswer }) {
         type="text"
         value={userAnswer || ""}
         onChange={(e) => onAnswer(e.target.value)}
-        placeholder="Type your answer..."
+        placeholder={t("lesson.type_answer_placeholder")}
         className="w-full p-4 border-2 border-border bg-background rounded-xl focus:border-primary focus:outline-none text-text-primary transition-all"
       />
     </div>
@@ -317,13 +321,14 @@ function FillBlank({ exercise, userAnswer, onAnswer }) {
 }
 
 function TypeAnswer({ exercise, userAnswer, onAnswer }) {
+  const { t } = useTranslation();
   return (
     <div>
       <h3 className="text-lg font-bold text-text-primary mb-4">{exercise.question}</h3>
       <textarea
         value={userAnswer || ""}
         onChange={(e) => onAnswer(e.target.value)}
-        placeholder="Type your answer..."
+        placeholder={t("lesson.type_answer_placeholder")}
         rows={4}
         className="w-full p-4 border-2 border-border bg-background rounded-xl focus:border-primary focus:outline-none resize-none text-text-primary transition-all"
       />
@@ -332,6 +337,7 @@ function TypeAnswer({ exercise, userAnswer, onAnswer }) {
 }
 
 function MatchPairs({ exercise, userAnswer: _userAnswer, onAnswer }) {
+  const { t } = useTranslation();
   const pairs = exercise.pairs || [];
   const [selectedLeft, setSelectedLeft] = useState(null);
   const [matchedPairs, setMatchedPairs] = useState([]);
@@ -360,7 +366,7 @@ function MatchPairs({ exercise, userAnswer: _userAnswer, onAnswer }) {
   return (
     <div>
       <h3 className="text-lg font-bold text-text-primary mb-4">{exercise.question}</h3>
-      <p className="text-sm text-text-secondary mb-4">Click an item on the left, then click its match on the right.</p>
+      <p className="text-sm text-text-secondary mb-4">{t("lesson.match_pairs_instruction")}</p>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           {leftItems.map((item) => (
@@ -391,7 +397,7 @@ function MatchPairs({ exercise, userAnswer: _userAnswer, onAnswer }) {
       </div>
       {matchedPairs.length > 0 && (
         <div className="mt-4 p-3 bg-status-success/10 border border-status-success/20 rounded-xl text-center">
-          <p className="text-sm font-bold text-status-success">{matchedPairs.length} / {pairs.length} matched</p>
+          <p className="text-sm font-bold text-status-success">{t("lesson.matched_count", { count: matchedPairs.length, total: pairs.length })}</p>
         </div>
       )}
     </div>
@@ -399,6 +405,7 @@ function MatchPairs({ exercise, userAnswer: _userAnswer, onAnswer }) {
 }
 
 function ArrangeOrder({ exercise, userAnswer: _userAnswer, onAnswer }) {
+  const { t } = useTranslation();
   const [items, setItems] = useState(exercise.items || []);
 
   const moveItem = (fromIndex, toIndex) => {
@@ -414,7 +421,7 @@ function ArrangeOrder({ exercise, userAnswer: _userAnswer, onAnswer }) {
   return (
     <div>
       <h3 className="text-lg font-bold text-text-primary mb-4">{exercise.question}</h3>
-      <p className="text-sm text-text-secondary mb-4">Arrange items in the correct order.</p>
+      <p className="text-sm text-text-secondary mb-4">{t("lesson.arrange_order_instruction")}</p>
       <div className="space-y-2">
         {items.map((item, index) => (
           <div
@@ -427,14 +434,14 @@ function ArrangeOrder({ exercise, userAnswer: _userAnswer, onAnswer }) {
                 disabled={index === 0}
                 className="p-1 text-text-muted hover:text-primary disabled:opacity-30 transition-colors"
               >
-                Up
+                {t("lesson.up")}
               </button>
               <button
                 onClick={() => moveItem(index, Math.min(items.length - 1, index + 1))}
                 disabled={index === items.length - 1}
                 className="p-1 text-text-muted hover:text-primary disabled:opacity-30 transition-colors"
               >
-                Down
+                {t("lesson.down")}
               </button>
             </div>
             <span className="flex-1 font-medium text-text-primary">{item.text}</span>

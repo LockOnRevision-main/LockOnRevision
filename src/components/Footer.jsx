@@ -1,12 +1,7 @@
 import { Github, MessageCircle, Instagram } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Logo } from "./Logo";
-
-const quickLinks = [
-  { label: "Home", to: "/" },
-  { label: "Leaderboard", to: "/leaderboard" },
-  { label: "Login", to: "/login" },
-];
 
 const socialLinks = [
   { label: "GitHub", href: "https://github.com/LockOnRevision/LockOnRevision", icon: Github },
@@ -15,7 +10,13 @@ const socialLinks = [
 ];
 
 export function Footer() {
+  const { t } = useTranslation();
   const year = new Date().getFullYear();
+  const quickLinks = [
+    { label: t("nav.home"), to: "/" },
+    { label: t("nav.leaderboard"), to: "/leaderboard" },
+    { label: t("nav.login"), to: "/login" },
+  ];
 
   return (
     <footer className="bg-secondary text-white">
@@ -24,13 +25,12 @@ export function Footer() {
           <div>
             <Logo theme="dark" className="h-10 w-auto" />
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/70">
-              LockOnRevision turns study consistency into a visible scoring system. Students complete lessons, gain XP,
-              earn Energy, and compare progress through a focused leaderboard.
+              {t("footer.description")}
             </p>
           </div>
 
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-white/50">Quick Links</h3>
+            <h3 className="text-xs font-bold uppercase tracking-widest text-white/50">{t("footer.quick_links")}</h3>
             <ul className="mt-4 space-y-3">
               {quickLinks.map((link) => (
                 <li key={link.to}>
@@ -46,7 +46,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-white/50">Connect</h3>
+            <h3 className="text-xs font-bold uppercase tracking-widest text-white/50">{t("footer.connect")}</h3>
             <div className="mt-4 flex gap-4">
               {socialLinks.map((social) => (
                 <a
@@ -65,7 +65,7 @@ export function Footer() {
         </div>
 
         <div className="mt-10 border-t border-white/10 pt-6 text-center text-sm text-white/50">
-          &copy; {year} LockOnRevision. All rights reserved.
+          {t("footer.copyright", { year })}
         </div>
       </div>
     </footer>

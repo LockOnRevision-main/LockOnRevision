@@ -1,8 +1,18 @@
 import React, { useState, useRef } from 'react';
-import { Camera, X, Palette } from 'lucide-react';
+import { Camera, X, Palette, Globe } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { uploadToCloudinary, isCloudinaryConfigured } from '../../utils/cloudinary';
 import { ProfileIconPicker, ProfileIconRenderer } from './ProfileIconPicker';
 import { getLeaderAvatar } from '../../utils/avatar';
+import i18n from '../../i18n/index.js';
+
+const LANGUAGE_OPTIONS = [
+  { value: "en", label: "English" },
+  { value: "hi", label: "हिन्दी" },
+  { value: "kn", label: "ಕನ್ನಡ" },
+  { value: "fr", label: "Français" },
+  { value: "es", label: "Español" },
+];
 
 const GRADE_OPTIONS = [
   "Grade 1", "Grade 2", "Grade 3", "Grade 4",
@@ -17,6 +27,7 @@ const CURRICULUM_OPTIONS = [
 ];
 
 export function EditProfileModal({ profile, onClose, onSave }) {
+  const { t } = useTranslation();
   const fileInputRef = useRef(null);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -27,6 +38,7 @@ export function EditProfileModal({ profile, onClose, onSave }) {
     curriculum: profile?.curriculum || '',
     goals: profile?.goals || '',
     theme: profile?.theme || 'system',
+    preferredLanguage: profile?.preferredLanguage || 'en',
     favoriteSubjects: profile?.favoriteSubjects || [],
     avatarUrl: profile?.avatarUrl || '',
     avatarIcon: profile?.avatarIcon || '',
@@ -61,11 +73,11 @@ export function EditProfileModal({ profile, onClose, onSave }) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      window.alert('Please select an image file.');
+      window.alert(t('settings.select_image'));
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      window.alert('Image must be smaller than 5MB.');
+      window.alert(t('settings.image_too_large'));
       return;
     }
     setUploadingAvatar(true);
@@ -87,7 +99,7 @@ export function EditProfileModal({ profile, onClose, onSave }) {
       }
     } catch (error) {
       console.error("Avatar upload error:", error);
-      window.alert('Failed to upload avatar. Please try again.');
+      window.alert(t('settings.upload_failed'));
     } finally {
       setUploadingAvatar(false);
     }
@@ -97,7 +109,7 @@ export function EditProfileModal({ profile, onClose, onSave }) {
     e.preventDefault();
     setSaveError('');
     if (!formData.name?.trim()) {
-      setSaveError('Display name is required.');
+      setSaveError(t('settings.display_name_required'));
       return;
     }
     setSaving(true);
@@ -105,7 +117,7 @@ export function EditProfileModal({ profile, onClose, onSave }) {
       await onSave(formData);
       onClose();
     } catch (error) {
-      setSaveError(error?.message || 'Failed to save. Please try again.');
+      setSaveError(error?.message || t('settings.save_failed'));
     } finally {
       setSaving(false);
     }
@@ -115,7 +127,7 @@ export function EditProfileModal({ profile, onClose, onSave }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/60 backdrop-blur-sm">
       <div className="w-full max-w-lg rounded-3xl bg-surface border border-border shadow-2xl overflow-hidden transition-all animate-in fade-in zoom-in duration-200 max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-6 border-b border-border bg-surface shrink-0">
-          <h3 className="text-xl font-black text-text-primary tracking-tight">Edit Profile</h3>
+          <h3 className="text-xl font-black text-text-primary tracking-tight">{t('settings.edit_profile')}</h3>
           <button onClick={onClose} className="p-2 rounded-full text-text-secondary hover:bg-background hover:text-text-primary transition-colors">
             <X size={20} />
           </button>
@@ -155,7 +167,7 @@ export function EditProfileModal({ profile, onClose, onSave }) {
               })()}
             </div>
             <div className="flex flex-col gap-1.5">
-              <p className="font-bold text-text-primary text-sm">Profile Picture</p>
+              <p className="font-bold text-text-primary text-sm">{t('settings.profile_picture')}</p>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -168,7 +180,7 @@ export function EditProfileModal({ profile, onClose, onSave }) {
                   }`}
                 >
                   <Camera size={12} />
-                  Photo
+                  {t('settings.photo')}
                 </button>
                 <button
                   type="button"
@@ -180,11 +192,11 @@ export function EditProfileModal({ profile, onClose, onSave }) {
                   }`}
                 >
                   <Palette size={12} />
-                  Icon
+                  {t('settings.icon')}
                 </button>
               </div>
               <p className="text-text-muted text-xs">
-                {uploadingAvatar ? 'Uploading...' : formData.avatarIcon ? 'Icon selected' : 'Photo or icon'}
+                {uploadingAvatar ? t('settings.uploading') : formData.avatarIcon ? t('settings.icon_selected') : t('settings.photo_or_icon')}
               </p>
             </div>
             <input
@@ -197,7 +209,7 @@ export function EditProfileModal({ profile, onClose, onSave }) {
           </div>
 
           <div className="space-y-1">
-            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">Display Name</label>
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">{t('settings.display_name')}</label>
             <input
               type="text"
               value={formData.name}
@@ -207,26 +219,26 @@ export function EditProfileModal({ profile, onClose, onSave }) {
             />
           </div>
           <div className="space-y-1">
-            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">Username</label>
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">{t('settings.username')}</label>
             <input
               type="text"
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               className="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary outline-none focus:border-primary transition-all"
               pattern="[a-zA-Z0-9_-]+"
-              title="Letters, numbers, underscores, and hyphens only"
+              title={t('settings.username_hint')}
             />
           </div>
 
           {/* Grade */}
           <div className="space-y-1">
-            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">Grade / Year</label>
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">{t('settings.grade_year')}</label>
             <select
               value={formData.grade}
               onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
               className="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary outline-none focus:border-primary transition-all appearance-none"
             >
-              <option value="">Select your grade...</option>
+              <option value="">{t('settings.grade_placeholder')}</option>
               {GRADE_OPTIONS.map((g) => (
                 <option key={g} value={g}>{g}</option>
               ))}
@@ -235,13 +247,13 @@ export function EditProfileModal({ profile, onClose, onSave }) {
 
           {/* Curriculum */}
           <div className="space-y-1">
-            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">Curriculum</label>
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">{t('settings.curriculum')}</label>
             <select
               value={formData.curriculum}
               onChange={(e) => setFormData({ ...formData, curriculum: e.target.value })}
               className="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary outline-none focus:border-primary transition-all appearance-none"
             >
-              <option value="">Select your curriculum...</option>
+              <option value="">{t('settings.curriculum_placeholder')}</option>
               {CURRICULUM_OPTIONS.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
@@ -250,7 +262,7 @@ export function EditProfileModal({ profile, onClose, onSave }) {
 
           {/* Favorite Subjects */}
           <div className="space-y-1">
-            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">Favorite Subjects</label>
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">{t('settings.favorite_subjects')}</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {formData.favoriteSubjects.map((sub, i) => (
                 <span
@@ -274,7 +286,7 @@ export function EditProfileModal({ profile, onClose, onSave }) {
                 value={newSubject}
                 onChange={(e) => setNewSubject(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSubject(); } }}
-                placeholder="Add a subject..."
+                placeholder={t('settings.subject_placeholder')}
                 className="flex-1 px-4 py-3 rounded-xl border border-border bg-background text-text-primary outline-none focus:border-primary transition-all"
               />
               <button
@@ -282,13 +294,13 @@ export function EditProfileModal({ profile, onClose, onSave }) {
                 onClick={addSubject}
                 className="px-4 py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary-active transition-all"
               >
-                Add
+                {t('settings.add')}
               </button>
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">Bio</label>
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">{t('settings.bio')}</label>
             <textarea
               value={formData.bio}
               onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
@@ -296,7 +308,7 @@ export function EditProfileModal({ profile, onClose, onSave }) {
             />
           </div>
           <div className="space-y-1">
-            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">Learning Goals</label>
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">{t('settings.learning_goals')}</label>
             <textarea
               value={formData.goals}
               onChange={(e) => setFormData({ ...formData, goals: e.target.value })}
@@ -304,16 +316,35 @@ export function EditProfileModal({ profile, onClose, onSave }) {
             />
           </div>
           <div className="space-y-1">
-            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">Theme Preference</label>
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">{t('settings.theme_preference')}</label>
             <select
               value={formData.theme}
               onChange={(e) => setFormData({ ...formData, theme: e.target.value })}
               className="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary outline-none focus:border-primary transition-all appearance-none"
             >
-              <option value="light">Light Mode</option>
-              <option value="dark">Dark Mode</option>
-              <option value="system">System Default</option>
+              <option value="light">{t('settings.light_mode')}</option>
+              <option value="dark">{t('settings.dark_mode')}</option>
+              <option value="system">{t('settings.system_default')}</option>
             </select>
+          </div>
+          <div className="space-y-1">
+            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">{t('settings.language')}</label>
+            <div className="relative">
+              <Globe size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+              <select
+                value={formData.preferredLanguage}
+                onChange={(e) => {
+                  const lang = e.target.value;
+                  setFormData({ ...formData, preferredLanguage: lang });
+                  i18n.changeLanguage(lang);
+                }}
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-background text-text-primary outline-none focus:border-primary transition-all appearance-none"
+              >
+                {LANGUAGE_OPTIONS.map((lang) => (
+                  <option key={lang.value} value={lang.value}>{lang.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
           {saveError && (
             <p className="text-sm font-bold text-error bg-error/10 p-3 rounded-xl border border-error/20 text-center">

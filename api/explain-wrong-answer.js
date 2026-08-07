@@ -9,7 +9,7 @@ let model;
 
 try {
   const geminiApiKey = process.env.GEMINI_API_KEY;
-  const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  const geminiModel = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 
   if (!geminiApiKey) {
     log.warn('GEMINI_API_KEY not set. AI functions will fail.');
@@ -75,7 +75,7 @@ export default requireAuth(async function handler(req, res) {
   }
 
   try {
-    const { question, selectedAnswer } = req.body;
+    const { question, selectedAnswer, preferredLanguage } = req.body;
 
     if (!question || !selectedAnswer) {
       return res.status(400).json({ error: 'Missing required fields: question, selectedAnswer' });
@@ -86,7 +86,9 @@ export default requireAuth(async function handler(req, res) {
       return res.status(503).json({ error: 'Gemini API is not configured. Set GEMINI_API_KEY.' });
     }
 
-    const prompt = `Return JSON only: {"explanation":"brief explanation of why the selected answer is wrong and why the correct answer is right"}
+    const lang = preferredLanguage || "en";
+    const prompt = `IMPORTANT: Respond ONLY in the user's preferred language: "${lang}". Never translate from English afterwards.
+Return JSON only: {"explanation":"brief explanation of why the selected answer is wrong and why the correct answer is right"}
 Selected answer: ${selectedAnswer}
 Question:
 ${JSON.stringify(question)}`;

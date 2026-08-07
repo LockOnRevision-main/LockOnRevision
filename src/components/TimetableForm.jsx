@@ -1,5 +1,6 @@
 import { Plus, Trash2, Clock, BookOpen, GraduationCap, BarChart3 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { loadPreferencesLocally } from "../services/timetableService.js";
 
 const DURATION_OPTIONS = [
@@ -18,6 +19,7 @@ const DIFFICULTY_OPTIONS = [
 const EMPTY_SUBJECT = { title: "", difficulty: "medium", confidence: 5, currentChapter: "" };
 
 export function TimetableForm({ onGenerate, busy }) {
+  const { t } = useTranslation();
   const saved = loadPreferencesLocally();
   const [grade, setGrade] = useState(saved?.grade || "");
   const [dailyMinutes, setDailyMinutes] = useState(Number(saved?.dailyMinutes) || 60);
@@ -64,25 +66,25 @@ export function TimetableForm({ onGenerate, busy }) {
             <GraduationCap size={22} />
           </div>
           <div>
-            <h2 className="text-lg font-black tracking-tight text-text-primary">Your Profile</h2>
-            <p className="text-xs text-text-secondary">Tell us about your study situation</p>
+            <h2 className="text-lg font-black tracking-tight text-text-primary">{t("timetable.your_profile")}</h2>
+            <p className="text-xs text-text-secondary">{t("timetable.study_situation")}</p>
           </div>
         </div>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-text-secondary">
-              Grade / Year
+              {t("timetable.grade_year")}
             </label>
             <input
               value={grade}
               onChange={(e) => setGrade(e.target.value)}
-              placeholder="e.g. Year 11"
+              placeholder={t("timetable.grade_placeholder")}
               className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-text-primary outline-none focus:border-primary transition-all"
             />
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-text-secondary">
-              Daily study time
+              {t("timetable.daily_study_time")}
             </label>
             <div className="relative">
               <Clock size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
@@ -95,11 +97,11 @@ export function TimetableForm({ onGenerate, busy }) {
                 className="w-full rounded-xl border border-border bg-background py-2.5 pl-9 pr-3 text-sm text-text-primary outline-none focus:border-primary transition-all"
               />
             </div>
-            <p className="mt-1 text-[11px] text-text-muted">Minutes per weekday</p>
+            <p className="mt-1 text-[11px] text-text-muted">{t("timetable.minutes_weekday")}</p>
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-text-secondary">
-              Weekend study time
+              {t("timetable.weekend_study_time")}
             </label>
             <div className="relative">
               <Clock size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
@@ -112,11 +114,11 @@ export function TimetableForm({ onGenerate, busy }) {
                 className="w-full rounded-xl border border-border bg-background py-2.5 pl-9 pr-3 text-sm text-text-primary outline-none focus:border-primary transition-all"
               />
             </div>
-            <p className="mt-1 text-[11px] text-text-muted">Minutes per weekend day</p>
+            <p className="mt-1 text-[11px] text-text-muted">{t("timetable.minutes_weekend")}</p>
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-text-secondary">
-              Preferred start
+              {t("timetable.preferred_start")}
             </label>
             <input
               type="time"
@@ -135,8 +137,8 @@ export function TimetableForm({ onGenerate, busy }) {
             <BarChart3 size={22} />
           </div>
           <div>
-            <h2 className="text-lg font-black tracking-tight text-text-primary">Duration</h2>
-            <p className="text-xs text-text-secondary">How long should this timetable cover?</p>
+            <h2 className="text-lg font-black tracking-tight text-text-primary">{t("timetable.duration")}</h2>
+            <p className="text-xs text-text-secondary">{t("timetable.duration_desc")}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -151,7 +153,7 @@ export function TimetableForm({ onGenerate, busy }) {
                   : "border-border bg-background text-text-secondary hover:border-primary/50"
               }`}
             >
-              {opt.label}
+              {t(`timetable.duration_${opt.value}w`)}
             </button>
           ))}
         </div>
@@ -165,8 +167,8 @@ export function TimetableForm({ onGenerate, busy }) {
               <BookOpen size={22} />
             </div>
             <div>
-              <h2 className="text-lg font-black tracking-tight text-text-primary">Subjects</h2>
-              <p className="text-xs text-text-secondary">Add your subjects with difficulty and confidence levels</p>
+              <h2 className="text-lg font-black tracking-tight text-text-primary">{t("timetable.subjects_heading")}</h2>
+              <p className="text-xs text-text-secondary">{t("timetable.subjects_desc")}</p>
             </div>
           </div>
           <button
@@ -174,7 +176,7 @@ export function TimetableForm({ onGenerate, busy }) {
             onClick={addSubject}
             className="flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-black text-white transition-all hover:bg-primary-active"
           >
-            <Plus size={14} /> Add
+            <Plus size={14} /> {t("common.add")}
           </button>
         </div>
         <div className="space-y-3">
@@ -184,28 +186,28 @@ export function TimetableForm({ onGenerate, busy }) {
               className="flex flex-wrap items-end gap-3 rounded-2xl border border-border bg-background p-4"
             >
               <div className="min-w-0 flex-1">
-                <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-text-muted">Subject</label>
+                <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-text-muted">{t("timetable.subject")}</label>
                 <input
                   value={subject.title}
                   onChange={(e) => updateSubject(i, "title", e.target.value)}
-                  placeholder="e.g. Mathematics"
+                  placeholder={t("timetable.subject_placeholder")}
                   className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none focus:border-primary transition-all"
                 />
               </div>
               <div className="w-24">
-                <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-text-muted">Difficulty</label>
+                <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-text-muted">{t("timetable.difficulty_label")}</label>
                 <select
                   value={subject.difficulty}
                   onChange={(e) => updateSubject(i, "difficulty", e.target.value)}
                   className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none focus:border-primary transition-all"
                 >
                   {DIFFICULTY_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
+                    <option key={o.value} value={o.value}>{t(`timetable.${o.value}`)}</option>
                   ))}
                 </select>
               </div>
               <div className="w-20">
-                <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-text-muted">Confidence</label>
+                <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-text-muted">{t("timetable.confidence_label")}</label>
                 <input
                   type="number"
                   min={1}
@@ -216,11 +218,11 @@ export function TimetableForm({ onGenerate, busy }) {
                 />
               </div>
               <div className="min-w-0 flex-[2]">
-                <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-text-muted">Current chapter</label>
+                <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-text-muted">{t("timetable.current_chapter_label")}</label>
                 <input
                   value={subject.currentChapter}
                   onChange={(e) => updateSubject(i, "currentChapter", e.target.value)}
-                  placeholder="e.g. Algebra"
+                  placeholder={t("timetable.chapter_placeholder")}
                   className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none focus:border-primary transition-all"
                 />
               </div>
@@ -229,7 +231,7 @@ export function TimetableForm({ onGenerate, busy }) {
                   type="button"
                   onClick={() => removeSubject(i)}
                   className="rounded-xl border border-border bg-surface p-2.5 text-text-muted transition-all hover:bg-status-error/10 hover:text-status-error"
-                  aria-label="Remove subject"
+                  aria-label={t("timetable.remove_subject")}
                 >
                   <Trash2 size={16} />
                 </button>
@@ -247,8 +249,8 @@ export function TimetableForm({ onGenerate, busy }) {
               <GraduationCap size={22} />
             </div>
             <div>
-              <h2 className="text-lg font-black tracking-tight text-text-primary">Exam Dates</h2>
-              <p className="text-xs text-text-secondary">Add upcoming exams so we can prioritize them</p>
+              <h2 className="text-lg font-black tracking-tight text-text-primary">{t("timetable.exam_dates")}</h2>
+              <p className="text-xs text-text-secondary">{t("timetable.exam_dates_desc")}</p>
             </div>
           </div>
           <button
@@ -256,26 +258,26 @@ export function TimetableForm({ onGenerate, busy }) {
             onClick={addExam}
             className="flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-black text-white transition-all hover:bg-primary-active"
           >
-            <Plus size={14} /> Add
+            <Plus size={14} /> {t("common.add")}
           </button>
         </div>
         {examDates.length === 0 ? (
-          <p className="text-sm italic text-text-muted">No exams added yet. Optional.</p>
+          <p className="text-sm italic text-text-muted">{t("timetable.no_exams")}</p>
         ) : (
           <div className="space-y-3">
             {examDates.map((exam, i) => (
               <div key={i} className="flex flex-wrap items-end gap-3 rounded-2xl border border-border bg-background p-4">
                 <div className="min-w-0 flex-1">
-                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-text-muted">Subject</label>
+                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-text-muted">{t("timetable.subject")}</label>
                   <input
                     value={exam.subject}
                     onChange={(e) => updateExam(i, "subject", e.target.value)}
-                    placeholder="e.g. Physics"
+                    placeholder={t("timetable.exam_placeholder")}
                     className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none focus:border-primary transition-all"
                   />
                 </div>
                 <div className="w-44">
-                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-text-muted">Date</label>
+                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-text-muted">{t("timetable.date_label")}</label>
                   <input
                     type="date"
                     value={exam.date}
@@ -287,7 +289,7 @@ export function TimetableForm({ onGenerate, busy }) {
                   type="button"
                   onClick={() => removeExam(i)}
                   className="rounded-xl border border-border bg-surface p-2.5 text-text-muted transition-all hover:bg-status-error/10 hover:text-status-error"
-                  aria-label="Remove exam"
+                  aria-label={t("timetable.remove_exam")}
                 >
                   <Trash2 size={16} />
                 </button>
@@ -303,7 +305,7 @@ export function TimetableForm({ onGenerate, busy }) {
         disabled={busy || !subjects.some((s) => s.title.trim())}
         className="w-full rounded-2xl bg-gradient-to-r from-secondary to-primary py-4 text-lg font-black text-white shadow-lg transition-all hover:scale-[1.01] hover:shadow-xl disabled:opacity-40 disabled:pointer-events-none"
       >
-        {busy ? "Generating..." : "Generate Timetable"}
+        {busy ? t("timetable.generating") : t("timetable.generate_timetable")}
       </button>
     </form>
   );

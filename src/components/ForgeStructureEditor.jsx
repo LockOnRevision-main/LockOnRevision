@@ -1,4 +1,5 @@
 import { ChevronDown, ChevronUp, GripVertical, Plus, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { createEmptyForgeNode } from "../services/forgeService.js";
 
 function moveItem(items, index, direction) {
@@ -10,12 +11,13 @@ function moveItem(items, index, direction) {
 }
 
 function NodeEditor({ label, title, onTitleChange, onDelete, onMoveUp, onMoveDown, canMoveUp, canMoveDown, children }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-lg border border-border bg-surface p-3">
       <div className="flex items-start gap-2">
         <GripVertical size={16} className="mt-2 shrink-0 text-text-muted" />
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold uppercase tracking-widest text-text-muted">{label}</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-text-muted">{t(`forge_structure.${label.toLowerCase().replace(/\s+/g, '_')}`) || label}</p>
           <input
             value={title}
             onChange={(event) => onTitleChange(event.target.value)}
@@ -40,6 +42,7 @@ function NodeEditor({ label, title, onTitleChange, onDelete, onMoveUp, onMoveDow
 }
 
 export function ForgeStructureEditor({ tree, onChange }) {
+  const { t } = useTranslation();
   if (!tree) return null;
 
   function updateSubject(field, value) {
@@ -53,7 +56,7 @@ export function ForgeStructureEditor({ tree, onChange }) {
   return (
     <div className="grid gap-4">
       <div className="rounded-xl border border-border bg-background p-4">
-        <p className="text-xs font-bold uppercase tracking-widest text-primary">Subject</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-primary">{t('forge_structure.subject')}</p>
         <input
           value={tree.title}
           onChange={(event) => updateSubject("title", event.target.value)}
@@ -63,14 +66,14 @@ export function ForgeStructureEditor({ tree, onChange }) {
           value={tree.description || ""}
           onChange={(event) => updateSubject("description", event.target.value)}
           className="mt-2 min-h-20 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
-          placeholder="Subject description"
+          placeholder={t('forge_structure.subject_desc_placeholder')}
         />
       </div>
 
       {tree.units?.map((unit, unitIndex) => (
         <div key={unit.id} className="grid gap-3 border-l-2 border-primary/20 pl-4">
           <NodeEditor
-            label="Unit"
+            label={t('forge_structure.unit')}
             title={unit.title}
             onTitleChange={(value) => {
               const units = [...tree.units];
@@ -91,14 +94,14 @@ export function ForgeStructureEditor({ tree, onChange }) {
                 updateUnits(units);
               }}
               className="mt-2 min-h-16 w-full rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-primary"
-              placeholder="Unit summary"
+              placeholder={t('forge_structure.unit_summary_placeholder')}
             />
           </NodeEditor>
 
           {unit.subUnits?.map((subUnit, subIndex) => (
             <div key={subUnit.id} className="grid gap-3 border-l-2 border-warning/20 pl-4">
               <NodeEditor
-                label="Sub Unit"
+                label={t('forge_structure.sub_unit')}
                 title={subUnit.title}
                 onTitleChange={(value) => {
                   const units = [...tree.units];
@@ -132,7 +135,7 @@ export function ForgeStructureEditor({ tree, onChange }) {
               {subUnit.lessons?.map((lesson, lessonIndex) => (
                 <div key={lesson.id} className="border-l-2 border-border/50 pl-4">
                   <NodeEditor
-                    label="Lesson"
+                    label={t('forge_structure.lesson')}
                     title={lesson.title}
                     onTitleChange={(value) => {
                       const units = [...tree.units];
@@ -182,7 +185,7 @@ export function ForgeStructureEditor({ tree, onChange }) {
                         updateUnits(units);
                       }}
                       className="mt-2 min-h-16 w-full rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-primary"
-                      placeholder="Lesson summary"
+                      placeholder={t('forge_structure.lesson_summary_placeholder')}
                     />
                   </NodeEditor>
                 </div>
@@ -203,7 +206,7 @@ export function ForgeStructureEditor({ tree, onChange }) {
                 className="inline-flex items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2 text-sm font-bold text-text-secondary"
               >
                 <Plus size={14} />
-                Add lesson
+                {t('forge_structure.add_lesson')}
               </button>
             </div>
           ))}
@@ -221,7 +224,7 @@ export function ForgeStructureEditor({ tree, onChange }) {
             className="inline-flex items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2 text-sm font-bold text-text-secondary"
           >
             <Plus size={14} />
-            Add sub unit
+            {t('forge_structure.add_sub_unit')}
           </button>
         </div>
       ))}
@@ -232,7 +235,7 @@ export function ForgeStructureEditor({ tree, onChange }) {
         className="inline-flex items-center gap-2 rounded-lg bg-primary/10 px-4 py-3 text-sm font-black text-primary"
       >
         <Plus size={16} />
-        Add unit
+        {t('forge_structure.add_unit')}
       </button>
     </div>
   );

@@ -1,4 +1,5 @@
-/* global fetch, btoa, URLSearchParams */
+/* global btoa, URLSearchParams */
+import { URL } from 'url';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { GoogleAIFileManager } from '@google/generative-ai/server';
 import fs from 'fs';
@@ -6,6 +7,60 @@ import path from 'path';
 import { pipeline } from 'stream/promises';
 import { createLogger, withTimeout, retry, validateFileResponse } from './lib/forge-integrity.js';
 import { requireAuth } from './lib/auth.js';
+
+const ALLOWED_HOSTS = new Set([
+  'res.cloudinary.com',
+  'cloudinary.com',
+  'api.cloudinary.com',
+]);
+const BLOCKED_IPS = new Set([
+  '127.0.0.1',
+  '169.254.169.254',
+  '::1',
+  '0.0.0.0',
+]);
+const BLOCKED_HOSTNAMES = new Set([
+  'localhost',
+  'metadata',
+  'metadata.google.internal',
+]);
+
+async function validateUrl(urlString) {
+  let parsed;
+  try {
+    parsed = new URL(urlString);
+  } catch {
+    throw new Error('Invalid URL format');
+  }
+
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw new Error('Only HTTP/HTTPS protocols are allowed');
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+  if (BLOCKED_HOSTNAMES.has(hostname)) {
+    throw new Error('Access to this hostname is blocked');
+  }
+
+  if (ALLOWED_HOSTS.size > 0 && !ALLOWED_HOSTS.has(hostname)) {
+    throw new Error('URL hostname is not in the allowed list');
+  }
+
+  try {
+    const { lookup } = await import('dns/promises');
+    const { address } = await lookup(hostname, { family: 4 });
+    if (BLOCKED_IPS.has(address)) {
+      throw new Error('Access to this IP address is blocked');
+    }
+  } catch (dnsError) {
+    if (dnsError.message.includes('ENOTFOUND') || dnsError.message.includes('ENODATA')) {
+      throw new Error('Could not resolve hostname');
+    }
+    throw dnsError;
+  }
+
+  return parsed;
+}
 
 function getCloudinaryConfig() {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.VITE_CLOUDINARY_CLOUD_NAME;
@@ -53,7 +108,7 @@ let fileManager;
 
 try {
   const geminiApiKey = process.env.GEMINI_API_KEY;
-  const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  const geminiModel = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 
   if (!geminiApiKey) {
     log.warn('GEMINI_API_KEY not set. AI functions will fail.');
@@ -133,7 +188,7 @@ export default requireAuth(async function handler(req, res) {
   }
 
   try {
-    const { url, mimeType, files: requestedFiles } = req.body;
+    const { url, mimeType, files: requestedFiles, preferredLanguage } = req.body;
 
     const filesToProcess = [];
     if (url && mimeType) {
@@ -158,7 +213,8 @@ export default requireAuth(async function handler(req, res) {
     const tempFiles = [];
 
     for (const file of filesToProcess) {
-      const fileName = path.basename(file.url.split('?')[0]) || `file_${Date.now()}`;
+      await validateUrl(file.url);
+      const fileName = path.basename(new URL(file.url).pathname.split('?')[0]) || `file_${Date.now()}`;
       const filePath = path.join('/tmp', fileName);
       log.info('Downloading file', { url: file.url });
       const response = await fetch(file.url);
@@ -177,7 +233,10 @@ export default requireAuth(async function handler(req, res) {
       });
     }
 
+    const lang = preferredLanguage || "en";
     const prompt = `You are an expert educational AI. Your goal is to transform the uploaded study notes into a premium, interactive, and structured learning experience.
+
+IMPORTANT: Generate all content ONLY in the user's preferred language: "${lang}". All titles, descriptions, summaries, concepts, exercises, questions, options, correct answers, and explanations must be in this language. Maintain educational terminology appropriate for that language. Never translate from English afterwards.
     
 Analyze the provided files and generate a highly structured JSON response representing a complete subject curriculum.
  

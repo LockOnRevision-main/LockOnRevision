@@ -21,8 +21,10 @@ VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
 VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
 VITE_CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 VITE_CLOUDINARY_UPLOAD_PRESET=your_unsigned_upload_preset
-VITE_ADMIN_EMAILS=admin@example.com,admin2@example.com
 ```
+
+> **Admin access:** Admin status is determined by the `isAdmin`/`role` field on the user's Firestore document. Grant admin by setting `isAdmin: true` on a user document in the Firebase console (or via the Cloud Functions admin SDK) — there is no email-list override.
+
 
 ## Server Environment
 

@@ -13,6 +13,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { Logo } from "../components/Logo";
 import { Footer } from "../components/Footer";
@@ -41,36 +42,6 @@ function IsoStack({ variant = "blue" }) {
     </div>
   );
 }
-
-const featureCards = [
-  {
-    icon: Brain,
-    title: "Revision With Momentum",
-    copy: "Students earn progress through focused tasks instead of passive rereading.",
-  },
-  {
-    icon: Zap,
-    title: "Energy That Matters",
-    copy: "Energy is scarce, earned, and worth 100 XP on the leaderboard.",
-  },
-  {
-    icon: Trophy,
-    title: "Healthy Competition",
-    copy: "Leaderboards make consistent revision visible and motivating.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Admin Ready",
-    copy: "The product architecture leaves space for moderation, cohorts, and analytics.",
-  },
-];
-
-const steps = [
-  "Create an account when Firebase is re-enabled.",
-  "Complete revision units and lessons.",
-  "Earn XP and Energy through consistent study.",
-  "Climb a leaderboard powered by total score.",
-];
 
 function useReveal() {
   const ref = useRef(null);
@@ -110,7 +81,38 @@ function Section({ children, className = "" }) {
 }
 
 function LandingPageContent() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+
+  const featureCards = [
+    {
+      icon: Brain,
+      title: t("landing.feature_revision_title"),
+      copy: t("landing.feature_revision_desc"),
+    },
+    {
+      icon: Zap,
+      title: t("landing.feature_energy_title"),
+      copy: t("landing.feature_energy_desc"),
+    },
+    {
+      icon: Trophy,
+      title: t("landing.feature_competition_title"),
+      copy: t("landing.feature_competition_desc"),
+    },
+    {
+      icon: ShieldCheck,
+      title: t("landing.feature_admin_title"),
+      copy: t("landing.feature_admin_desc"),
+    },
+  ];
+
+  const steps = [
+    t("landing.step1"),
+    t("landing.step2"),
+    t("landing.step3"),
+    t("landing.step4"),
+  ];
 
   function getStarted() {
     navigate("/login");
@@ -135,20 +137,20 @@ function LandingPageContent() {
               to="/about"
               className="hidden rounded-xl px-4 py-2.5 text-sm font-bold text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:inline-flex"
             >
-              About
+              {t("nav.about")}
             </Link>
             <Link
               to="/leaderboard"
               className="hidden rounded-xl px-4 py-2.5 text-sm font-bold text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:inline-flex"
             >
-              Leaderboard
+              {t("nav.leaderboard")}
             </Link>
             <button
               type="button"
               onClick={getStarted}
               className="rounded-xl bg-secondary px-5 py-2.5 text-sm font-bold text-white transition-all duration-200 hover:bg-secondary-hover active:scale-95 disabled:opacity-60 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
-              Get Started
+              {t("landing.cta_start")}
             </button>
           </div>
         </nav>
@@ -157,17 +159,16 @@ function LandingPageContent() {
           <div className="flex flex-col gap-6">
             <p className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-surface/80 px-4 py-2 text-sm font-bold text-primary shadow-sm backdrop-blur-sm">
               <GraduationCap size={16} />
-              Competitive revision for students
+              {t("landing.badge")}
             </p>
             <h1 className="text-4xl font-black tracking-tight leading-[1.1] sm:text-5xl md:text-7xl lg:text-8xl text-text-primary">
-              LockOnRevision
+              {t("app.name")}
             </h1>
             <p className="max-w-2xl text-lg font-semibold leading-relaxed text-text-secondary sm:text-xl">
-              Smarter revision starts here.
+              {t("landing.hero_subtitle")}
             </p>
             <p className="max-w-2xl text-base leading-relaxed text-text-secondary/90 sm:text-lg">
-              LockOnRevision turns study consistency into a visible scoring system. Students complete lessons, gain XP,
-              earn Energy, and compare progress through a focused leaderboard.
+              {t("landing.hero_desc")}
             </p>
             <div className="mt-2 flex flex-wrap gap-4">
               <button
@@ -175,14 +176,14 @@ function LandingPageContent() {
                 onClick={getStarted}
                 className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary via-primary to-secondary px-8 py-4 font-bold text-white shadow-xl shadow-primary/30 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-primary/50 active:scale-95 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               >
-                Get Started
+                {t("landing.cta_start")}
                 <ArrowRight size={18} />
               </button>
               <Link
                 to="/leaderboard"
                 className="inline-flex items-center justify-center rounded-xl border border-border bg-surface px-8 py-4 font-bold text-text-primary shadow-sm transition-all hover:bg-background hover:border-primary/30 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               >
-                View Leaderboard
+                {t("landing.view_leaderboard")}
               </Link>
             </div>
           </div>
@@ -193,13 +194,12 @@ function LandingPageContent() {
       {/* ───── WHY LOCKON ───── */}
       <Section className="mx-auto grid max-w-7xl gap-12 px-6 py-20 lg:grid-cols-[0.8fr_1.2fr] lg:py-28">
         <div className="flex flex-col gap-4">
-          <p className="text-sm font-bold uppercase tracking-widest text-primary">Why LockOn</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-primary">{t("landing.why")}</p>
           <h2 className="text-3xl font-black tracking-tight text-text-primary leading-tight sm:text-4xl">
-            Revision needs feedback, not just effort.
+            {t("landing.why_title")}
           </h2>
           <p className="text-base leading-relaxed text-text-secondary sm:text-lg">
-            Students often study without knowing whether the work is compounding. LockOn makes progress measurable and
-            encourages better habits through simple, visible scoring.
+            {t("landing.why_desc")}
           </p>
         </div>
         <div className="grid gap-6 sm:grid-cols-2">
@@ -223,17 +223,17 @@ function LandingPageContent() {
       <Section className="border-y border-border bg-surface py-20 lg:py-28">
         <div className="mx-auto max-w-7xl px-6">
           <div className="mx-auto flex max-w-3xl flex-col gap-3 text-center">
-            <p className="text-sm font-bold uppercase tracking-widest text-primary">Features</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-primary">{t("landing.features_section")}</p>
             <h2 className="text-3xl font-black tracking-tight text-text-primary leading-tight sm:text-4xl">
-              A revision platform built around action.
+              {t("landing.features_subtitle")}
             </h2>
           </div>
 
           <div className="mt-16 grid gap-8 md:grid-cols-3">
             {[
-              ["XP", "Tracks learning progress from completed work.", BookOpenCheck],
-              ["Energy", "Rewards high-quality performance and unit completion.", Zap],
-              ["Leaderboard", "Ranks students by total score, not vanity activity.", Medal],
+              [t("landing.xp_title"), t("landing.xp_desc"), BookOpenCheck],
+              [t("landing.energy_title"), t("landing.energy_desc"), Zap],
+              [t("landing.leaderboard_card_title"), t("landing.leaderboard_card_desc"), Medal],
             ].map(([title, copy, Icon]) => (
               <article
                 key={title}
@@ -252,9 +252,9 @@ function LandingPageContent() {
       <Section className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-20 lg:grid-cols-2 lg:gap-16 lg:py-28">
         <IsoStack variant="green" />
         <div className="flex flex-col gap-6">
-          <p className="text-sm font-bold uppercase tracking-widest text-primary">How It Works</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-primary">{t("landing.how_it_works")}</p>
           <h2 className="text-3xl font-black tracking-tight text-text-primary leading-tight sm:text-4xl">
-            XP + Energy creates a clearer score.
+            {t("landing.how_title")}
           </h2>
           <div className="grid gap-4">
             {steps.map((step, index) => (
@@ -270,7 +270,7 @@ function LandingPageContent() {
             ))}
           </div>
           <p className="mt-4 rounded-2xl bg-gradient-to-br from-surface to-card p-6 font-black text-text-primary border border-border shadow-sm">
-            Total Score = XP + (Energy x 100)
+            {t("landing.score_formula")}
           </p>
         </div>
       </Section>
@@ -279,27 +279,26 @@ function LandingPageContent() {
       <Section className="bg-gradient-to-br from-background via-surface to-secondary/10 border-y border-border py-20 lg:py-28">
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 lg:grid-cols-[1fr_0.9fr] lg:gap-16">
           <div className="flex flex-col gap-6">
-            <p className="text-sm font-bold uppercase tracking-widest text-primary">Leaderboard Overview</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-primary">{t("landing.leaderboard_overview")}</p>
             <h2 className="text-3xl font-black tracking-tight leading-tight text-text-primary sm:text-4xl">
-              Competition that rewards consistency.
+              {t("landing.leaderboard_section_title")}
             </h2>
             <p className="text-base leading-relaxed text-text-secondary sm:text-lg">
-              The leaderboard is intentionally simple: students are ranked by total score. XP shows learning volume,
-              Energy highlights high-value performance, and the formula keeps the system easy to understand.
+              {t("landing.leaderboard_section_desc")}
             </p>
             <p className="inline-flex w-fit items-center gap-2 rounded-lg bg-surface/50 px-5 py-3 font-black text-text-primary shadow-sm backdrop-blur-sm border border-border">
               <Zap size={18} className="text-warning" />
-              1 Energy = 100 XP
+              {t("landing.energy_equals")}
             </p>
           </div>
           <div className="rounded-2xl border border-border bg-surface/50 p-6 shadow-xl shadow-secondary/20 backdrop-blur">
             <div className="grid grid-cols-3 gap-3 px-6 py-4 text-xs font-black uppercase tracking-widest text-text-muted border-b border-border">
-              <span>Rank</span>
-              <span>Name</span>
-              <span className="text-right">Total Score</span>
+              <span>{t("Rank")}</span>
+              <span>{t("Name")}</span>
+              <span className="text-right">{t("Total Score")}</span>
             </div>
             <div className="mt-4 grid gap-4">
-              {["Student Profile", "XP Breakdown", "Energy Bonus"].map((item, index) => (
+              {[t("landing.preview_student"), t("landing.preview_xp"), t("landing.preview_energy")].map((item, index) => (
                 <div
                   key={item}
                   className="flex items-center justify-between rounded-xl bg-surface/50 p-4 transition-all hover:bg-background/50 border border-transparent hover:border-border"
@@ -316,21 +315,20 @@ function LandingPageContent() {
       {/* ───── ADMIN CAPABILITIES ───── */}
       <Section className="mx-auto grid max-w-7xl gap-8 px-6 py-20 lg:grid-cols-[0.9fr_1.1fr] lg:py-28">
         <div>
-          <p className="text-sm font-bold uppercase tracking-widest text-primary">Admin Capabilities</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-primary">{t("landing.admin_capabilities")}</p>
           <h2 className="mt-3 text-3xl font-black tracking-tight text-text-primary leading-tight sm:text-4xl">
-            Designed for cohorts, moderation, and insight.
+            {t("landing.admin_title")}
           </h2>
           <p className="mt-4 text-base leading-relaxed text-text-secondary sm:text-lg">
-            Admin tooling gives authorized teams a focused place to review users, rewards, Forge content, and access
-            decisions.
+            {t("landing.admin_desc")}
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           {[
-            ["Cohort Controls", Users],
-            ["Score Audits", BarChart3],
-            ["Energy Rule Tuning", Gauge],
-            ["Access Management", Lock],
+            [t("landing.admin_cohort"), Users],
+            [t("landing.admin_audits"), BarChart3],
+            [t("landing.admin_energy_rules"), Gauge],
+            [t("landing.admin_access"), Lock],
           ].map(([title, Icon]) => (
             <article
               key={title}
@@ -338,7 +336,7 @@ function LandingPageContent() {
             >
               <Icon className="text-primary" size={24} />
               <h3 className="mt-4 font-bold text-text-primary">{title}</h3>
-              <p className="mt-2 text-sm text-text-muted">Available through the authenticated admin workspace.</p>
+              <p className="mt-2 text-sm text-text-muted">{t("landing.admin_workspace")}</p>
             </article>
           ))}
         </div>
@@ -349,10 +347,10 @@ function LandingPageContent() {
         <div className="mx-auto max-w-5xl rounded-3xl bg-gradient-to-br from-primary via-primary to-secondary p-10 text-center text-white shadow-2xl shadow-primary/30 transition-all duration-300 hover:shadow-primary/40 sm:p-14">
           <GraduationCap className="mx-auto" size={40} />
           <h2 className="mt-6 text-3xl font-black tracking-tight leading-tight sm:text-4xl">
-            Ready to lock in better revision?
+            {t("landing.cta_title")}
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-white/80 sm:text-lg">
-            Create an account, upload your notes, generate lessons, and keep momentum visible as you revise.
+            {t("landing.cta_desc")}
           </p>
 
           <button
@@ -360,7 +358,7 @@ function LandingPageContent() {
             onClick={getStarted}
             className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 font-bold text-primary shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl active:scale-95"
           >
-            Get Started
+            {t("landing.cta_start")}
             <ArrowRight size={18} />
           </button>
         </div>

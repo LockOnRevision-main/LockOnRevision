@@ -9,7 +9,7 @@ let model;
 
 try {
   const geminiApiKey = process.env.GEMINI_API_KEY;
-  const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  const geminiModel = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 
   if (!geminiApiKey) {
     log.warn('GEMINI_API_KEY not set. AI functions will fail.');
@@ -68,7 +68,7 @@ export default requireAuth(async function handler(req, res) {
   }
 
   try {
-    const { messages, subjects } = req.body;
+    const { messages, subjects, preferredLanguage } = req.body;
 
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: 'Missing required field: messages' });
@@ -92,8 +92,11 @@ export default requireAuth(async function handler(req, res) {
       .map((message) => `${message.role === 'user' ? 'Student' : 'Assistant'}: ${message.content}`)
       .join('\n');
 
+    const lang = preferredLanguage || "en";
     const prompt = `You are the LockOnRevision Forge Assistant. You have access to the student's structured learning path (Units, Sub-Units, and Lessons).
 Your goal is to help the student navigate their curriculum and master the specific concepts outlined in the Forge structure.
+
+IMPORTANT: Respond ONLY in the user's preferred language: "${lang}". Maintain educational terminology appropriate for that language. Never translate from English afterwards. If the user changes language, immediately continue the conversation in the newly selected language.
 
 CAPABILITIES:
 1. Curriculum Guidance: Help the student understand how concepts link across different units and lessons.

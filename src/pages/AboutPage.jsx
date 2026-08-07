@@ -21,6 +21,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { Footer } from "../components/Footer";
 import { Logo } from "../components/Logo";
@@ -63,91 +64,92 @@ function Section({ children, className = "" }) {
   );
 }
 
-const features = [
-  {
-    icon: Trophy,
-    title: "XP Scoring",
-    copy: "Every completed lesson awards XP, giving students a clear measure of their revision volume.",
-  },
-  {
-    icon: Zap,
-    title: "Energy System",
-    copy: "Energy rewards high-quality performance and unit completion. Each Energy point is worth 100 XP on the leaderboard.",
-  },
-  {
-    icon: Medal,
-    title: "Leaderboard",
-    copy: "Students are ranked by total score, making consistency visible and motivating healthy competition.",
-  },
-  {
-    icon: Hammer,
-    title: "Forge",
-    copy: "An AI-powered learning path generator that turns uploaded notes into structured lessons and revision units.",
-  },
-  {
-    icon: CalendarDays,
-    title: "Timetable",
-    copy: "Plan and track revision sessions with an integrated timetable that adapts to your workload.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Admin Controls",
-    copy: "Cohort management, score audits, Energy rule tuning, and access controls for authorised teams.",
-  },
-];
-
-const aiCapabilities = [
-  {
-    icon: Brain,
-    title: "Lesson Generation",
-    copy: "Upload your notes and Forge generates structured lessons with explanations, examples, and key takeaways.",
-  },
-  {
-    icon: Bot,
-    title: "AI Tutor Chat",
-    copy: "Ask questions about any topic and receive contextual responses based on your revision material.",
-  },
-  {
-    icon: Sparkles,
-    title: "Wrong Answer Explanations",
-    copy: "When you answer incorrectly, the AI explains why and reinforces the correct concept.",
-  },
-  {
-    icon: Route,
-    title: "Smart Curriculum Design",
-    copy: "Forge structures your notes into a coherent learning path, identifying prerequisites and logical progressions.",
-  },
-  {
-    icon: Eye,
-    title: "Question Hinting",
-    copy: "Stuck on a question? The AI provides targeted hints to guide you toward the answer without giving it away.",
-  },
-  {
-    icon: Rocket,
-    title: "Timetable Optimisation",
-    copy: "AI-assisted timetable generation helps plan your revision sessions based on your available time and goals.",
-  },
-];
-
-const techStack = [
-  { label: "Frontend", value: "React 18, Vite 6, Tailwind CSS 3" },
-  { label: "Backend", value: "Firebase Auth, Firestore, Cloud Functions" },
-  { label: "AI / ML", value: "Google Gemini API via Vercel serverless functions" },
-  { label: "Icons", value: "Lucide React" },
-  { label: "Markdown", value: "react-markdown, KaTeX, rehype-highlight" },
-  { label: "Deployment", value: "Vercel (frontend + serverless functions), Firebase (backend)" },
-];
-
-const roadmap = [
-  { phase: "Alpha 1", status: "Complete", items: ["Core XP and Energy systems", "Leaderboard infrastructure", "Forge lesson generation", "AI Tutor Chat", "User authentication and profiles"] },
-  { phase: "Alpha 2", status: "In Progress", items: ["Timetable optimisation", "Wrong answer explanations", "Admin dashboard", "Push notifications", "Calendar sync"] },
-  { phase: "Beta", status: "Planned", items: ["Cohort management", "Achievement and badge system", "Activity heatmap", "Enhanced analytics", "Team and classroom accounts"] },
-  { phase: "V1", status: "Future", items: ["Mobile applications", "Offline mode", "Third-party integrations", "Marketplace for shared curricula", "Advanced gamification"] },
-];
-
 export function AboutPage() {
+  const { t } = useTranslation();
   const { loading, user } = useAuth();
   const navigate = useNavigate();
+
+  const features = [
+    {
+      icon: Trophy,
+      title: t("about.feature_xp_scoring"),
+      copy: t("about.feature_xp_scoring_desc"),
+    },
+    {
+      icon: Zap,
+      title: t("about.feature_energy_system"),
+      copy: t("about.feature_energy_system_desc"),
+    },
+    {
+      icon: Medal,
+      title: t("about.feature_leaderboard"),
+      copy: t("about.feature_leaderboard_desc"),
+    },
+    {
+      icon: Hammer,
+      title: t("about.feature_forge"),
+      copy: t("about.feature_forge_desc"),
+    },
+    {
+      icon: CalendarDays,
+      title: t("about.feature_timetable"),
+      copy: t("about.feature_timetable_desc"),
+    },
+    {
+      icon: ShieldCheck,
+      title: t("about.feature_admin"),
+      copy: t("about.feature_admin_desc"),
+    },
+  ];
+
+  const aiCapabilities = [
+    {
+      icon: Brain,
+      title: t("about.ai_lesson_gen"),
+      copy: t("about.ai_lesson_gen_desc"),
+    },
+    {
+      icon: Bot,
+      title: t("about.ai_tutor_chat"),
+      copy: t("about.ai_tutor_chat_desc"),
+    },
+    {
+      icon: Sparkles,
+      title: t("about.ai_wrong_answer"),
+      copy: t("about.ai_wrong_answer_desc"),
+    },
+    {
+      icon: Route,
+      title: t("about.ai_curriculum"),
+      copy: t("about.ai_curriculum_desc"),
+    },
+    {
+      icon: Eye,
+      title: t("about.ai_hinting"),
+      copy: t("about.ai_hinting_desc"),
+    },
+    {
+      icon: Rocket,
+      title: t("about.ai_timetable"),
+      copy: t("about.ai_timetable_desc"),
+    },
+  ];
+
+  const techStack = [
+    { label: t("about.tech_stack_frontend"), value: "React 18, Vite 6, Tailwind CSS 3" },
+    { label: t("about.tech_stack_backend"), value: "Firebase Auth, Firestore, Cloud Functions" },
+    { label: t("about.tech_stack_ai"), value: "Google Gemini API via Vercel serverless functions" },
+    { label: t("about.tech_stack_icons"), value: "Lucide React" },
+    { label: t("about.tech_stack_markdown"), value: "react-markdown, KaTeX, rehype-highlight" },
+    { label: t("about.tech_stack_deployment"), value: "Vercel (frontend + serverless functions), Firebase (backend)" },
+  ];
+
+  const roadmap = [
+    { phase: t("about.roadmap_alpha1"), statusKey: "complete", status: t("about.roadmap_complete"), items: [t("about.roadmap_alpha1_item1"), t("about.roadmap_alpha1_item2"), t("about.roadmap_alpha1_item3"), t("about.roadmap_alpha1_item4"), t("about.roadmap_alpha1_item5")] },
+    { phase: t("about.roadmap_alpha2"), statusKey: "in_progress", status: t("about.roadmap_in_progress"), items: [t("about.roadmap_alpha2_item1"), t("about.roadmap_alpha2_item2"), t("about.roadmap_alpha2_item3"), t("about.roadmap_alpha2_item4"), t("about.roadmap_alpha2_item5")] },
+    { phase: t("about.roadmap_beta"), statusKey: "planned", status: t("about.roadmap_planned"), items: [t("about.roadmap_beta_item1"), t("about.roadmap_beta_item2"), t("about.roadmap_beta_item3"), t("about.roadmap_beta_item4"), t("about.roadmap_beta_item5")] },
+    { phase: t("about.roadmap_v1"), statusKey: "future", status: t("about.roadmap_future"), items: [t("about.roadmap_v1_item1"), t("about.roadmap_v1_item2"), t("about.roadmap_v1_item3"), t("about.roadmap_v1_item4"), t("about.roadmap_v1_item5")] },
+  ];
 
   function getStarted() {
     navigate(user ? "/app" : "/login");
@@ -170,7 +172,7 @@ export function AboutPage() {
             to="/leaderboard"
             className="hidden rounded-xl px-3 py-2 text-sm font-bold text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:inline-flex"
           >
-            Leaderboard
+            {t("nav.leaderboard")}
           </Link>
           <button
             type="button"
@@ -178,7 +180,7 @@ export function AboutPage() {
             disabled={loading}
             className="rounded-xl bg-secondary px-4 py-2 text-sm font-bold text-white transition-all duration-200 hover:bg-secondary-hover active:scale-95 disabled:opacity-60 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:px-5 sm:py-2.5"
           >
-            Get Started
+            {t("landing.cta_start")}
           </button>
         </div>
       </nav>
@@ -189,24 +191,21 @@ export function AboutPage() {
         <div className="relative mx-auto max-w-6xl px-4 py-16 text-center sm:px-6 sm:py-24">
           <p className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/80 px-4 py-2 text-sm font-bold text-primary shadow-sm backdrop-blur-sm">
             <GraduationCap size={16} />
-            About LockOnRevision
+            {t("about.badge")}
           </p>
           <h1 className="mt-6 text-4xl font-black tracking-tight leading-[1.1] text-text-primary sm:text-5xl md:text-6xl">
-            Built to make revision measurable.
+            {t("about.hero_title")}
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-text-secondary sm:text-lg">
-            LockOnRevision transforms the way students approach study by turning consistency into a visible,
-            competitive scoring system.
+            {t("about.hero_desc")}
           </p>
           <div className="mt-8 inline-flex flex-col items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1 text-xs font-bold text-primary shadow-sm">
               <span className="flex h-2 w-2 rounded-full bg-primary" />
-              Beta 1.5
+              {t("about.beta_badge")}
             </span>
             <p className="max-w-md text-xs leading-relaxed text-text-muted">
-              LockOnRevision is currently in Beta. We&rsquo;re continuously improving the platform through
-              student feedback, testing, and regular feature updates as we work towards a full production
-              release.
+              {t("about.beta_desc")}
             </p>
           </div>
         </div>
@@ -215,16 +214,12 @@ export function AboutPage() {
       {/* ───── ABOUT ───── */}
       <Section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm font-bold uppercase tracking-widest text-primary">About</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-primary">{t("about.section")}</p>
           <h2 className="mt-3 text-3xl font-black tracking-tight text-text-primary sm:text-4xl">
-            What is LockOnRevision?
+            {t("about.what_title")}
           </h2>
           <p className="mt-4 text-base leading-relaxed text-text-secondary sm:text-lg">
-            LockOnRevision is a competitive revision platform designed for students who want to study smarter,
-            stay consistent, and see their progress in real time. Instead of relying on passive rereading, students
-            complete structured lessons, earn XP, collect Energy, and compete on a leaderboard that rewards genuine
-            effort. The platform combines AI-powered tools — from lesson generation to intelligent tutoring — with
-            a clean, focused interface that eliminates distractions.
+            {t("about.what_desc")}
           </p>
         </div>
       </Section>
@@ -234,19 +229,16 @@ export function AboutPage() {
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-2 lg:gap-12">
           <div className="rounded-2xl border border-border bg-surface p-8 shadow-sm">
             <Target className="text-primary" size={28} />
-            <h3 className="mt-4 text-2xl font-black tracking-tight text-text-primary">Mission</h3>
+            <h3 className="mt-4 text-2xl font-black tracking-tight text-text-primary">{t("about.mission_title")}</h3>
             <p className="mt-3 leading-relaxed text-text-secondary">
-              To make every study session count by giving students immediate, visible feedback on their effort.
-              We believe consistency, not cramming, is the foundation of real learning — and we build tools that
-              make consistent revision feel rewarding.
+              {t("about.mission_desc")}
             </p>
           </div>
           <div className="rounded-2xl border border-border bg-surface p-8 shadow-sm">
             <Eye className="text-primary" size={28} />
-            <h3 className="mt-4 text-2xl font-black tracking-tight text-text-primary">Vision</h3>
+            <h3 className="mt-4 text-2xl font-black tracking-tight text-text-primary">{t("about.vision_title")}</h3>
             <p className="mt-3 leading-relaxed text-text-secondary">
-              A world where every student has access to a personal revision ecosystem that adapts to their needs,
-              celebrates their progress, and connects them with a community of learners striving for excellence.
+              {t("about.vision_desc")}
             </p>
           </div>
         </div>
@@ -255,15 +247,12 @@ export function AboutPage() {
       {/* ───── WHY LOCKONREVISION ───── */}
       <Section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm font-bold uppercase tracking-widest text-primary">Why LockOnRevision?</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-primary">{t("about.why_section")}</p>
           <h2 className="mt-3 text-3xl font-black tracking-tight text-text-primary sm:text-4xl">
-            Because revision needs feedback.
+            {t("about.why_title")}
           </h2>
           <p className="mt-4 text-base leading-relaxed text-text-secondary sm:text-lg">
-            Most study tools treat revision as a solo, invisible activity. Students put in hours without knowing
-            whether the work is compounding. LockOnRevision changes that by making progress measurable, visible,
-            and socially engaging. We exist to replace the question &ldquo;Did I study enough?&rdquo; with
-            &ldquo;What do I need to do next?&rdquo;
+            {t("about.why_desc")}
           </p>
         </div>
       </Section>
@@ -272,9 +261,9 @@ export function AboutPage() {
       <Section className="border-y border-border bg-surface/50 py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-sm font-bold uppercase tracking-widest text-primary">Major Features</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-primary">{t("about.features_section")}</p>
             <h2 className="mt-3 text-3xl font-black tracking-tight text-text-primary sm:text-4xl">
-              Everything you need to revise effectively.
+              {t("about.features_heading")}
             </h2>
           </div>
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -295,13 +284,12 @@ export function AboutPage() {
       {/* ───── AI CAPABILITIES ───── */}
       <Section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm font-bold uppercase tracking-widest text-primary">AI Capabilities</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-primary">{t("about.ai_section")}</p>
           <h2 className="mt-3 text-3xl font-black tracking-tight text-text-primary sm:text-4xl">
-            Intelligent tools that adapt to you.
+            {t("about.ai_heading")}
           </h2>
           <p className="mt-4 text-base leading-relaxed text-text-secondary sm:text-lg">
-            LockORevision leverages Google Gemini AI to power a suite of smart features that make revision
-            more efficient, personalised, and interactive.
+            {t("about.ai_desc")}
           </p>
         </div>
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -322,19 +310,19 @@ export function AboutPage() {
       <Section className="border-y border-border bg-gradient-to-br from-background via-surface to-secondary/10 py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-sm font-bold uppercase tracking-widest text-primary">Platform Highlights</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-primary">{t("about.highlights_section")}</p>
             <h2 className="mt-3 text-3xl font-black tracking-tight text-text-primary sm:text-4xl">
-              Designed for focus and momentum.
+              {t("about.highlights_heading")}
             </h2>
           </div>
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { icon: GraduationCap, title: "Student-First Design", copy: "Every feature is built around the student experience, from onboarding to daily revision." },
-              { icon: Trophy, title: "Gamified Progression", copy: "XP, Energy, and leaderboards turn study into a rewarding game without losing academic focus." },
-              { icon: Bot, title: "AI-Native Experience", copy: "AI is not an add-on — it is woven into lesson generation, tutoring, and timetable planning." },
-              { icon: Lock, title: "Privacy Conscious", copy: "User data is protected through Firebase security rules and authentication." },
-              { icon: Globe, title: "Cross-Platform Ready", copy: "Built as a responsive web application that works on desktop, tablet, and mobile browsers." },
-              { icon: HeartHandshake, title: "Community Driven", copy: "Discord and leaderboard features foster a supportive community of learners." },
+              { icon: GraduationCap, title: t("about.highlight_student_first"), copy: t("about.highlight_student_first_desc") },
+              { icon: Trophy, title: t("about.highlight_gamified"), copy: t("about.highlight_gamified_desc") },
+              { icon: Bot, title: t("about.highlight_ai_native"), copy: t("about.highlight_ai_native_desc") },
+              { icon: Lock, title: t("about.highlight_privacy"), copy: t("about.highlight_privacy_desc") },
+              { icon: Globe, title: t("about.highlight_cross_platform"), copy: t("about.highlight_cross_platform_desc") },
+              { icon: HeartHandshake, title: t("about.highlight_community"), copy: t("about.highlight_community_desc") },
             ].map((item) => (
               <article
                 key={item.title}
@@ -352,9 +340,9 @@ export function AboutPage() {
       {/* ───── TECHNOLOGY ───── */}
       <Section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm font-bold uppercase tracking-widest text-primary">Technology</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-primary">{t("about.tech_section")}</p>
           <h2 className="mt-3 text-3xl font-black tracking-tight text-text-primary sm:text-4xl">
-            Built on modern infrastructure.
+            {t("about.tech_heading")}
           </h2>
         </div>
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -377,9 +365,9 @@ export function AboutPage() {
       <Section className="border-y border-border bg-surface/50 py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-sm font-bold uppercase tracking-widest text-primary">Roadmap</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-primary">{t("about.roadmap_section")}</p>
             <h2 className="mt-3 text-3xl font-black tracking-tight text-text-primary sm:text-4xl">
-              What&rsquo;s next for LockOnRevision.
+              {t("about.roadmap_heading")}
             </h2>
           </div>
           <div className="mt-12 grid gap-6 sm:grid-cols-2">
@@ -392,9 +380,9 @@ export function AboutPage() {
                   <h3 className="text-xl font-black tracking-tight text-text-primary">{phase.phase}</h3>
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-bold ${
-                      phase.status === "Complete"
+                      phase.statusKey === "complete"
                         ? "bg-success/20 text-success"
-                        : phase.status === "In Progress"
+                        : phase.statusKey === "in_progress"
                           ? "bg-primary/20 text-primary"
                           : "bg-text-muted/20 text-text-muted"
                     }`}
@@ -419,9 +407,9 @@ export function AboutPage() {
       {/* ───── FOUNDERS ───── */}
       <Section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm font-bold uppercase tracking-widest text-primary">Team</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-primary">{t("about.team_section")}</p>
           <h2 className="mt-3 text-3xl font-black tracking-tight text-text-primary sm:text-4xl">
-            The people behind LockOnRevision.
+            {t("about.team_heading")}
           </h2>
         </div>
         <div className="mt-12 grid gap-8 md:grid-cols-2">
@@ -430,27 +418,21 @@ export function AboutPage() {
             <div className="grid h-16 w-16 place-items-center rounded-full bg-primary/10 text-primary">
               <GraduationCap size={28} />
             </div>
-            <h3 className="mt-5 text-xl font-black tracking-tight text-text-primary">Abhijay Jalagari</h3>
-            <p className="mt-1 text-sm font-semibold text-primary">Founder, CEO &amp; Brand Representative</p>
+            <h3 className="mt-5 text-xl font-black tracking-tight text-text-primary">{t("about.team_abhijay_name")}</h3>
+            <p className="mt-1 text-sm font-semibold text-primary">{t("about.team_abhijay_role")}</p>
             <p className="mt-4 text-sm leading-relaxed text-text-secondary">
-              Abhijay Jalagari is the Founder, Chief Executive Officer (CEO), and primary Brand Representative
-              of LockOnRevision, a student-focused EdTech platform dedicated to helping learners stay organized,
-              motivated, and confident during exam preparation.
+              {t("about.team_abhijay_bio1")}
             </p>
             <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-              Motivated by his own experiences as a student, he founded LockOnRevision with the vision of
-              making revision more engaging, structured, and accessible through technology. As CEO, Abhijay
-              leads the platform&rsquo;s overall vision, product direction, and innovation while actively
-              gathering feedback from students to ensure every feature solves real educational challenges.
+              {t("about.team_abhijay_bio2")}
             </p>
             <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-              Beyond leadership, Abhijay represents LockOnRevision in presentations, competitions,
-              demonstrations, and school initiatives, serving as the public face of the project.
+              {t("about.team_abhijay_bio3")}
             </p>
             <div className="mt-5">
-              <p className="text-xs font-bold uppercase tracking-widest text-primary">Key Strengths</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-primary">{t("about.team_abhijay_strengths_label")}</p>
               <ul className="mt-2 flex flex-wrap gap-1.5">
-                {["Student entrepreneur","Product visionary","Public speaker & presenter","Creative problem solver","User-focused product designer","Passionate about improving education"].map((skill) => (
+                {[t("about.team_abhijay_strength1"),t("about.team_abhijay_strength2"),t("about.team_abhijay_strength3"),t("about.team_abhijay_strength4"),t("about.team_abhijay_strength5"),t("about.team_abhijay_strength6")].map((skill) => (
                   <li key={skill} className="rounded-md bg-primary/5 px-2.5 py-1 text-xs font-semibold text-text-secondary">
                     {skill}
                   </li>
@@ -458,10 +440,9 @@ export function AboutPage() {
               </ul>
             </div>
             <div className="mt-4 border-t border-border pt-4">
-              <p className="text-xs font-bold uppercase tracking-widest text-primary">Mission</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-primary">{t("about.team_abhijay_mission_label")}</p>
               <p className="mt-1 text-sm leading-relaxed text-text-secondary">
-                To empower students worldwide with engaging and effective revision tools that transform
-                studying into a rewarding experience.
+                {t("about.team_abhijay_mission_desc")}
               </p>
             </div>
           </div>
@@ -471,38 +452,27 @@ export function AboutPage() {
             <div className="grid h-16 w-16 place-items-center rounded-full bg-primary/10 text-primary">
               <GraduationCap size={28} />
             </div>
-            <h3 className="mt-5 text-xl font-black tracking-tight text-text-primary">Mayank Ghosh</h3>
-            <p className="mt-1 text-sm font-semibold text-primary">Founder &bull; COO &bull; Lead Developer</p>
+            <h3 className="mt-5 text-xl font-black tracking-tight text-text-primary">{t("about.team_mayank_name")}</h3>
+            <p className="mt-1 text-sm font-semibold text-primary">{t("about.team_mayank_role")}</p>
             <p className="mt-4 text-sm leading-relaxed text-text-secondary">
-              Mayank Ghosh is the Founder, Chief Operating Officer (COO), and Lead Developer of LockOnRevision,
-              an AI-powered personalised learning platform designed to make revision smarter, more engaging,
-              and accessible for students.
+              {t("about.team_mayank_bio1")}
             </p>
             <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-              As founder, he leads the product vision, ensuring every feature solves real problems students
-              face while studying. He believes revision should be adaptive, motivating, and tailored to each
-              learner instead of relying on generic study methods.
+              {t("about.team_mayank_bio2")}
             </p>
             <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-              As COO, he oversees product strategy, feature planning, and the overall direction of the
-              platform. He focuses on balancing educational value with an intuitive user experience, making
-              sure new features support long-term growth and scalability.
+              {t("about.team_mayank_bio3")}
             </p>
             <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-              As Lead Developer, he architects and builds much of the platform, working across AI-powered
-              revision tools, personalised study plans, adaptive learning systems, gamification and
-              progression mechanics, UX improvements, full-stack development, deployment, and production
-              management.
+              {t("about.team_mayank_bio4")}
             </p>
             <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-              Beyond writing code, Mayank combines technical development with product leadership, often
-              making decisions on feature prioritisation, usability, and long-term platform strategy. He
-              actively researches modern technologies and AI tools to continuously improve LockOnRevision.
+              {t("about.team_mayank_bio5")}
             </p>
             <div className="mt-5">
-              <p className="text-xs font-bold uppercase tracking-widest text-primary">Skills &amp; Interests</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-primary">{t("about.team_mayank_skills_label")}</p>
               <ul className="mt-2 flex flex-wrap gap-1.5">
-                {["Product Development","AI in Education","Full-Stack Development","UI/UX Design","Product Strategy","Cybersecurity Awareness","Cloud Deployment & DevOps","EdTech"].map((skill) => (
+                {[t("about.team_mayank_skill1"),t("about.team_mayank_skill2"),t("about.team_mayank_skill3"),t("about.team_mayank_skill4"),t("about.team_mayank_skill5"),t("about.team_mayank_skill6"),t("about.team_mayank_skill7"),t("about.team_mayank_skill8")].map((skill) => (
                   <li key={skill} className="rounded-md bg-primary/5 px-2.5 py-1 text-xs font-semibold text-text-secondary">
                     {skill}
                   </li>
@@ -510,11 +480,9 @@ export function AboutPage() {
               </ul>
             </div>
             <div className="mt-4 border-t border-border pt-4">
-              <p className="text-xs font-bold uppercase tracking-widest text-primary">Vision</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-primary">{t("about.team_mayank_vision_label")}</p>
               <p className="mt-1 text-sm leading-relaxed text-text-secondary">
-                To build one of the most student-centred revision platforms by combining artificial
-                intelligence, personalised learning, and thoughtful design to help learners study more
-                effectively while making revision feel rewarding rather than repetitive.
+                {t("about.team_mayank_vision_desc")}
               </p>
             </div>
           </div>
@@ -525,14 +493,12 @@ export function AboutPage() {
       <Section className="border-y border-border bg-surface/50 py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-sm font-bold uppercase tracking-widest text-primary">Built by Students, for Students</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-primary">{t("about.built_by_section")}</p>
             <h2 className="mt-3 text-3xl font-black tracking-tight text-text-primary sm:text-4xl">
-              Built by Students, for Students
+              {t("about.built_by_heading")}
             </h2>
             <p className="mt-4 text-base leading-relaxed text-text-secondary sm:text-lg">
-              LockOnRevision was created by students who experienced the same revision challenges faced by
-              millions of learners. Every feature is designed using real classroom experiences and student
-              feedback to ensure the platform remains practical, engaging, and genuinely helpful.
+              {t("about.built_by_desc")}
             </p>
           </div>
         </div>
@@ -542,13 +508,12 @@ export function AboutPage() {
       <Section className="border-t border-border bg-gradient-to-br from-background via-surface to-secondary/10 py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-sm font-bold uppercase tracking-widest text-primary">Contact</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-primary">{t("about.contact_section")}</p>
             <h2 className="mt-3 text-3xl font-black tracking-tight text-text-primary sm:text-4xl">
-              Get in touch.
+              {t("about.contact_heading")}
             </h2>
             <p className="mt-4 text-base leading-relaxed text-text-secondary">
-              Have questions, feedback, or interested in contributing? Reach out to us through any of the
-              channels below.
+              {t("about.contact_desc")}
             </p>
           </div>
           <div className="mt-12 flex flex-wrap justify-center gap-4">
@@ -559,7 +524,7 @@ export function AboutPage() {
               className="inline-flex items-center gap-3 rounded-2xl border border-border bg-surface px-6 py-4 font-bold text-text-primary shadow-sm transition-all hover:shadow-lg hover:-translate-y-1 hover:border-primary/30"
             >
               <MessageCircle className="text-primary" size={22} />
-              Join us on Discord
+              {t("about.contact_discord")}
             </a>
             <a
               href="https://github.com/LockOnRevision/LockOnRevision"
@@ -570,7 +535,7 @@ export function AboutPage() {
               <svg viewBox="0 0 24 24" fill="currentColor" className="text-primary" width="22" height="22">
                 <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
               </svg>
-              View on GitHub
+              {t("about.contact_github")}
             </a>
             <a
               href="https://www.instagram.com/lockonrevision?igsh=bHMzd25kM2pydzdh"
@@ -581,14 +546,14 @@ export function AboutPage() {
               <svg viewBox="0 0 24 24" fill="currentColor" className="text-primary" width="22" height="22">
                 <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z" />
               </svg>
-              Follow on Instagram
+              {t("about.contact_instagram")}
             </a>
             <a
               href="mailto:lockonrevision@gmail.com"
               className="inline-flex items-center gap-3 rounded-2xl border border-border bg-surface px-6 py-4 font-bold text-text-primary shadow-sm transition-all hover:shadow-lg hover:-translate-y-1 hover:border-primary/30"
             >
               <Mail className="text-primary" size={22} />
-              Email us
+              {t("about.contact_email")}
             </a>
           </div>
 

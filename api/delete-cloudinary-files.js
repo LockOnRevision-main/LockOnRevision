@@ -1,4 +1,4 @@
-/* global fetch, btoa, URLSearchParams */
+/* global btoa, URLSearchParams */
 import { requireAuth } from './lib/auth.js';
 
 function getCloudinaryConfig() {

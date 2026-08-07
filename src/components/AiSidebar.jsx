@@ -1,9 +1,11 @@
 import { Loader2, MessageSquare, Send, Sparkles, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext.jsx";
 import { EmptyState } from "./EmptyState.jsx";
 import { MessageContent } from "./MessageContent.jsx";
 import { getAiContext } from "../services/aiContextService.js";
+import i18n from "../i18n/index.js";
 
 const MESSAGES_KEY = "lockon-ai-messages";
 
@@ -21,6 +23,7 @@ function saveMessages(messages) {
 }
 
 export function AiSidebar() {
+  const { t } = useTranslation();
   const { user, profile } = useAuth();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState(loadMessages);
@@ -28,9 +31,25 @@ export function AiSidebar() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [context, setContext] = useState(null);
+  const [aiStatus, setAiStatus] = useState(null);
   const scrollRef = useRef(null);
   const triggerRef = useRef(null);
   const inputRef = useRef(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/ai-status", { method: "GET" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((status) => {
+        if (active) setAiStatus(status);
+      })
+      .catch(() => {
+        if (active) setAiStatus(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -101,7 +120,8 @@ export function AiSidebar() {
         signal: abortController.signal,
         body: JSON.stringify({ 
           messages: nextMessages,
-          context: context
+          context: context,
+          preferredLanguage: i18n.language
         }),
       });
 
@@ -115,15 +135,20 @@ export function AiSidebar() {
       }
 
       const data = await response.json();
-      const reply = data.reply || data.error || "I'm having trouble responding right now.";
+      const reply = data.reply || data.error || t("ai_sidebar.fallback_reply");
       setMessagesAndPersist([...nextMessages, { role: "assistant", content: reply }]);
     } catch (err) {
       if (err.name === "AbortError") return;
       console.error("AI Assistant Error:", err);
-      const userMessage = err.message?.includes("500")
-        ? "My brain is having a moment. Let me know if it persists!"
-        : "I'm having trouble connecting to my brain right now. Please try again in a moment!";
-      setError(err.message || "An unexpected error occurred.");
+      const raw = err.message || "";
+      const userMessage = raw.includes("503") || raw.includes("gemini_not_configured")
+        ? raw.replace("API request failed: 503 - ", "")
+        : raw.includes("401")
+          ? t("ai.error_unauthorized")
+          : raw.includes("500")
+            ? t("ai_sidebar.error_500")
+            : raw || t("ai_sidebar.error_unexpected");
+      setError(userMessage);
       setMessagesAndPersist([
         ...nextMessages,
         { role: "assistant", content: userMessage },
@@ -145,7 +170,7 @@ export function AiSidebar() {
       className={`fixed bottom-6 right-6 z-30 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-secondary to-primary text-white shadow-xl transition-all duration-300 hover:scale-110 hover:shadow-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
         open ? "pointer-events-none scale-0 opacity-0" : "scale-100 opacity-100"
       }`}
-      aria-label="Open AI assistant"
+      aria-label={t("ai.open")}
     >
       <Sparkles size={22} />
     </button>
@@ -163,15 +188,28 @@ export function AiSidebar() {
            <div className="flex items-center gap-2">
              <MessageSquare className="text-primary" size={18} />
              <div>
-               <p className="text-sm font-black text-text-primary">AI Assistant</p>
-                <p className="text-xs text-text-secondary">Personalized from your progress & subjects</p>
+               <p className="text-sm font-black text-text-primary">{t("ai.title")}</p>
+                <p className="text-xs text-text-secondary">{t("ai.subtitle")}</p>
+                {aiStatus ? (
+                  aiStatus.configured ? (
+                    <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-black text-status-success">
+                      <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-status-success" />
+                      {t("ai.connected_gemini", { model: aiStatus.model })}
+                    </p>
+                  ) : (
+                    <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-black text-warning">
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warning" />
+                      {t("ai.not_connected_gemini", { apiKey: "GEMINI_API_KEY" })}
+                    </p>
+                  )
+                ) : null}
              </div>
            </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
               className="rounded-xl border border-border bg-surface p-2 text-text-secondary transition-colors hover:bg-primary hover:text-white"
-              aria-label="Close AI assistant"
+              aria-label={t("common.close")}
             >
               <X size={18} />
             </button>
@@ -197,14 +235,14 @@ export function AiSidebar() {
                {loading ? (
                  <div className="inline-flex items-center gap-2 rounded-2xl border border-border bg-surface px-4 py-2 text-sm text-text-secondary">
                    <Loader2 size={16} className="animate-spin text-primary" />
-                   Thinking...
+                   {t("common.loading")}
                  </div>
                ) : null}
              </div>
            ) : (
              <EmptyState
-               title="Ask about your notes"
-               copy="The assistant uses your Forge subjects, units, sub-units, lessons, and uploaded material whenever possible."
+                title={t("ai.empty_title")}
+                copy={t("ai.empty_desc")}
              />
            )}
          </div>
@@ -217,7 +255,7 @@ export function AiSidebar() {
                 ref={inputRef}
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
-                placeholder="Ask a study question..."
+                placeholder={t("ai.placeholder")}
                 className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm text-text-primary outline-none focus:border-primary transition-all"
                 disabled={loading}
               />
@@ -226,7 +264,7 @@ export function AiSidebar() {
                 type="submit"
                 disabled={loading || !input.trim()}
                 className="rounded-xl bg-primary px-3 py-2 text-white transition-all hover:bg-primary-active disabled:bg-background disabled:text-text-muted"
-                aria-label="Send message"
+                aria-label={t("ai.send")}
               >
                 <Send size={18} />
               </button>

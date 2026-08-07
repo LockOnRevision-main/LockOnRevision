@@ -8,17 +8,23 @@ let genAI;
 let model;
 let initError = null;
 
+const modelName = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
+
+
+
 try {
   const geminiApiKey = process.env.GEMINI_API_KEY;
-  const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 
-  if (!geminiApiKey) {
+  if (!geminiApiKey?.trim()) {
     initError = 'GEMINI_API_KEY environment variable is not set';
     log.warn(initError);
   } else {
+    initError = null;
+
     genAI = new GoogleGenerativeAI(geminiApiKey);
-    model = genAI.getGenerativeModel({ model: geminiModel });
-    log.info('Gemini initialized', { model: geminiModel });
+    model = genAI.getGenerativeModel({ model: modelName });
+
+    log.info('Gemini initialized', { model: modelName });
   }
 } catch (e) {
   initError = e.message;
@@ -52,14 +58,29 @@ export async function handler(req, res) {
   }
 
   if (!isConfigured()) {
-    log.warn('Gemini not configured, using local fallback response', { reason: initError });
-    return res.status(200).json({
-      reply: 'I’m running in local fallback mode right now because the Gemini API key is not configured. You can still continue testing the chat experience, and I’ll use a basic educational reply until the API key is added.',
+    if (process.env.NODE_ENV !== 'production') {
+      log.warn('Gemini not configured, using local fallback response', { reason: initError });
+      return res.status(200).json({
+        reply: 'I’m running in local fallback mode right now because the Gemini API key is not configured. You can still continue testing the chat experience, and I’ll use a basic educational reply until the API key is added.',
+        provider: 'Google Gemini',
+        model: modelName,
+        configured: false,
+        apiKeyName: 'GEMINI_API_KEY',
+      });
+    }
+
+    log.error('Gemini not configured', { reason: initError });
+    return res.status(503).json({
+      error: `Gemini AI is not connected. ${initError}. Add it to your environment as GEMINI_API_KEY.`,
+      code: 'gemini_not_configured',
+      provider: 'Google Gemini',
+      configured: false,
+      apiKeyName: 'GEMINI_API_KEY',
     });
   }
 
   try {
-    const { messages, context } = req.body;
+    const { messages, context, preferredLanguage } = req.body;
 
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: 'Missing required field: messages' });
@@ -99,8 +120,11 @@ export async function handler(req, res) {
         }).join("\n")
       : "None";
 
+    const lang = preferredLanguage || "en";
     const prompt = `You are the LockOnRevision AI Tutor, a world-class educational assistant specializing in active recall and spaced repetition.
 Your goal is to help students master their material through guided learning, not just giving answers.
+
+IMPORTANT: Respond ONLY in the user's preferred language: "${lang}". Maintain educational terminology appropriate for that language. Never translate from English afterwards. If the user changes language, immediately continue the conversation in the newly selected language.
 
 STUDENT PROFILE:
 ${profileStr || "New learner — no profile data yet."}
@@ -137,11 +161,15 @@ Please provide your response in plain text (Markdown). Do not wrap it in JSON.`;
     const reply = await callGemini(prompt);
     log.info('Gemini response received', { length: reply.length });
 
-    return res.status(200).json({ reply });
+    return res.status(200).json({ reply, provider: 'Google Gemini', model: modelName, configured: true });
   } catch (error) {
     log.error('AI tutor chat error', { message: error.message, stack: error.stack?.split('\n').slice(0, 3).join('\n') });
     return res.status(200).json({
-      reply: "The AI tutor is temporarily unavailable. Please try again in a moment.",
+      reply: `Gemini AI (${modelName}) is configured and reachable, but the request failed: ${error.message}. Please try again in a moment.`,
+      provider: 'Google Gemini',
+      model: modelName,
+      configured: true,
+      error: error.message,
     });
   }
 }

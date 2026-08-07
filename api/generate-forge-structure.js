@@ -9,7 +9,7 @@ let model;
 
 try {
   const geminiApiKey = process.env.GEMINI_API_KEY;
-  const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  const geminiModel = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 
   if (!geminiApiKey) {
     log.warn('GEMINI_API_KEY not set. AI functions will fail.');
@@ -80,7 +80,7 @@ export default requireAuth(async function handler(req, res) {
   }
 
   try {
-    const { sourceText } = req.body;
+    const { sourceText, preferredLanguage } = req.body;
 
     if (!sourceText) {
       return res.status(400).json({ error: 'Missing required field: sourceText' });
@@ -91,7 +91,10 @@ export default requireAuth(async function handler(req, res) {
       return res.status(503).json({ error: 'Gemini API is not configured. Set GEMINI_API_KEY.' });
     }
 
+    const lang = preferredLanguage || "en";
     const prompt = `You are an expert curriculum designer. Analyze the study material and create a structured learning path.
+
+IMPORTANT: Generate all content ONLY in the user's preferred language: "${lang}". All titles, descriptions, summaries, concepts, exercises, questions, options, correct answers, and explanations must be in this language. Maintain educational terminology appropriate for that language. Never translate from English afterwards.
 
 First, detect the subject (e.g., Biology, Physics, Chemistry, Mathematics, History, Geography, Computer Science, Business, Languages, etc.).
 

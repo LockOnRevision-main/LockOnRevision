@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, Medal, RefreshCcw, Search, Trophy, User, Zap } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getLeaderboardUsers, subscribeToLeaderboard, findUserPage } from "../services/leaderboardService.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getLeaderAvatar } from "../utils/avatar.js";
@@ -8,6 +9,7 @@ import { ProfileIconRenderer } from "../components/Profile/ProfileIconPicker.jsx
 const PAGE_SIZE = 20;
 
 export function LeaderboardPage() {
+  const { t } = useTranslation();
   const { user, profile } = useAuth();
   const currentUserId = user?.uid || profile?.id;
 
@@ -71,11 +73,11 @@ export function LeaderboardPage() {
       <section className="rounded-3xl border border-border bg-surface p-8 shadow-sm">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-primary">Leaderboard</p>
-            <h1 className="mt-2 text-4xl font-black tracking-tight text-text-primary">Top learners</h1>
+            <p className="text-xs font-bold uppercase tracking-widest text-primary">{t("nav.leaderboard")}</p>
+            <h1 className="mt-2 text-4xl font-black tracking-tight text-text-primary">{t("Leaderboard")}</h1>
             <p className="mt-2 flex items-center gap-2 text-sm font-bold text-text-secondary">
               <Zap size={16} className="text-warning" />
-              1 Energy = 100 XP
+              {t("(Energyx100)+XP")}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -86,7 +88,7 @@ export function LeaderboardPage() {
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background px-5 py-3 font-black text-text-primary shadow-sm transition-all hover:bg-surface hover:border-primary active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               >
                 <User size={17} />
-                My rank
+                {t("Your Rank")}
               </button>
             ) : null}
             <button
@@ -95,7 +97,7 @@ export function LeaderboardPage() {
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background px-5 py-3 font-black text-text-primary shadow-sm transition-all hover:bg-surface hover:border-primary active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               <RefreshCcw size={17} className={loading ? "animate-spin" : ""} />
-              Refresh
+              {t("common.refresh")}
             </button>
           </div>
         </div>
@@ -108,7 +110,7 @@ export function LeaderboardPage() {
             type="text"
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Search by name or email..."
+            placeholder={t("Search by name or Id")}
             className="w-full rounded-xl border border-border bg-background py-3 pl-12 pr-4 text-sm font-bold text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
         </div>
@@ -116,16 +118,16 @@ export function LeaderboardPage() {
 
       <section className="overflow-hidden rounded-3xl border border-border bg-surface shadow-sm" ref={listRef}>
         <div className="grid grid-cols-[60px_44px_1fr_100px] gap-3 bg-background px-4 py-4 text-xs font-black uppercase tracking-widest text-text-muted border-b border-border sm:grid-cols-[80px_44px_1fr_160px] sm:px-6">
-          <span>Rank</span>
-          <span className="text-center">Avatar</span>
-          <span>Name</span>
-          <span className="text-right text-[10px] sm:text-xs">Score</span>
+          <span>{t("Rank")}</span>
+          <span className="text-center">{t("Avatar")}</span>
+          <span>{t("Name")}</span>
+          <span className="text-right text-[10px] sm:text-xs">{t("Score")}</span>
         </div>
 
         {loading && !result ? (
           <div className="flex flex-col items-center justify-center gap-4 p-12 text-center">
             <RefreshCcw size={28} className="animate-spin text-primary" />
-            <p className="text-sm font-bold text-text-secondary">Loading leaderboard...</p>
+            <p className="text-sm font-bold text-text-secondary">{t("common.loading")}</p>
           </div>
         ) : null}
 
@@ -135,7 +137,7 @@ export function LeaderboardPage() {
           <div className="flex flex-col items-center justify-center gap-4 p-12 text-center">
             <Trophy size={40} className="text-text-muted" />
             <p className="text-sm font-bold text-text-secondary">
-              {search ? "No users match your search." : "No leaderboard entries are available."}
+              {search ? t("leaderboard.no_search_results") : t("leaderboard.no_entries")}
             </p>
           </div>
         ) : null}
@@ -185,19 +187,19 @@ export function LeaderboardPage() {
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="min-w-0">
                     <p className="flex items-center gap-2 font-black text-text-primary text-sm sm:text-lg truncate">
-                      {leader.name || leader.email?.split('@')[0] || "Learner"}
+                      {leader.name || leader.email?.split('@')[0] || t("common.learner")}
                       {isCurrentUser ? (
                         <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-primary">
-                          You
+                          {t("common.you")}
                         </span>
                       ) : null}
                     </p>
                     <p className="mt-0.5 text-xs font-medium text-text-secondary truncate">
-                      {xp.toLocaleString()} XP + {energy} energy
+                      {t("Energy", { xp: xp.toLocaleString(), energy })}
                     </p>
                   </div>
                 </div>
-                <p className="text-right text-sm font-black text-primary sm:text-xl">{total.toLocaleString()} pts</p>
+                <p className="text-right text-sm font-black text-primary sm:text-xl">{total.toLocaleString()}{t("leaderboard.pts_suffix")}</p>
               </article>
             );
           })}
@@ -212,11 +214,11 @@ export function LeaderboardPage() {
               className="inline-flex items-center gap-1 rounded-xl border border-border bg-surface px-3 py-2 text-xs font-black text-text-primary transition-all hover:bg-background hover:border-primary disabled:opacity-40 disabled:pointer-events-none"
             >
               <ChevronLeft size={14} />
-              Previous
+              {t("common.back")}
             </button>
             <span className="px-4 text-xs font-bold text-text-secondary">
-              Page {page} of {totalPages}
-              {result ? <span className="ml-1 text-text-muted">({result.total} total)</span> : null}
+              {t("leaderboard.page_of", { page, totalPages })}
+              {result ? <span className="ml-1 text-text-muted">{t("leaderboard.total_count", { total: result.total })}</span> : null}
             </span>
             <button
               type="button"
@@ -224,7 +226,7 @@ export function LeaderboardPage() {
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               className="inline-flex items-center gap-1 rounded-xl border border-border bg-surface px-3 py-2 text-xs font-black text-text-primary transition-all hover:bg-background hover:border-primary disabled:opacity-40 disabled:pointer-events-none"
             >
-              Next
+              {t("common.next")}
               <ChevronRight size={14} />
             </button>
           </div>
@@ -233,7 +235,7 @@ export function LeaderboardPage() {
         {loading && result ? (
           <div className="flex items-center justify-center gap-2 border-t border-border bg-background px-4 py-3">
             <RefreshCcw size={14} className="animate-spin text-primary" />
-            <span className="text-xs font-bold text-text-secondary">Updating...</span>
+            <span className="text-xs font-bold text-text-secondary">{t("common.updating")}</span>
           </div>
         ) : null}
       </section>

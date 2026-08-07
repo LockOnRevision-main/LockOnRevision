@@ -2,6 +2,7 @@ import { collection, doc, onSnapshot, orderBy, query, serverTimestamp, writeBatc
 import { db, isFirebaseConfigured } from "../config/firebase.js";
 import { getLocalUser, makeId, subscribeLocalState, updateLocalUser } from "./localStore.js";
 import { apiFetch } from "../utils/apiFetch.js";
+import i18n from "../i18n/index.js";
 
 const STORAGE_KEY = "lockon-timetable-preferences";
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -27,6 +28,7 @@ export function loadPreferencesLocally() {
 export async function generateTimetable(preferences) {
   const payload = {
     ...preferences,
+    preferredLanguage: i18n.language,
     subjects: (preferences.subjects || []).map((s) => ({
       title: s.title,
       difficulty: s.difficulty || "medium",
