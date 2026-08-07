@@ -21,6 +21,7 @@ loadEnvFile('.env');
 
 const port = Number(process.env.API_PORT || 3000);
 const routes = {
+  '/api/ai-status': () => import('./ai-status.js'),
   '/api/ai-tutor-chat': () => import('./ai-tutor-chat.js'),
   '/api/ask-forge-assistant': () => import('./ask-forge-assistant.js'),
   '/api/generate-forge-structure': () => import('./generate-forge-structure.js'),
