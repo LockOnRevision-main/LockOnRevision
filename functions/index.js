@@ -1,30 +1,29 @@
 import { initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
 initializeApp();
 const db = getFirestore();
 
-let genAI;
-let model;
+let googleAI;
+let geminiModel;
 
 try {
   const geminiApiKey = process.env.GEMINI_API_KEY;
-  const geminiModel = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
+  geminiModel = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
 
   if (!geminiApiKey) {
     console.warn("[functions] GEMINI_API_KEY not set. AI functions will fail.");
   } else {
-    genAI = new GoogleGenerativeAI(geminiApiKey);
-    model = genAI.getGenerativeModel({ model: geminiModel });
+    googleAI = new GoogleGenAI({ apiKey: geminiApiKey });
   }
 } catch (initError) {
   console.error("[functions] Module initialization error:", initError.message);
 }
 
 function isConfigured() {
-  return !!model;
+  return !!googleAI;
 }
 
 function createLogger(name) {
@@ -134,9 +133,8 @@ async function callGeminiWithValidation(prompt, validateFn) {
 
   log.info("Calling Gemini", { promptLength: prompt.length });
 
-  const result = await withTimeout(retry(() => model.generateContent(prompt), { logger: log }), 45000);
-  const response = await result.response;
-  const text = response.text();
+  const result = await withTimeout(retry(() => googleAI.models.generateContent({ model: geminiModel, contents: prompt }), { logger: log }), 45000);
+  const text = result.text;
 
   if (!text || text.trim().length === 0) {
     throw new HttpsError("internal", "Gemini returned empty response");
@@ -300,9 +298,8 @@ ${conversation}${contextStr}`;
   }
 
   log.info("Calling Gemini for AI tutor chat");
-  const result = await withTimeout(retry(() => model.generateContent(prompt), { logger: log }), 30000);
-  const response = await result.response;
-  const text = response.text();
+  const result = await withTimeout(retry(() => googleAI.models.generateContent({ model: geminiModel, contents: prompt }), { logger: log }), 30000);
+  const text = result.text;
 
   if (!text || text.trim().length === 0) {
     throw new HttpsError("internal", "Gemini returned empty response");
@@ -339,9 +336,8 @@ ${JSON.stringify(question)}`;
   }
 
   log.info("Calling Gemini for question hint");
-  const result = await withTimeout(retry(() => model.generateContent(prompt), { maxRetries: 2, baseDelay: 1000, logger: log }), 15000);
-  const response = await result.response;
-  const text = response.text();
+  const result = await withTimeout(retry(() => googleAI.models.generateContent({ model: geminiModel, contents: prompt }), { maxRetries: 2, baseDelay: 1000, logger: log }), 15000);
+  const text = result.text;
 
   if (!text || text.trim().length === 0) {
     throw new HttpsError("internal", "Gemini returned empty response");
@@ -379,9 +375,8 @@ ${JSON.stringify(question)}`;
   }
 
   log.info("Calling Gemini for wrong answer explanation");
-  const result = await withTimeout(retry(() => model.generateContent(prompt), { maxRetries: 3, baseDelay: 1000, logger: log }), 15000);
-  const response = await result.response;
-  const text = response.text();
+  const result = await withTimeout(retry(() => googleAI.models.generateContent({ model: geminiModel, contents: prompt }), { maxRetries: 3, baseDelay: 1000, logger: log }), 15000);
+  const text = result.text;
 
   if (!text || text.trim().length === 0) {
     throw new HttpsError("internal", "Gemini returned empty response");
@@ -435,9 +430,8 @@ Return strict JSON only: {"reply":"your response here"}`;
   }
 
   log.info("Calling Gemini for forge assistant");
-  const result = await withTimeout(retry(() => model.generateContent(prompt), { logger: log }), 30000);
-  const response = await result.response;
-  const text = response.text();
+  const result = await withTimeout(retry(() => googleAI.models.generateContent({ model: geminiModel, contents: prompt }), { logger: log }), 30000);
+  const text = result.text;
 
   if (!text || text.trim().length === 0) {
     throw new HttpsError("internal", "Gemini returned empty response");

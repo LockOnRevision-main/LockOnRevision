@@ -1,11 +1,40 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { existsSync, readFileSync } from 'node:fs';
+import { GoogleGenAI } from '@google/genai';
 import { createLogger, withTimeout, retry } from './_lib/forge-integrity.js';
 import { requireAuth } from './_lib/auth.js';
 
 const log = createLogger('ai-tutor-chat');
+const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(moduleDir, '..');
 
-let genAI;
-let model;
+function loadEnvFile(fileName) {
+  const candidatePaths = [
+    path.resolve(process.cwd(), fileName),
+    path.resolve(moduleDir, fileName),
+    path.resolve(repoRoot, fileName),
+  ];
+
+  for (const filePath of candidatePaths) {
+    if (!existsSync(filePath)) continue;
+
+    for (const line of readFileSync(filePath, 'utf8').split(/\r?\n/)) {
+      if (!line || line.startsWith('#')) continue;
+      const [key, ...valueParts] = line.split('=');
+      if (key && !process.env[key]) {
+        process.env[key] = valueParts.join('=').trim();
+      }
+    }
+
+    return;
+  }
+}
+
+loadEnvFile('.env.local');
+loadEnvFile('.env');
+
+let googleAI;
 let initError = null;
 
 const modelName = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
@@ -21,8 +50,8 @@ try {
   } else {
     initError = null;
 
-    genAI = new GoogleGenerativeAI(geminiApiKey);
-    model = genAI.getGenerativeModel({ model: modelName });
+    googleAI = new GoogleGenAI({ apiKey: geminiApiKey });
+    console.log("Using model:", modelName);
 
     log.info('Gemini initialized', { model: modelName });
   }
@@ -32,18 +61,17 @@ try {
 }
 
 function isConfigured() {
-  return !!model;
+  return !!googleAI;
 }
 
 async function callGemini(prompt) {
-  if (!model) throw new Error(initError || 'Gemini not initialized');
-
+  if (!googleAI) throw new Error(initError || 'Gemini not initialized');
+  log.info("Using Gemini model", { model: modelName });
   const result = await withTimeout(
-    retry(() => model.generateContent(prompt), { logger: log }),
+    retry(() => googleAI.models.generateContent({ model: modelName, contents: prompt }), { logger: log }),
     45000
   );
-  const response = await result.response;
-  const text = response.text();
+  const text = result.text;
 
   if (!text || text.trim().length === 0) {
     throw new Error('Gemini returned empty response');
@@ -52,12 +80,23 @@ async function callGemini(prompt) {
   return text;
 }
 
-async function handler(req, res) {
+export async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   if (!isConfigured()) {
+    if (process.env.NODE_ENV !== 'production') {
+      log.warn('Gemini not configured, using local fallback response', { reason: initError });
+      return res.status(200).json({
+        reply: 'I’m running in local fallback mode right now because the Gemini API key is not configured. You can still continue testing the chat experience, and I’ll use a basic educational reply until the API key is added.',
+        provider: 'Google Gemini',
+        model: modelName,
+        configured: false,
+        apiKeyName: 'GEMINI_API_KEY',
+      });
+    }
+
     log.error('Gemini not configured', { reason: initError });
     return res.status(503).json({
       error: `Gemini AI is not connected. ${initError}. Add it to your environment as GEMINI_API_KEY.`,

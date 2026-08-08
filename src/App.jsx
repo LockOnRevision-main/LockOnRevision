@@ -26,7 +26,7 @@ function LoadingScreen() {
 function ProtectedRoute({ children }) {
   const { isFirebaseConfigured, loading, user, profile } = useAuth();
   if (loading) return <LoadingScreen />;
-  if (!isFirebaseConfigured) return <Navigate to="/login" replace />;
+  if (!isFirebaseConfigured && !user) return <Navigate to="/login" replace />;
   if (!user) return <Navigate to="/login" replace />;
   if (!profile) return <LoadingScreen />;
   if (!profile.onboardingCompleted || profile.name === "Lock-on Learner") return <OnboardingWizard />;
@@ -36,7 +36,7 @@ function ProtectedRoute({ children }) {
 function AdminRoute({ children }) {
   const { isFirebaseConfigured, loading, user, profile } = useAuth();
   if (loading) return <LoadingScreen />;
-  if (!isFirebaseConfigured) return <Navigate to="/login" replace />;
+  if (!isFirebaseConfigured && !user) return <Navigate to="/login" replace />;
   if (!user) return <Navigate to="/login" replace />;
   if (!canAccessAdmin(profile, user.email)) return <Navigate to="/app" replace />;
   return <AppShell>{children}</AppShell>;

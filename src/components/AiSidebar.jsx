@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { EmptyState } from "./EmptyState.jsx";
 import { MessageContent } from "./MessageContent.jsx";
 import { getAiContext } from "../services/aiContextService.js";
+import { apiFetch } from "../utils/apiFetch.js";
 import i18n from "../i18n/index.js";
 
 const MESSAGES_KEY = "lockon-ai-messages";
@@ -38,7 +39,7 @@ export function AiSidebar() {
 
   useEffect(() => {
     let active = true;
-    fetch("/api/ai-status", { method: "GET" })
+    apiFetch("/api/ai-status", { method: "GET" })
       .then((res) => (res.ok ? res.json() : null))
       .then((status) => {
         if (active) setAiStatus(status);
@@ -93,7 +94,7 @@ export function AiSidebar() {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    if (!input.trim() || loading || !user) return;
+    if (!input.trim() || loading) return;
 
     // Cancel any previous in-flight request
     if (abortRef.current) {
@@ -110,13 +111,9 @@ export function AiSidebar() {
     setLoading(true);
 
     try {
-      const token = user ? await user.getIdToken() : null;
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-
-      const response = await fetch('/api/ai-tutor-chat', {
+      const response = await apiFetch('/api/ai-tutor-chat', {
         method: 'POST',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         signal: abortController.signal,
         body: JSON.stringify({ 
           messages: nextMessages,
@@ -143,8 +140,8 @@ export function AiSidebar() {
       const raw = err.message || "";
       const userMessage = raw.includes("503") || raw.includes("gemini_not_configured")
         ? raw.replace("API request failed: 503 - ", "")
-        : raw.includes("401")
-          ? t("ai.error_unauthorized")
+        : raw.includes("401") || raw.includes("Authentication failed")
+          ? "The AI assistant is running in local demo mode. Please try again in a moment."
           : raw.includes("500")
             ? t("ai_sidebar.error_500")
             : raw || t("ai_sidebar.error_unexpected");
