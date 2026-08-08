@@ -1,4 +1,4 @@
-import { createLogger } from './lib/forge-integrity.js';
+import { createLogger } from './_lib/forge-integrity.js';
 
 const log = createLogger('ai-status');
 

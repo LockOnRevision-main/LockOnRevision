@@ -5,8 +5,8 @@ import { GoogleAIFileManager } from '@google/generative-ai/server';
 import fs from 'fs';
 import path from 'path';
 import { pipeline } from 'stream/promises';
-import { createLogger, withTimeout, retry, validateFileResponse } from './lib/forge-integrity.js';
-import { requireAuth } from './lib/auth.js';
+import { createLogger, withTimeout, retry, validateFileResponse } from './_lib/forge-integrity.js';
+import { requireAuth } from './_lib/auth.js';
 
 const ALLOWED_HOSTS = new Set([
   'res.cloudinary.com',

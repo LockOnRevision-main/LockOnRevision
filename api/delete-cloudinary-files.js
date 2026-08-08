@@ -1,5 +1,5 @@
 /* global btoa, URLSearchParams */
-import { requireAuth } from './lib/auth.js';
+import { requireAuth } from './_lib/auth.js';
 
 function getCloudinaryConfig() {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.VITE_CLOUDINARY_CLOUD_NAME;

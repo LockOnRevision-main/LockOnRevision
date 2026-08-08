@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { createLogger, withTimeout, retry, validateExplanation } from './lib/forge-integrity.js';
-import { requireAuth } from './lib/auth.js';
+import { createLogger, withTimeout, retry, validateExplanation } from './_lib/forge-integrity.js';
+import { requireAuth } from './_lib/auth.js';
 
 const log = createLogger('explain-wrong-answer');
 
