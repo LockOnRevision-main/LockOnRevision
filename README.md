@@ -69,10 +69,14 @@ Install dependencies:
 npm install
 ```
 
-Run the development server:
+Run the development server in two terminals:
 
 ```bash
+# Terminal 1 - Vite frontend (http://127.0.0.1:5173)
 npm run dev
+
+# Terminal 2 - Local API server (http://127.0.0.1:3000) - required for /api/* requests
+npm run dev:api
 ```
 
 ---

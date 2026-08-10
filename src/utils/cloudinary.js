@@ -24,7 +24,6 @@ export async function uploadToCloudinary(file, options = {}) {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('upload_preset', UPLOAD_PRESET);
-  formData.append('type', 'upload');
 
   if (options.folder) {
     formData.append('folder', options.folder);
@@ -58,7 +57,6 @@ export async function uploadToCloudinary(file, options = {}) {
         format: data.format,
         bytes: data.bytes,
         resourceType: data.resource_type,
-        type: data.type,
       };
     } catch (error) {
       lastError = error;
