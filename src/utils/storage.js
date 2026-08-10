@@ -1,5 +1,6 @@
 import { uploadToCloudinary, isCloudinaryConfigured } from "./cloudinary.js";
 import { apiFetch } from "./apiFetch.js";
+import { auth } from "../config/firebase.js";
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
@@ -51,8 +52,13 @@ export async function uploadTempFile(uid, file) {
 export async function deleteStorageFile(publicId, resourceType = "raw") {
   if (!publicId) return;
   try {
+    const token = await auth?.currentUser?.getIdToken();
     const response = await apiFetch("/api/delete-cloudinary-files", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify({ files: [{ publicId, resourceType }] }),
     });
     if (!response.ok) {

@@ -24,6 +24,7 @@ export async function uploadToCloudinary(file, options = {}) {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('upload_preset', UPLOAD_PRESET);
+  formData.append('type', 'upload');
 
   if (options.folder) {
     formData.append('folder', options.folder);
@@ -39,6 +40,14 @@ export async function uploadToCloudinary(file, options = {}) {
 
       const data = await response.json();
 
+      console.log('[cloudinary-upload]', JSON.stringify({
+        status: response.status,
+        secure_url: data.secure_url,
+        public_id: data.public_id,
+        resource_type: data.resource_type,
+        type: data.type,
+      }));
+
       if (!response.ok) {
         throw new Error(data.error?.message || `Cloudinary upload failed with status ${response.status}`);
       }
@@ -49,6 +58,7 @@ export async function uploadToCloudinary(file, options = {}) {
         format: data.format,
         bytes: data.bytes,
         resourceType: data.resource_type,
+        type: data.type,
       };
     } catch (error) {
       lastError = error;

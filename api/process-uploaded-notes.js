@@ -101,6 +101,12 @@ async function deleteCloudinarySourceFiles(files) {
 
 const log = createLogger('process-uploaded-notes');
 
+console.log('Cloudinary env verification:', JSON.stringify({
+  cloud: !!process.env.CLOUDINARY_CLOUD_NAME,
+  key: !!process.env.CLOUDINARY_API_KEY,
+  secret: !!process.env.CLOUDINARY_API_SECRET,
+}));
+
 let googleAI;
 let geminiModel;
 
@@ -206,9 +212,13 @@ export default requireAuth(async function handler(req, res) {
       await validateUrl(file.url);
       const fileName = path.basename(new URL(file.url).pathname.split('?')[0]) || `file_${Date.now()}`;
       const filePath = path.join('/tmp', fileName);
-      log.info('Downloading file', { url: file.url });
-      const response = await fetch(file.url);
-      if (!response.ok) throw new Error(`Failed to download file ${file.url}: ${response.status}`);
+      const downloadUrl = file.url;
+      log.info('Downloading file', { url: downloadUrl });
+      if (!/^https?:\/\//.test(downloadUrl) || /\}\}/.test(downloadUrl) || /%7D/.test(downloadUrl)) {
+        log.warn('Suspicious download URL detected', { url: downloadUrl });
+      }
+      const response = await fetch(downloadUrl);
+      if (!response.ok) throw new Error(`Failed to download file ${downloadUrl}: ${response.status}`);
       await pipeline(response.body, fs.createWriteStream(filePath));
       tempFiles.push(filePath);
 
