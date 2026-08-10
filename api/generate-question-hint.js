@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
-import { createLogger, withTimeout, retry, validateHint } from './lib/forge-integrity.js';
-import { requireAuth } from './lib/auth.js';
+import { createLogger, withTimeout, retry, validateHint } from './_lib/forge-integrity.js';
+import { requireAuth } from './_lib/auth.js';
 
 const log = createLogger('generate-question-hint');
 

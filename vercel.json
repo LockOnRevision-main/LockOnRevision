@@ -1,4 +1,9 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "app-scaffold": false
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",

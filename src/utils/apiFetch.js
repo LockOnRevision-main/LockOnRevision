@@ -1,7 +1,7 @@
 import { auth } from "../config/firebase.js";
 
 const LOCAL_API_BASES = ["http://127.0.0.1:3000", "http://localhost:3000"];
-const VERCEL_API_BASE = import.meta.env.VITE_API_BASE_URL || "https://lockonrevision.vercel.app/api";
+const VERCEL_API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
 
 function resolveUrl(url) {
   if (!url) return url;

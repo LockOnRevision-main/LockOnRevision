@@ -1,6 +1,9 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { createLogger, withTimeout, retry } from './lib/forge-integrity.js';
-import { requireAuth } from './lib/auth.js';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { existsSync, readFileSync } from 'node:fs';
+import { GoogleGenAI } from '@google/genai';
+import { createLogger, withTimeout, retry } from './_lib/forge-integrity.js';
+import { requireAuth } from './_lib/auth.js';
 
 const log = createLogger('ai-tutor-chat');
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));

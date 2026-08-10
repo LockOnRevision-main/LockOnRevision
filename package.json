@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5173",
-    "dev:api": "node api/dev-server.js",
+    "dev:api": "node api/_dev-server.js",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"
