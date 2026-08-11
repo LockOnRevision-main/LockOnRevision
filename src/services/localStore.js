@@ -50,7 +50,7 @@ export function subscribeLocalState(callback) {
   return () => window.removeEventListener(EVENT_NAME, handler);
 }
 
-export function ensureLocalUser({ name, email }) {
+export function ensureLocalUser({ name = "", email = "" } = {}) {
   const state = readLocalState();
   const uid = `local-${email.toLowerCase().replace(/[^\w]+/g, "-")}`;
   const user = {

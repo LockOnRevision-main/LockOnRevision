@@ -222,7 +222,7 @@ export function OnboardingWizard() {
                       : "border-border bg-background text-text-secondary hover:border-primary/50 hover:text-text-primary"
                   }`}
                 >
-                  {["Discord", "GitHub", "Instagram", "YouTube"].includes(option) ? option : t(`onboarding.referral_${option.toLowerCase().replace(/\s+/g, "_")}`)}
+                  {["Discord", "GitHub", "Instagram", "YouTube"].includes(option) ? option : t(`onboarding.referral_${(option ?? "").toLowerCase().replace(/\s+/g, "_")}`)}
                 </button>
               ))}
             </div>

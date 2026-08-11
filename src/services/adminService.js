@@ -42,7 +42,7 @@ export async function searchUsers(searchTerm = "", max = 50) {
 
   const snapshot = await getDocs(query(collection(db, "users"), limit(max)));
   const users = snapshot.docs.map((item) => stripAdminFields({ id: item.id, ...item.data() }));
-  const term = searchTerm.trim().toLowerCase();
+  const term = (searchTerm ?? "").trim().toLowerCase();
 
   if (!term) return users;
   return users.filter(

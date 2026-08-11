@@ -17,7 +17,7 @@ function NodeEditor({ label, title, onTitleChange, onDelete, onMoveUp, onMoveDow
       <div className="flex items-start gap-2">
         <GripVertical size={16} className="mt-2 shrink-0 text-text-muted" />
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold uppercase tracking-widest text-text-muted">{t(`forge_structure.${label.toLowerCase().replace(/\s+/g, '_')}`) || label}</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-text-muted">{t(`forge_structure.${(label ?? "").toLowerCase().replace(/\s+/g, '_')}`) || label}</p>
           <input
             value={title}
             onChange={(event) => onTitleChange(event.target.value)}
