@@ -25,14 +25,6 @@ Leaderboard label:
 ⚡ 1 Energy = 100 XP
 ```
 
-## Firebase TODOs
-
-- Re-enable Firebase initialization in `src/config/firebase.js`
-- Connect Auth in `src/context/AuthContext.jsx`
-- Implement Firestore methods in `src/services/userService.js`
-- Connect leaderboard query in `src/services/leaderboardService.js`
-- Implement admin functions in `src/services/adminService.js`
-- Implement Cloud Functions in `functions/index.js`
 
 ## Backend Scaffold
 
