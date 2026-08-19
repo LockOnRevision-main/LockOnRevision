@@ -13,17 +13,29 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-export const isFirebaseConfigured = [
-  firebaseConfig.apiKey,
-  firebaseConfig.authDomain,
-  firebaseConfig.projectId,
-  firebaseConfig.storageBucket,
-  firebaseConfig.messagingSenderId,
-  firebaseConfig.appId,
-].every(Boolean);
+const REQUIRED_KEYS = [
+  "apiKey",
+  "authDomain",
+  "projectId",
+  "storageBucket",
+  "messagingSenderId",
+  "appId",
+];
+
+const missingKeys = REQUIRED_KEYS.filter((key) => !firebaseConfig[key]);
+
+export const isFirebaseConfigured = missingKeys.length === 0;
+
+if (typeof window !== "undefined" && !isFirebaseConfigured) {
+  console.warn(
+    "[firebase] Firebase is NOT fully configured. Missing environment variables: " +
+      missingKeys.join(", ") +
+      ". Set VITE_FIREBASE_* in your .env file. The app will run in local demo mode.",
+  );
+}
 
 export const app = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
 export const auth = app ? getAuth(app) : null;
 export const db = app ? getFirestore(app) : null;
-export const storage = app ? getStorage(app) : null;
 export const functions = app ? getFunctions(app) : null;
+export const storage = app ? getStorage(app) : null;

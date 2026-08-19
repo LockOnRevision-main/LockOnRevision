@@ -1,11 +1,5 @@
-# Cloud Functions Scaffold
+# Cloud Functions
 
-This folder is intentionally scaffold-only while Firebase is unavailable.
+Callable Firebase functions for authenticated AI generation, tutor responses, hints, explanations, and upload processing.
 
-TODO:
-
-- Initialize `firebase-admin`
-- Add callable score update functions
-- Add admin-only functions guarded by custom claims
-- Add validation for cooldowns and one-time rewards
-- Add leaderboard maintenance utilities if the client query is not enough
+Uploads are handled through Cloudinary by the web client. Functions process the text content and Cloudinary metadata saved in Firestore.

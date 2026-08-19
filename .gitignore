@@ -6,3 +6,5 @@ functions/.env
 *.log
 .firebase/
 .firebaserc.local
+.vercel
+.env*

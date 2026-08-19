@@ -2,62 +2,144 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
+  updatePassword,
   updateProfile,
 } from "firebase/auth";
 import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db, isFirebaseConfigured } from "../config/firebase.js";
-import { resolveRole } from "../utils/permissions.js";
+import { readLocalUser, writeLocalUser } from "../services/localStore.js";
+import { signOutLocalUser } from "../services/localStore.js";
+import i18n from "../i18n/index.js";
 
 const AuthContext = createContext(null);
 
+const PLACEHOLDER_NAME = "Lock-on Learner";
+
+const FATAL_AUTH_ERRORS = new Set([
+  "auth/user-token-expired",
+  "auth/invalid-user-token",
+  "auth/token-expired",
+  "auth/user-disabled",
+  "auth/refresh-token-revoked",
+]);
+
 function createUserProfile(user, name) {
-  const role = resolveRole(null, user.email);
   return {
-    name: name || user.displayName || "LockOn Learner",
+    name: name || user.displayName || user.email?.split('@')[0] || PLACEHOLDER_NAME,
     email: user.email,
-    role,
+    username: user.email?.split('@')[0] || "learner",
+    bio: "",
+    avatarUrl: "",
+    avatarIcon: "",
+    hasCustomAvatar: false,
+    isAdmin: false,
+    role: "user",
     xp: 0,
     energy: 0,
     totalScore: 0,
+    streak: 0,
+    totalStudyHours: 0,
+    completedLessons: 0,
     completedTests: [],
     completedUnits: [],
     lastTestAttempt: null,
+    goals: "",
+    grade: "",
+    curriculum: "",
+    favoriteSubjects: [],
+    theme: "system",
+    preferredLanguage: "en",
+    activity: {},
+    onboardingCompleted: false,
+    referralSource: "",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
 }
 
 async function ensureUserDocument(user, name) {
-  if (!db) return;
+  if (!db) return false;
 
-  const userRef = doc(db, "users", user.uid);
-  const snapshot = await getDoc(userRef);
+  const userPath = `users/${user?.uid}`;
 
-  if (!snapshot.exists()) {
-    await setDoc(userRef, createUserProfile(user, name));
-    return;
-  }
+  try {
+    const userRef = doc(db, "users", user.uid);
+    const snapshot = await getDoc(userRef);
 
-  const data = snapshot.data();
-  const patch = {};
-  const xp = typeof data.xp === "number" ? data.xp : 0;
-  const energy = typeof data.energy === "number" ? data.energy : 0;
+    if (!snapshot.exists()) {
+      await setDoc(userRef, createUserProfile(user, name));
+      return true;
+    }
 
-  if (!data.name) patch.name = name || user.displayName || "LockOn Learner";
-  if (!data.email) patch.email = user.email;
-  if (typeof data.xp !== "number") patch.xp = 0;
-  if (typeof data.energy !== "number") patch.energy = 0;
-  if (typeof data.totalScore !== "number") patch.totalScore = xp + energy * 100;
-  if (!Array.isArray(data.completedTests)) patch.completedTests = [];
-  if (!Array.isArray(data.completedUnits)) patch.completedUnits = [];
-  if (!("lastTestAttempt" in data)) patch.lastTestAttempt = null;
-  if (!data.role) patch.role = resolveRole(data, user.email);
+    const data = snapshot.data();
+    const patch = {};
 
-  if (Object.keys(patch).length) {
-    patch.updatedAt = serverTimestamp();
-    await setDoc(userRef, patch, { merge: true });
+    // Core Identity
+    if (!data.name) patch.name = name || user.displayName || user.email?.split('@')[0] || PLACEHOLDER_NAME;
+    if (!data.email) patch.email = user.email;
+    if (!data.username) patch.username = user.email?.split('@')[0] || "learner";
+
+    // Migrate role -> isAdmin
+    if (data.role === "admin" && data.isAdmin !== true) {
+      patch.isAdmin = true;
+    }
+
+    // If the display name is the placeholder, treat as incomplete onboarding
+    if (data.name === PLACEHOLDER_NAME) {
+      patch.onboardingCompleted = false;
+    }
+
+    // Gamification Defaults
+    if (typeof data.xp !== "number") patch.xp = 0;
+    if (typeof data.energy !== "number") patch.energy = 0;
+    if (typeof data.streak !== "number") patch.streak = 0;
+    if (typeof data.totalStudyHours !== "number") patch.totalStudyHours = 0;
+    if (typeof data.completedLessons !== "number") patch.completedLessons = 0;
+    const expectedTotal = (data.xp || 0) + (data.energy || 0) * 100;
+    if (typeof data.totalScore !== "number" || data.totalScore !== expectedTotal) patch.totalScore = expectedTotal;
+
+    // Data Structures
+    if (!Array.isArray(data.completedTests)) patch.completedTests = [];
+    if (!Array.isArray(data.completedUnits)) patch.completedUnits = [];
+    if (!Array.isArray(data.favoriteSubjects)) patch.favoriteSubjects = [];
+    if (typeof data.activity !== "object" || data.activity === null) patch.activity = {};
+    if (!("lastTestAttempt" in data)) patch.lastTestAttempt = null;
+
+    // Profile Settings
+    if (data.bio === undefined) patch.bio = "";
+    if (data.goals === undefined) patch.goals = "";
+    if (data.grade === undefined) patch.grade = "";
+    if (data.curriculum === undefined) patch.curriculum = "";
+    if (data.theme === undefined) patch.theme = "system";
+    if (data.preferredLanguage === undefined) patch.preferredLanguage = "en";
+    if (data.avatarUrl === undefined) patch.avatarUrl = "";
+    if (data.avatarIcon === undefined) patch.avatarIcon = "";
+    if (data.hasCustomAvatar === undefined) patch.hasCustomAvatar = false;
+
+    // Onboarding
+    if (data.onboardingCompleted === undefined) patch.onboardingCompleted = false;
+    if (data.referralSource === undefined) patch.referralSource = "";
+
+    if (Object.keys(patch).length) {
+      patch.updatedAt = serverTimestamp();
+      await setDoc(userRef, patch, { merge: true });
+    }
+
+    return true;
+  } catch (error) {
+    console.error(
+      "[AuthContext] Firestore operation failed while ensuring the user document.",
+      {
+        uid: user?.uid,
+        path: userPath,
+        code: error?.code,
+        message: error?.message ?? String(error),
+      },
+    );
+    return false;
   }
 }
 
@@ -68,27 +150,121 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (!isFirebaseConfigured || !auth) {
+      const localUser = readLocalUser();
+      if (localUser) {
+        setUser({ uid: localUser.uid, email: localUser.email, displayName: localUser.name });
+        setProfile(localUser);
+        setLoading(false);
+        return undefined;
+      }
+
+      const demoProfile = {
+        uid: "local-demo-user",
+        name: "Local learner",
+        email: "local@example.com",
+        username: "locallearner",
+        bio: "",
+        avatarUrl: "",
+        avatarIcon: "",
+        hasCustomAvatar: false,
+        isAdmin: false,
+        xp: 120,
+        energy: 85,
+        totalScore: 12000,
+        streak: 5,
+        totalStudyHours: 8,
+        completedLessons: 14,
+        completedTests: [],
+        completedUnits: [],
+        lastTestAttempt: null,
+        goals: "Stay consistent",
+        grade: "11",
+        curriculum: "GCSE",
+        favoriteSubjects: ["Maths", "Science"],
+        theme: "system",
+        activity: {},
+        onboardingCompleted: true,
+        referralSource: "local-demo",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      writeLocalUser(demoProfile);
+      setProfile(demoProfile);
+      setUser({ uid: demoProfile.uid, email: demoProfile.email, displayName: demoProfile.name });
       setLoading(false);
       return undefined;
     }
 
-    return onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
-      if (firebaseUser) {
-        await ensureUserDocument(firebaseUser);
-      } else {
-        setProfile(null);
-      }
-      setLoading(false);
-    });
+    return onAuthStateChanged(
+      auth,
+      async (firebaseUser) => {
+        setUser(firebaseUser);
+        if (firebaseUser) {
+          await ensureUserDocument(firebaseUser);
+        } else {
+          setProfile(null);
+        }
+        setLoading(false);
+      },
+      (authError) => {
+        console.error(
+          "[AuthContext] Firebase Auth observer reported an error. If this repeats, check the Firebase API key, authorized domains, and that the sign-in provider is enabled.",
+          { code: authError?.code, message: authError?.message ?? String(authError) },
+        );
+        if (authError?.code && FATAL_AUTH_ERRORS.has(authError.code)) {
+          signOutLocalUser();
+          setUser(null);
+          setProfile(null);
+          auth.signOut().catch(() => {});
+        }
+        setLoading(false);
+      },
+    );
   }, []);
 
+  // Apply theme whenever profile changes
   useEffect(() => {
-    if (!user || !db) return undefined;
-    return onSnapshot(doc(db, "users", user.uid), (snapshot) => {
-      setProfile(snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null);
-    });
-  }, [user]);
+    if (!profile?.theme) return;
+    const root = document.documentElement;
+    if (profile.theme === "dark") {
+      root.classList.add("dark");
+    } else if (profile.theme === "light") {
+      root.classList.remove("dark");
+    } else {
+      // system preference
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      root.classList.toggle("dark", prefersDark);
+    }
+  }, [profile?.theme]);
+
+  // Apply preferredLanguage whenever profile changes (login, snapshot update)
+  useEffect(() => {
+    if (profile?.preferredLanguage) {
+      i18n.changeLanguage(profile.preferredLanguage);
+    }
+  }, [profile?.preferredLanguage]);
+
+  useEffect(() => {
+    if (!user || !db || loading) return undefined;
+    const userPath = `users/${user.uid}`;
+    return onSnapshot(
+      doc(db, "users", user.uid),
+      (snapshot) => {
+        setProfile(snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null);
+      },
+      (snapshotError) => {
+        console.error(
+          "[AuthContext] Firestore user profile subscription failed.",
+          {
+            uid: user.uid,
+            path: userPath,
+            code: snapshotError?.code,
+            message: snapshotError?.message ?? String(snapshotError),
+          },
+        );
+      },
+    );
+  }, [user, loading]);
 
   const value = useMemo(
     () => ({
@@ -97,16 +273,101 @@ export function AuthProvider({ children }) {
       loading,
       isFirebaseConfigured,
       async login(email, password) {
-        if (!auth) throw new Error("Firebase is not configured.");
+        if (!auth || !isFirebaseConfigured) {
+          const demoProfile = {
+            uid: "local-demo-user",
+            name: email?.split("@")[0] || "Local learner",
+            email,
+            username: email?.split("@")[0] || "locallearner",
+            bio: "",
+            avatarUrl: "",
+            avatarIcon: "",
+            hasCustomAvatar: false,
+            isAdmin: false,
+            xp: 120,
+            energy: 85,
+            totalScore: 12000,
+            streak: 5,
+            totalStudyHours: 8,
+            completedLessons: 14,
+            completedTests: [],
+            completedUnits: [],
+            lastTestAttempt: null,
+            goals: "Stay consistent",
+            grade: "11",
+            curriculum: "GCSE",
+            favoriteSubjects: ["Maths", "Science"],
+            theme: "system",
+            activity: {},
+            onboardingCompleted: true,
+            referralSource: "local-demo",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          writeLocalUser(demoProfile);
+          setProfile(demoProfile);
+          setUser({ uid: demoProfile.uid, email: demoProfile.email, displayName: demoProfile.name });
+          return;
+        }
         await signInWithEmailAndPassword(auth, email, password);
       },
       async register(name, email, password) {
-        if (!auth) throw new Error("Firebase is not configured.");
+        if (!auth || !isFirebaseConfigured) {
+          const demoProfile = {
+            uid: "local-demo-user",
+            name: name || email?.split("@")[0] || "Local learner",
+            email,
+            username: email?.split("@")[0] || "locallearner",
+            bio: "",
+            avatarUrl: "",
+            avatarIcon: "",
+            hasCustomAvatar: false,
+            isAdmin: false,
+            xp: 120,
+            energy: 85,
+            totalScore: 12000,
+            streak: 5,
+            totalStudyHours: 8,
+            completedLessons: 14,
+            completedTests: [],
+            completedUnits: [],
+            lastTestAttempt: null,
+            goals: "Stay consistent",
+            grade: "11",
+            curriculum: "GCSE",
+            favoriteSubjects: ["Maths", "Science"],
+            theme: "system",
+            activity: {},
+            onboardingCompleted: true,
+            referralSource: "local-demo",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          writeLocalUser(demoProfile);
+          setProfile(demoProfile);
+          setUser({ uid: demoProfile.uid, email: demoProfile.email, displayName: demoProfile.name });
+          return;
+        }
         const result = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(result.user, { displayName: name });
         await ensureUserDocument(result.user, name);
       },
-      logout: () => (auth ? signOut(auth) : undefined),
+      async resetPassword(email) {
+        if (!auth || !isFirebaseConfigured) {
+          return;
+        }
+        await sendPasswordResetEmail(auth, email);
+      },
+      async changePassword(newPassword) {
+        if (!auth || !auth.currentUser) throw new Error("Not authenticated.");
+        await updatePassword(auth.currentUser, newPassword);
+      },
+      logout: () => {
+        signOutLocalUser();
+        setProfile(null);
+        setUser(null);
+        return auth && isFirebaseConfigured ? signOut(auth).catch(() => {}) : undefined;
+      },
     }),
     [loading, profile, user],
   );

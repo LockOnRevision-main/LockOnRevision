@@ -9,7 +9,7 @@ const starterState = {
 export function createDefaultProfile(user) {
   return {
     id: user.uid,
-    displayName: user.displayName || "LockOn Learner",
+    displayName: user.displayName || user.email?.split('@')[0] || "Learner",
     email: user.email,
     photoURL: user.photoURL || "",
     energy: 100,
@@ -50,13 +50,13 @@ export function subscribeLocalState(callback) {
   return () => window.removeEventListener(EVENT_NAME, handler);
 }
 
-export function ensureLocalUser({ name, email }) {
+export function ensureLocalUser({ name = "", email = "" } = {}) {
   const state = readLocalState();
   const uid = `local-${email.toLowerCase().replace(/[^\w]+/g, "-")}`;
   const user = {
     uid,
     email,
-    displayName: name || email.split("@")[0] || "LockOn Learner",
+    displayName: name || email.split("@")[0] || "Learner",
     photoURL: "",
     isLocal: true,
   };
@@ -101,6 +101,31 @@ export function signOutLocalUser() {
   const state = readLocalState();
   state.currentUserId = null;
   writeLocalState(state);
+}
+
+export function readLocalUser() {
+  const state = readLocalState();
+  const uid = state.currentUserId;
+  if (!uid) return null;
+  const user = state.users?.[uid];
+  return user?.profile ? { ...user.profile, uid } : null;
+}
+
+export function writeLocalUser(profile) {
+  const state = readLocalState();
+  const uid = profile.uid || `local-${(profile.email || "learner").toLowerCase().replace(/[^\w]+/g, "-")}`;
+  state.currentUserId = uid;
+  state.users[uid] = {
+    ...(state.users[uid] || {}),
+    profile: {
+      ...(state.users[uid]?.profile || {}),
+      ...profile,
+      uid,
+      updatedAt: new Date().toISOString(),
+    },
+  };
+  writeLocalState(state);
+  return state.users[uid].profile;
 }
 
 export function makeId(prefix) {
