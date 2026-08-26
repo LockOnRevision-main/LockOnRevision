@@ -1,0 +1,20 @@
+{
+  "name": "lockon-revision-functions",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "20.x"
+  },
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "serve": "firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "firebase-admin": "^13.0.2",
+    "firebase-functions": "^6.2.0"
+  }
+}

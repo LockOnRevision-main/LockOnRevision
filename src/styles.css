@@ -1,0 +1,114 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
+@import "katex/dist/katex.min.css";
+@import "highlight.js/styles/github.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Light Mode - Updated to Official Branding */
+  --color-primary: #0D8DA6;
+  --color-primary-hover: #12A3B9;
+  --color-primary-active: #0B7B92;
+  --color-secondary: #064571;
+  --color-secondary-hover: #0A5B91;
+  --color-secondary-active: #043656;
+  --color-accent: #E0F7FA;
+  --color-background: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-card: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94A3B8;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-info: #3B82F6;
+  --color-chart-blue: #0D8DA6;
+  --color-chart-indigo: #6366F1;
+  --color-chart-violet: #8B5CF6;
+  --color-chart-pink: #EC4899;
+  --color-chart-orange: #F97316;
+  --color-chart-green: #10B981;
+  --color-focus-ring: #0D8DA6;
+  --color-skeleton: #F1F5F9;
+}
+
+.dark {
+  /* Dark Mode - Updated to Official Branding */
+  --color-primary: #0D8DA6;
+  --color-primary-hover: #12A3B9;
+  --color-primary-active: #0B7B92;
+  --color-secondary: #064571;
+  --color-secondary-hover: #0A5B91;
+  --color-secondary-active: #043656;
+  --color-accent: #0D8DA620;
+  --color-background: #020C1B;
+  --color-surface: #061B35;
+  --color-card: #0A264D;
+  --color-border: #0D3563;
+  --color-text-primary: #F0F9FF;
+  --color-text-secondary: #B0DCE3;
+  --color-text-muted: #64748B;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-info: #3B82F6;
+  --color-chart-blue: #0D8DA6;
+  --color-chart-indigo: #818CF8;
+  --color-chart-violet: #A78BFA;
+  --color-chart-pink: #F472B6;
+  --color-chart-orange: #FB923C;
+  --color-chart-green: #34D399;
+  --color-focus-ring: #0D8DA6;
+  --color-skeleton: #061B35;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button,
+input,
+a {
+  font: inherit;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+::selection {
+  background: var(--color-primary);
+  color: var(--color-text-primary);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
