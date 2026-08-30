@@ -1,4 +1,4 @@
-import { Plus, Trash2, Clock, BookOpen, GraduationCap, BarChart3 } from "lucide-react";
+import { Plus, Trash2, Clock, BookOpen, GraduationCap, BarChart3, Calendar2, ArrowDown } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { loadPreferencesLocally } from "../services/timetableService.js";
@@ -26,6 +26,7 @@ export function TimetableForm({ onGenerate, busy }) {
   const [weekendMinutes, setWeekendMinutes] = useState(Number(saved?.weekendMinutes) || 60);
   const [preferredTime, setPreferredTime] = useState(saved?.preferredTime || "09:00");
   const [durationWeeks, setDurationWeeks] = useState(saved?.durationWeeks || 4);
+  const [startDate, setStartDate] = useState(saved?.startDate ? new Date(saved.startDate) : new Date());
   const [subjects, setSubjects] = useState(
     saved?.subjects?.length ? saved.subjects : [{ ...EMPTY_SUBJECT }],
   );
@@ -46,12 +47,17 @@ export function TimetableForm({ onGenerate, busy }) {
     const validSubjects = subjects.filter((s) => s.title.trim());
     if (!validSubjects.length) return;
 
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + durationWeeks * 7);
+
     onGenerate({
       grade,
       dailyMinutes: Number(dailyMinutes),
       weekendMinutes: Number(weekendMinutes),
       preferredTime,
       durationWeeks: Number(durationWeeks),
+      startDate: startDate.toISOString().split("T")[0],
+      endDate: endDate.toISOString().split("T")[0],
       subjects: validSubjects,
       examDates: examDates.filter((e) => e.subject.trim() && e.date),
     });
@@ -132,13 +138,22 @@ export function TimetableForm({ onGenerate, busy }) {
 
       {/* Duration */}
       <section className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="rounded-xl bg-primary/10 p-2.5 text-primary">
-            <BarChart3 size={22} />
+        <div className="mb-4 flex items-center gap-2">
+          <div className="rounded-xl bg-primary/10 p-2 text-primary">
+            <Calendar2 size={18} />
           </div>
           <div>
-            <h2 className="text-lg font-black tracking-tight text-text-primary">{t("timetable.duration")}</h2>
-            <p className="text-xs text-text-secondary">{t("timetable.duration_desc")}</p>
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-text-secondary">
+              {t("timetable.start_date")}
+            </label>
+            <input
+              type="date"
+              value={startDate.toISOString().split("T")[0]}
+              onChange={(e) => {
+                setStartDate(new Date(e.target.value));
+              }}
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-text-primary outline-none focus:border-primary transition-all"
+            />
           </div>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -154,8 +169,28 @@ export function TimetableForm({ onGenerate, busy }) {
               }`}
             >
               {t(`timetable.duration_${opt.value}w`)}
-            </button>
+              </button>
           ))}
+        </div>
+        <div className="mt-3 flex items-center gap-2">
+          <div className="rounded-xl bg-primary/10 p-2 text-primary">
+            <ArrowDown size={16} />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-bold uppercase tracking-widest text-text-secondary">
+              {t("timetable.end_date")}
+            </label>
+            <input
+              type="date"
+              readOnly
+              value={
+                new Date(startDate.getTime() + durationWeeks * 7 * 24 * 60 * 60 * 1000)
+                  .toISOString()
+                  .split("T")[0]
+              }
+              className="w-40 rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-text-primary outline-none focus:border-primary transition-all"
+            />
+          </div>
         </div>
       </section>
 
