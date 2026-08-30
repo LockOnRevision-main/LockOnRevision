@@ -62,9 +62,15 @@ async function validateUrl(urlString) {
 }
 
 function getCloudinaryConfig() {
+  console.log({
+    cwd: process.cwd(),
+    cloud: !!process.env.CLOUDINARY_CLOUD_NAME,
+    key: !!process.env.CLOUDINARY_API_KEY,
+    secret: !!process.env.CLOUDINARY_API_SECRET,
+  });
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.VITE_CLOUDINARY_CLOUD_NAME;
-  const apiKey = process.env.CLOUDINARY_API_KEY;
-  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+  const apiKey = process.env.CLOUDINARY_API_KEY || process.env.VITE_CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET || process.env.VITE_CLOUDINARY_API_SECRET;
   if (!cloudName || !apiKey || !apiSecret) return null;
   return { cloudName, apiKey, apiSecret };
 }
