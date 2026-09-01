@@ -1,4 +1,4 @@
-import { Plus, Trash2, Clock, BookOpen, GraduationCap, BarChart3, Calendar2, ArrowDown } from "lucide-react";
+import { Plus, Trash2, Clock, BookOpen, GraduationCap, BarChart3, Calendar, ArrowDown } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { loadPreferencesLocally } from "../services/timetableService.js";
@@ -140,11 +140,11 @@ export function TimetableForm({ onGenerate, busy }) {
       <section className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
         <div className="mb-4 flex items-center gap-2">
           <div className="rounded-xl bg-primary/10 p-2 text-primary">
-            <Calendar2 size={18} />
+            <Calendar size={18} />
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-text-secondary">
-              {t("timetable.start_date")}
+              {t("Start Date")}
             </label>
             <input
               type="date"
@@ -178,7 +178,7 @@ export function TimetableForm({ onGenerate, busy }) {
           </div>
           <div>
             <label className="mb-1 block text-xs font-bold uppercase tracking-widest text-text-secondary">
-              {t("timetable.end_date")}
+              {t("End Date")}
             </label>
             <input
               type="date"
