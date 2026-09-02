@@ -84,7 +84,7 @@ export async function uploadAndGetContent(uid, file) {
 
   if (!isCloudinaryConfigured()) {
     return {
-      content: `[File: ${file.name}]\nType: ${file.type || "unknown"}\nSize: ${file.size} bytes\nExtract readable concepts from this uploaded document when generating the learning path.`,
+      content: "",
       type: "placeholder",
       fileInfo: { name: file.name, size: file.size, type: file.type },
     };
