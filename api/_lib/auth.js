@@ -39,7 +39,11 @@ function parseToken(token) {
     signingInput: `${parts[0]}.${parts[1]}`,
   };
 }
-
+console.log({
+  NODE_ENV: process.env.NODE_ENV,
+  VITE_FIREBASE_PROJECT_ID: process.env.VITE_FIREBASE_PROJECT_ID,
+  FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
+});
 export async function verifyIdToken(token) {
   const projectId = process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
   if (!projectId) {
