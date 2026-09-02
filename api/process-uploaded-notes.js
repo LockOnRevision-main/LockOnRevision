@@ -172,7 +172,7 @@ async function callGeminiWithFiles(files, prompt) {
   log.info('Calling Gemini with files', { fileCount: files.length });
 
   const result = await withTimeout(
-    retry(() => googleAI.models.generateContent({ model: geminiModel, contents: [createUserContent([...parts, prompt])] }, { logger: log }),
+    retry(() => googleAI.models.generateContent({ model: geminiModel, contents: [createUserContent([...parts, prompt])] }), { logger: log }),
     60000
   );
 
