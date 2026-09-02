@@ -1,5 +1,5 @@
-const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || import.meta.env.CLOUDINARY_CLOUD_NAME;
+const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || import.meta.env.CLOUDINARY_UPLOAD_PRESET;
 
 const MAX_RETRIES = 3;
 
