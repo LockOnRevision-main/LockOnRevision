@@ -21,7 +21,7 @@ import { apiFetch } from "../utils/apiFetch.js";
 import { emitLessonCompleted } from "./forgeEvents.js";
 import i18n from "../i18n/index.js";
 import { emitScoreChanged } from "./forgeEvents.js";
-import { calculateLessonReward } from "./energyService.js";
+import { calculateLessonReward, calculateStaminaDelta, clampEnergy } from "./energyService.js";
 
 function localList(uid, name) {
   return getLocalUser(uid)?.[name] || [];
@@ -398,10 +398,29 @@ export async function completeLesson(uid, lessonId, xpEarned, perfectLesson = fa
 
   const accuracy = options.accuracy !== undefined ? options.accuracy : 100;
 
-  const energyAward = calculateLessonReward(
+  // XP is cumulative learning; Energy is stamina 0-100, decoupled (not XP/10)
+  // Legacy fallback kept but new path uses stamina delta
+  const legacyEnergyAward = calculateLessonReward(
     { difficulty, accuracy, perfect: perfectLesson, subjectName },
     { grade, curriculum },
   );
+
+  function computeStaminaDelta(currentEnergy, streakVal, lastActiveISO) {
+    let hoursSince = null;
+    if (lastActiveISO) {
+      const last = new Date(lastActiveISO).getTime();
+      if (!isNaN(last)) hoursSince = (Date.now() - last) / 36e5;
+    }
+    return calculateStaminaDelta(currentEnergy, {
+      difficulty,
+      accuracy,
+      perfect: perfectLesson,
+      streak: streakVal || 0,
+      hoursSinceLastSession: hoursSince,
+      grade,
+      curriculum,
+    });
+  }
 
   if (!isFirebaseConfigured) {
     const localState = JSON.parse(localStorage.getItem("lockon-revision-local-state") || "{}");
@@ -411,27 +430,42 @@ export async function completeLesson(uid, lessonId, xpEarned, perfectLesson = fa
       return { success: false, totalXP: 0, energyAward: 0, reason: "already-completed" };
     }
     const today = new Date().toISOString().split("T")[0];
+    let energyAwardLocal = legacyEnergyAward;
+    // Decoupled: compute stamina delta from current energy/streak
+    try {
+      const curEnergy = Number(localUser?.profile?.energy ?? localUser?.energy ?? 50);
+      const curStreak = Number(localUser?.profile?.streak ?? localUser?.streak ?? 0);
+      const lastActive = localUser?.profile?.updatedAt || localUser?.updatedAt || null;
+      energyAwardLocal = computeStaminaDelta(curEnergy, curStreak, lastActive);
+    } catch {}
     updateLocalUser(uid, (userData) => {
       const now = new Date().toISOString();
       const existing = userData.activity?.[today] || 0;
+      const curE = Number(userData.energy ?? userData.profile?.energy ?? 50);
+      const newEnergy = clampEnergy(curE + energyAwardLocal);
+      const xpVal = (userData.xp ?? userData.profile?.xp ?? 0) + totalXP;
+      // Also keep profile energy in sync if exists
+      const nextProfile = userData.profile ? { ...userData.profile, energy: newEnergy, xp: xpVal, updatedAt: now } : undefined;
       return {
         ...userData,
+        profile: nextProfile,
         lessons: (userData.lessons || []).map((l) =>
           l.id === lessonId
             ? { ...l, completed: true, completedAt: now, xpEarned: totalXP, perfect: perfectLesson }
             : l,
         ),
-        xp: (userData.xp || 0) + totalXP,
-        energy: (userData.energy || 0) + energyAward,
-        totalScore: (userData.totalScore || 0) + totalXP + energyAward * 100,
+        xp: xpVal,
+        energy: newEnergy,
+        totalScore: xpVal + newEnergy * 100,
         streak: (userData.streak || 0) + 1,
         totalStudyHours: (userData.totalStudyHours || 0) + 0.25,
         completedLessons: ((userData.completedLessons || 0)) + 1,
         activity: { ...(userData.activity || {}), [today]: existing + 0.25 },
+        updatedAt: now,
       };
     });
-    emitLessonCompleted({ lessonId, uid, xpEarned: totalXP, energyAward, perfect: perfectLesson });
-    return { success: true, totalXP, energyAward };
+    emitLessonCompleted({ lessonId, uid, xpEarned: totalXP, energyAward: energyAwardLocal, perfect: perfectLesson });
+    return { success: true, totalXP, energyAward: energyAwardLocal };
   }
 
   const lessonRef = doc(db, "users", uid, "lessons", lessonId);
@@ -441,6 +475,21 @@ export async function completeLesson(uid, lessonId, xpEarned, perfectLesson = fa
   if (alreadyCompleted) {
     return { success: false, totalXP: 0, energyAward: 0, reason: "already-completed" };
   }
+
+  // Fetch current profile for decoupled stamina calc
+  const userRef = doc(db, "users", uid);
+  const userSnap = await getDoc(userRef);
+  const userData = userSnap.exists() ? userSnap.data() : {};
+  const curEnergy = Number(userData.energy ?? 50);
+  const curStreak = Number(userData.streak ?? 0);
+  const curXp = Number(userData.xp ?? 0);
+  const lastActiveRaw = userData.updatedAt;
+  let lastActiveISO = null;
+  try { lastActiveISO = lastActiveRaw?.toDate ? lastActiveRaw.toDate().toISOString() : (typeof lastActiveRaw === "string" ? lastActiveRaw : null); } catch {}
+  const energyAward = computeStaminaDelta(curEnergy, curStreak, lastActiveISO);
+  const newEnergy = clampEnergy(curEnergy + energyAward);
+  const newXp = curXp + totalXP;
+  const newTotalScore = newXp + newEnergy * 100;
 
   const now = serverTimestamp();
   const today = new Date().toISOString().split("T")[0];
@@ -455,10 +504,11 @@ export async function completeLesson(uid, lessonId, xpEarned, perfectLesson = fa
     updatedAt: now,
   }, { merge: true });
 
-  batch.update(doc(db, "users", uid), {
+  // Direct set for energy to enforce 0-100 clamp; XP via increment but also set totalScore deterministically
+  batch.update(userRef, {
     xp: increment(totalXP),
-    energy: increment(energyAward),
-    totalScore: increment(totalXP + energyAward * 100),
+    energy: newEnergy,
+    totalScore: newTotalScore,
     streak: increment(1),
     totalStudyHours: increment(0.25),
     completedLessons: increment(1),

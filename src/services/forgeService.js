@@ -140,6 +140,29 @@ function normalizeExercise(exercise, lesson) {
   if (exercise?.passage) base.passage = exercise.passage;
   if (exercise?.data) base.data = exercise.data;
   if (exercise?.content) base.content = exercise.content;
+  // Variant support: store all pre-generated variants, random selection at load preserves progress
+  if (Array.isArray(exercise?.variants) && exercise.variants.length) {
+    base.variants = exercise.variants.map((v, i) => ({
+      id: v.id || `variant-${i}`,
+      question: v.question || base.question,
+      options: Array.isArray(v.options) ? v.options : base.options,
+      pairs: v.pairs ? normalizePairs(v.pairs) : (v.pairs === undefined ? undefined : base.pairs),
+      items: v.items ? normalizeItems(v.items) : (v.items === undefined ? undefined : base.items),
+      correctAnswer: v.correctAnswer ?? base.correctAnswer,
+      explanation: v.explanation || base.explanation,
+      context: v.context || base.context,
+    }));
+    // If variant pairs/items missing, fallback to base
+    base.variants.forEach(v=>{
+      if (base.type==="matchPairs" && !v.pairs) v.pairs = base.pairs;
+      if (base.type==="arrangeOrder" && !v.items) v.items = base.items;
+      if (!v.correctAnswer) v.correctAnswer = base.correctAnswer;
+    });
+  } else {
+    // Synthesize 1 variant entry for backwards-compat (existing lessons without variants)
+    // Future lessons will have 3-5 AI-generated variants; we keep single to avoid re-generation
+    base.variants = null; // null means use base directly, shuffle still randomizes order
+  }
   return base;
 }
 

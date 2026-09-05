@@ -1,6 +1,7 @@
 import { ArrowRight, CheckCircle, XCircle, Zap } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getPresentationExercise, shuffleArray } from "../utils/shuffle.js";
 
 export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
   const { t } = useTranslation();
@@ -11,8 +12,14 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
   const [saved, setSaved] = useState(false);
   const [xpEarned, setXpEarned] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const exercises = lesson?.exercises || [];
+  // Preserve progress: presentation order/variants are fixed for this lesson instance, not regenerated
+  const presentationExercises = useMemo(() => {
+    const base = lesson?.exercises || [];
+    // Pick random variant per exercise (if variants exist) – variants pre-generated and stored in Firestore
+    // Do NOT regenerate lesson – only presentation selection changes per load
+    return base.map((ex) => getPresentationExercise(ex));
+  }, [lesson?.id]);
+  const exercises = presentationExercises;
   const currentExercise = exercises[currentExerciseIndex];
   const progress = exercises.length ? ((currentExerciseIndex + 1) / exercises.length) * 100 : 0;
 
@@ -282,13 +289,16 @@ function TrueFalse({ exercise, userAnswer, onAnswer }) {
 }
 
 function MultipleChoice({ exercise, userAnswer, onAnswer }) {
+  // Dynamic answer order: Fisher-Yates shuffle each mount, never index-equality
+  const shuffledOptions = useMemo(() => shuffleArray(exercise.options || []), [exercise.id]);
   return (
     <div>
       <h3 className="text-lg font-bold text-text-primary mb-4">{exercise.question}</h3>
+      {exercise.context && <p className="text-sm text-text-secondary mb-3 bg-background p-3 rounded-lg border border-border">{exercise.context}</p>}
       <div className="space-y-3">
-        {exercise.options.map((option, index) => (
+        {shuffledOptions.map((option, index) => (
           <button
-            key={index}
+            key={`${exercise.id}-opt-${index}-${option}`}
             onClick={() => onAnswer(option)}
             className={`w-full p-4 text-left rounded-xl border-2 transition-all font-medium ${
               userAnswer === option
@@ -341,6 +351,9 @@ function MatchPairs({ exercise, userAnswer: _userAnswer, onAnswer }) {
   console.log("[LessonPlayer] props received by matching component", { exerciseId: exercise.id, question: exercise.question?.slice(0,60), pairs: exercise.pairs, pairsLen: (exercise.pairs||[]).length, type: exercise.type });
   const pairs = exercise.pairs || [];
   if (pairs.length===0) console.warn("[LessonPlayer] MATCHING BLANK – pairs empty, will render only instructions", { exercise });
+  // True randomization: independently shuffle left/right via Fisher-Yates each mount – never rely on index equality
+  const shuffledPairs = useMemo(() => shuffleArray(pairs), [exercise.id]);
+  // We keep original pairing for grading via ids, but presentation order is shuffled
   const [selectedLeft, setSelectedLeft] = useState(null);
   const [matchedPairs, setMatchedPairs] = useState([]);
 
@@ -362,8 +375,16 @@ function MatchPairs({ exercise, userAnswer: _userAnswer, onAnswer }) {
     }
   };
 
-  const leftItems = pairs.filter(p => !matchedPairs.find(m => m.left.id === p.left.id)).map(p => p.left);
-  const rightItems = pairs.filter(p => !matchedPairs.find(m => m.right.id === p.right.id)).map(p => p.right);
+  const leftItemsShuffled = useMemo(() => {
+    const left = shuffledPairs.map(p => p.left);
+    return shuffleArray(left);
+  }, [shuffledPairs]);
+  const rightItemsShuffled = useMemo(() => {
+    const right = shuffledPairs.map(p => p.right);
+    return shuffleArray(right);
+  }, [shuffledPairs]);
+  const leftItems = leftItemsShuffled.filter(item => !matchedPairs.find(m => m.left.id === item.id));
+  const rightItems = rightItemsShuffled.filter(item => !matchedPairs.find(m => m.right.id === item.id));
 
   if (pairs.length === 0) {
     return (
@@ -419,7 +440,7 @@ function MatchPairs({ exercise, userAnswer: _userAnswer, onAnswer }) {
 
 function ArrangeOrder({ exercise, userAnswer: _userAnswer, onAnswer }) {
   const { t } = useTranslation();
-  const [items, setItems] = useState(exercise.items || []);
+  const [items, setItems] = useState(() => shuffleArray(exercise.items || []));
 
   const moveItem = (fromIndex, toIndex) => {
     const newItems = [...items];

@@ -312,7 +312,8 @@ Return ONLY valid JSON with this structure:
                     "pairs": [{"left":{"id":"l1","text":"term"},"right":{"id":"r1","text":"definition"}}],
                     "items": [{"id":"item1","text":"step"}],
                     "correctAnswer": "For multipleChoice/fillBlank: answer text; for matchPairs: 'l1-r1,l2-r2,...'; for arrangeOrder: 'id1,id2,...'",
-                    "explanation": "2-3 sentences: why correct, conceptual link, why distractors fail"
+                    "explanation": "2-3 sentences: why correct, conceptual link, why distractors fail",
+                    "variants": [{"question":"alt phrasing","options":[],"correctAnswer":"...","explanation":"..."}]
                   }
                 ]
               }
@@ -323,7 +324,7 @@ Return ONLY valid JSON with this structure:
     ]
   }
 }
-SCHEMA NOTES: matchPairs MUST use "pairs": [{"left":{"id":"l1","text":"..."},"right":{"id":"r1","text":"..."}}] with 3-5 pairs. arrangeOrder MUST use "items": [{"id":"item1","text":"..."}] with 4-6 items. Do NOT put matching data in "options".
+SCHEMA NOTES: matchPairs MUST use "pairs": [{"left":{"id":"l1","text":"..."},"right":{"id":"r1","text":"..."}}] with 3-5 pairs. arrangeOrder MUST use "items": [{"id":"item1","text":"..."}] with 4-6 items. Do NOT put matching data in "options". VARIANTS: each exercise MUST include "variants": 2-4 alternatives with same objective but different wording/context for anti-memorization; stored and randomly selected at lesson load without regenerating lesson.
 `;
 
     const generated = await callGeminiWithFiles(geminiFiles, prompt);

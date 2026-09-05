@@ -136,7 +136,8 @@ Then create a curriculum-quality hierarchy following this exact JSON structure:
                     "pairs": [{"left":{"id":"l1","text":"term"},"right":{"id":"r1","text":"definition"}}],
                     "items": [{"id":"item1","text":"step to order"}],
                     "correctAnswer": "For multipleChoice/fillBlank/trueFalse/shortAnswer: exact answer. For matchPairs: 'l1-r1,l2-r2,...'. For arrangeOrder: 'id1,id2,id3'",
-                    "explanation": "2-3 sentences: why correct, why others wrong, conceptual link. Must reward understanding."
+                    "explanation": "2-3 sentences: why correct, why others wrong, conceptual link. Must reward understanding.",
+                    "variants": [{"question":"alternative phrasing 1","options":[],"correctAnswer":"...","explanation":"..."}, {"question":"alternative phrasing 2","options":[],"correctAnswer":"...","explanation":"..."}]
                   }
                 ]
               }
@@ -182,6 +183,7 @@ EXERCISE REQUIREMENTS (HIGH QUALITY – REASONING OVER MEMORIZATION):
 - Examples of desired stems: "A farmer notices ... Given the definition of resource management, which pairing best explains why...?", "Study this climate data for CBSE Class 10 Geography... Which cause-effect chain correctly links...?", "A small business case: ... Which decision follows from...?"
 - DIFFICULTY: Slightly more challenging by default – must require linking 2-3 concepts, not isolated fact. Distractors should be plausible and require reasoning to eliminate.
 - For EVERY exercise include rich "explanation": 2-3 sentences why correct is correct and why others fail, reinforcing intuition.
+- VARIANTS (ANTI-MEMORIZATION): For each exercise, also generate "variants": 2-4 alternative phrasings of the SAME learning objective with same correct concept but different wording/context/numbers. Example: variants:[{question:"...", options:[...], correctAnswer:"...", explanation:"..."}, ...]. Store all variants in "variants" array. Correct mappings must stay consistent across variants.
 - Curriculum constraint STRICT: stay within the curriculum detected from SOURCE (e.g., if CBSE/NCERT/JEE/GCSE/AP/IGCSE/board indicated, do NOT introduce extra-curricular topics). Extra context is only allowed if it directly supports understanding of the syllabus (e.g., real-world analogy for a prescribed concept). Think: deepen intuition, not expand syllabus.
 
 CURRICULUM QUALITY:

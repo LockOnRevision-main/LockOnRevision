@@ -80,6 +80,7 @@ export function calculateEnergyReward({
   topicDifficulty,
   achievements = [],
 }) {
+  // Legacy – kept for unit/level rewards; new lesson stamina uses calculateStaminaDelta
   const range = BASE_RANGES[type] || BASE_RANGES.lesson;
   const difficultyFactor = DIFFICULTY_FACTORS[difficulty] || 0.55;
   const gradeProfile = getGradeProfile(grade);
@@ -112,6 +113,49 @@ export function calculateEnergyReward({
   });
 
   return Math.max(0.5, Math.round(energy * 10) / 10);
+}
+
+// --- Decoupled stamina model (0-100) ---
+export function clampEnergy(v) {
+  return Math.max(0, Math.min(100, Math.round(v * 10) / 10));
+}
+
+export function calculateStaminaDelta(currentEnergy, {
+  difficulty = "medium",
+  accuracy = 100,
+  perfect = false,
+  streak = 0,
+  hoursSinceLastSession = null,
+  grade,
+  curriculum,
+} = {}) {
+  // Energy is stamina/consistency, NOT XP/10. XP is cumulative; Energy reflects recent consistency.
+  const diffW = DIFFICULTY_FACTORS[difficulty] ?? 0.55;
+  // Base: harder lessons cost more stamina to attempt but reward more if done well
+  let delta = 0;
+  if (accuracy >= 95 && perfect) delta = 3.5 + diffW * 1.5; // perfect hard = ~4.7
+  else if (accuracy >= 80) delta = 1.5 + diffW * 1.0; // good
+  else if (accuracy >= 60) delta = 0.5; // pass
+  else delta = -1.5 - (1 - diffW) * 1.0; // poor accuracy costs stamina
+
+  // Streak consistency bonus – rewards coming back
+  if (streak >= 7) delta += 1.0;
+  else if (streak >= 3) delta += 0.5;
+
+  // Time decay – long gap reduces stamina
+  if (hoursSinceLastSession != null) {
+    if (hoursSinceLastSession > 72) delta -= 4; // 3+ days away
+    else if (hoursSinceLastSession > 36) delta -= 2;
+    else if (hoursSinceLastSession > 24) delta -= 0.5;
+  }
+
+  // Low-energy protection: if already low, small extra penalty to encourage break, but not zero-out
+  // High-energy diminishing returns near cap
+  if (currentEnergy > 90) delta *= 0.4;
+  else if (currentEnergy > 75) delta *= 0.7;
+
+  // Ensure XP/Energy never linear: delta is independent of XP amount
+  return Math.round(delta * 10) / 10;
 }
 
 export function calculateLessonReward(lesson = {}, profile = {}) {
