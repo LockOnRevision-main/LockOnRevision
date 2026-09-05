@@ -387,7 +387,9 @@
     "exam_placeholder": "e.g. Physics",
     "remove_exam": "Remove exam",
     "generating": "Generating...",
-    "generate_timetable": "Generate Timetable"
+    "generate_timetable": "Generate Timetable",
+    "start_date": "Start Date",
+    "end_date": "End Date"
   },
   "admin": {
     "title": "Administration panel",

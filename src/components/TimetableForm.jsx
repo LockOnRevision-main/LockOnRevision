@@ -144,7 +144,7 @@ export function TimetableForm({ onGenerate, busy }) {
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-text-secondary">
-              {t("Start Date")}
+              {t("timetable.start_date")}
             </label>
             <input
               type="date"
@@ -178,7 +178,7 @@ export function TimetableForm({ onGenerate, busy }) {
           </div>
           <div>
             <label className="mb-1 block text-xs font-bold uppercase tracking-widest text-text-secondary">
-              {t("End Date")}
+              {t("timetable.end_date")}
             </label>
             <input
               type="date"
