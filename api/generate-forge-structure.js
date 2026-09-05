@@ -62,6 +62,10 @@ async function callGeminiWithValidation(prompt) {
   log.info('Gemini response received', { length: text.length });
 
   const parsed = parseGeminiJson(text);
+  // Temporary logs: AI response + parsed exercise JSON
+  log.info('AI response raw length', { length: text.length, preview: text.slice(0,1200) });
+  const sampleExercise = parsed?.subject?.units?.[0]?.subUnits?.[0]?.lessons?.[0]?.exercises?.[0];
+  log.info('Parsed exercise JSON sample', { sampleExercise, exerciseTypes: (parsed?.subject?.units||[]).flatMap(u=>(u.subUnits||[]).flatMap(su=>(su.lessons||[]).flatMap(l=>(l.exercises||[]).map(e=>e.type)))) });
   validateForgeStructure(parsed);
 
   log.info('Forge structure validated successfully', {
@@ -126,11 +130,13 @@ Then create a curriculum-quality hierarchy following this exact JSON structure:
                 "interactionTypes": ["string"],
                 "exercises": [
                   {
-                    "type": "string",
-                    "question": "string",
-                    "options": ["string"],
-                    "correctAnswer": "string",
-                    "explanation": "string"
+                    "type": "multipleChoice|fillBlank|matchPairs|arrangeOrder|trueFalse|shortAnswer",
+                    "question": "2-4 sentence stem with context/scenario – NOT a one-line fact recall. Include relevant background before asking.",
+                    "options": ["For multipleChoice: 4 plausibly close options requiring reasoning, NOT keyword matching. For other types: omit or leave []"],
+                    "pairs": [{"left":{"id":"l1","text":"term"},"right":{"id":"r1","text":"definition"}}],
+                    "items": [{"id":"item1","text":"step to order"}],
+                    "correctAnswer": "For multipleChoice/fillBlank/trueFalse/shortAnswer: exact answer. For matchPairs: 'l1-r1,l2-r2,...'. For arrangeOrder: 'id1,id2,id3'",
+                    "explanation": "2-3 sentences: why correct, why others wrong, conceptual link. Must reward understanding."
                   }
                 ]
               }
@@ -141,6 +147,10 @@ Then create a curriculum-quality hierarchy following this exact JSON structure:
     ]
   }
 }
+SCHEMA FOR INTERACTIVE TYPES (STRICT):
+- matchPairs: MUST use "pairs": [{"left":{"id":"l1","text":"..."},"right":{"id":"r1","text":"..."}}] with 3-5 pairs. Do NOT use "options" for matching. "question" = instruction stem (2-3 sentences).
+- arrangeOrder: MUST use "items": [{"id":"item1","text":"..."}] with 4-6 items. "correctAnswer" = comma-separated ids in correct order.
+- multipleChoice/fillBlank/trueFalse/shortAnswer: use "options"/"correctAnswer"/"explanation" as above.
 
 CRITICAL HIERARCHY REQUIREMENTS:
 - Generate 6-15 units (not 2-3)
@@ -166,20 +176,20 @@ For Geography: "multipleChoice", "mapInteraction", "imageRecognition", "climateM
 For Computer Science: "multipleChoice", "codeCompletion", "debugCode", "predictOutput", "arrangeAlgorithm", "buildSnippet"
 For Business/Economics: "multipleChoice", "caseStudy", "decisionMaking", "dataInterpretation", "graphAnalysis", "realWorldScenario"
 
-EXERCISE REQUIREMENTS:
-- Generate 3-5 exercises per lesson
-- Mix different interaction types appropriate for the subject
-- Each exercise must have a clear question
-- Multiple choice: provide 4 options
-- Include explanation for correct answer
-- Make exercises challenging but fair
+EXERCISE REQUIREMENTS (HIGH QUALITY – REASONING OVER MEMORIZATION):
+- Generate 3-5 exercises per lesson, mix types. For matchPairs lessons, at least one matching exercise.
+- EVERY question MUST be 2-4 sentences: start with relevant background/context/scenario/data/case-study, then ask. Single-line recall like "What is X?" is FORBIDDEN – instead frame as cause-effect, compare/justify, best explanation, data interpretation, or realistic scenario that requires connecting ideas.
+- Examples of desired stems: "A farmer notices ... Given the definition of resource management, which pairing best explains why...?", "Study this climate data for CBSE Class 10 Geography... Which cause-effect chain correctly links...?", "A small business case: ... Which decision follows from...?"
+- DIFFICULTY: Slightly more challenging by default – must require linking 2-3 concepts, not isolated fact. Distractors should be plausible and require reasoning to eliminate.
+- For EVERY exercise include rich "explanation": 2-3 sentences why correct is correct and why others fail, reinforcing intuition.
+- Curriculum constraint STRICT: stay within the curriculum detected from SOURCE (e.g., if CBSE/NCERT/JEE/GCSE/AP/IGCSE/board indicated, do NOT introduce extra-curricular topics). Extra context is only allowed if it directly supports understanding of the syllabus (e.g., real-world analogy for a prescribed concept). Think: deepen intuition, not expand syllabus.
 
 CURRICULUM QUALITY:
 - Group concepts logically (follow real curriculum structure)
 - Avoid duplicates and overlapping lessons
 - Use clear, student-friendly names
-- If the material mentions GCSE, JEE, AP, or other exams, structure accordingly
-- Ensure progressive difficulty within units
+- Detect curriculum from source (CBSE, NCERT, JEE, GCSE, AP, etc.) and STAY WITHIN IT – extra info only to build intuition for prescribed topics
+- Ensure progressive difficulty within units – later lessons within a unit should connect to earlier lessons
 
 STUDY MATERIAL:
 ${sourceText}`;

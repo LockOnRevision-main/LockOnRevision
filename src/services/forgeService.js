@@ -20,6 +20,11 @@ function sortByOrder(items) {
 }
 
 function normalizeGeneratedStructure(generated) {
+  console.log("[forgeService] AI response received", { hasSubject: !!generated?.subject, rawKeys: generated ? Object.keys(generated) : [] });
+  if (generated?.subject) {
+    const exerciseTypes = (generated.subject.units||[]).flatMap(u=> (u.subUnits||[]).flatMap(su=> (su.lessons||[]).flatMap(l=> (l.exercises||[]).map(e=>e.type))));
+    console.log("[forgeService] parsed exercise JSON", { totalExercises: exerciseTypes.length, types: [...new Set(exerciseTypes)], sample: (generated.subject.units?.[0]?.subUnits?.[0]?.lessons?.[0]?.exercises?.[0]) || null });
+  }
   const subject = generated?.subject;
   if (!subject) {
     throw new Error("Generated response is missing subject field");
@@ -58,15 +63,84 @@ function normalizeGeneratedStructure(generated) {
 }
 
 
+function normalizePairs(rawPairs) {
+  if (!Array.isArray(rawPairs) || rawPairs.length === 0) return [];
+  return rawPairs.map((p, idx) => {
+    // Already in expected {left:{id,text}, right:{id,text}} shape
+    if (p?.left && p?.right) {
+      const l = p.left, r = p.right;
+      return {
+        left: { id: String(l.id || `l-${idx}`), text: String(l.text || l.term || l.label || JSON.stringify(l)) },
+        right: { id: String(r.id || `r-${idx}`), text: String(r.text || r.definition || r.description || r.value || JSON.stringify(r)) },
+      };
+    }
+    // Flat {term, definition} / {term, description} / {key, value}
+    if (p?.term || p?.key || p?.label) {
+      return {
+        left: { id: String(p.idLeft || p.term || p.key || p.label || `l-${idx}`), text: String(p.term || p.key || p.label) },
+        right: { id: String(p.idRight || p.definition || p.description || p.value || `r-${idx}`), text: String(p.definition || p.description || p.value || "") },
+      };
+    }
+    // Array form [leftText, rightText]
+    if (Array.isArray(p) && p.length >= 2) {
+      return { left: { id: `l-${idx}`, text: String(p[0]) }, right: { id: `r-${idx}`, text: String(p[1]) } };
+    }
+    return null;
+  }).filter(Boolean).filter(p => p.left.text && p.right.text);
+}
+
+function normalizeItems(rawItems) {
+  if (!Array.isArray(rawItems) || rawItems.length === 0) return [];
+  return rawItems.map((it, idx) => {
+    if (typeof it === "string") return { id: `item-${idx}`, text: it };
+    if (it?.text) return { id: String(it.id || `item-${idx}`), text: String(it.text) };
+    if (it?.label) return { id: String(it.id || `item-${idx}`), text: String(it.label) };
+    return { id: `item-${idx}`, text: String(it) };
+  }).filter(i => i.text);
+}
+
 function normalizeExercise(exercise, lesson) {
-  return {
+  const typeRaw = exercise?.type || "multipleChoice";
+  // Stabilize type aliases
+  const type = typeRaw === "matching" || typeRaw === "match" ? "matchPairs" : typeRaw === "ordering" ? "arrangeOrder" : typeRaw;
+  const base = {
     id: exercise?.id || makeId("exercise"),
-    type: exercise?.type || "multipleChoice",
-    question: exercise?.question || `Question about ${lesson.title}`,
+    type,
+    question: exercise?.question || exercise?.prompt || `Question about ${lesson.title}`,
     options: Array.isArray(exercise?.options) ? exercise.options : [],
-    correctAnswer: exercise?.correctAnswer || "",
+    correctAnswer: exercise?.correctAnswer || exercise?.answer || "",
     explanation: exercise?.explanation || "Review the lesson material.",
   };
+  // Preserve interactive data – previously dropped, causing blank matching render (root cause)
+  if (type === "matchPairs" || type === "matchVocabulary" || type === "matching") {
+    const rawPairs = exercise?.pairs || exercise?.items || exercise?.optionsPairs || exercise?.matches || [];
+    let pairs = normalizePairs(rawPairs);
+    // Fallback: if Gemini sent options/correctAnswer instead of pairs, derive 3-4 pairs from options
+    if (pairs.length === 0 && base.options.length >= 2) {
+      pairs = base.options.slice(0, 4).map((opt, i) => ({ left: { id: `l-${i}`, text: String(opt).split(" - ")[0] || `Term ${i+1}` }, right: { id: `r-${i}`, text: String(opt).split(" - ")[1] || String(opt) } }));
+      if (pairs.some(p=>p.left.text===p.right.text)) pairs = []; // discard bad fallback
+    }
+    if (pairs.length === 0) console.warn("[forgeService] matchPairs exercise has empty pairs after normalization", { exerciseId: base.id, raw: exercise });
+    base.pairs = pairs;
+    // Ensure correctAnswer for matching is derived when missing
+    if (!base.correctAnswer && pairs.length) base.correctAnswer = pairs.map(p=>`${p.left.id}-${p.right.id}`).join(",");
+    console.log("[forgeService] normalizeExercise matchPairs", { id: base.id, pairsCount: pairs.length, question: base.question.slice(0,80) });
+  }
+  if (type === "arrangeOrder" || type === "ordering" || type === "sequence" || type === "timelineOrder") {
+    const rawItems = exercise?.items || exercise?.options || exercise?.sequence || [];
+    const items = normalizeItems(rawItems);
+    if (items.length === 0) console.warn("[forgeService] arrangeOrder exercise empty items", { exerciseId: base.id, raw: exercise });
+    base.items = items;
+    if (!base.correctAnswer && items.length) base.correctAnswer = items.map(i=>i.id).join(",");
+  }
+  // Preserve additional context fields for richer prompts (context, scenario, background, content, passage, data)
+  if (exercise?.context) base.context = exercise.context;
+  if (exercise?.scenario) base.scenario = exercise.scenario;
+  if (exercise?.background) base.background = exercise.background;
+  if (exercise?.passage) base.passage = exercise.passage;
+  if (exercise?.data) base.data = exercise.data;
+  if (exercise?.content) base.content = exercise.content;
+  return base;
 }
 
 
@@ -206,17 +280,30 @@ function localForgeSubjects(uid) {
 
 export function subscribeForgeSubjects(uid, callback, onError) {
   if (!isFirebaseConfigured) {
-    return subscribeLocalState(() => callback(localForgeSubjects(uid)));
+    return subscribeLocalState(() => {
+      const local = localForgeSubjects(uid);
+      console.log("[forgeService] subscribeForgeSubjects LOCAL emit", { uid, count: local.length });
+      callback(local);
+    });
   }
 
+  console.log("[forgeService] subscribeForgeSubjects START", { uid });
   let cancelled = false;
+  // Listen without orderBy for same reason – delivers all docs regardless of index / timestamp sentinel state
   const unsub = onSnapshot(
-    query(collection(db, "users", uid, "subjects"), orderBy("updatedAt", "desc")),
+    collection(db, "users", uid, "subjects"),
     () => {
-      if (!cancelled) fetchForgeSubjects(uid).then(callback).catch((err) => onError?.(err));
+      console.log("[forgeService] subscribeForgeSubjects onSnapshot TRIGGER fetch", { uid });
+      if (!cancelled) fetchForgeSubjects(uid).then((items)=>{
+        console.log("[forgeService] subscribeForgeSubjects callback emit", { uid, count: items.length });
+        callback(items);
+      }).catch((err) => {
+        console.error("[forgeService] subscribeForgeSubjects fetch failed", { code: err?.code });
+        onError?.(err);
+      });
     },
     (err) => {
-      console.error("[forgeService] subscribeForgeSubjects failed", { code: err?.code, message: err?.message });
+      console.error("[forgeService] subscribeForgeSubjects LISTEN failed", { code: err?.code, message: err?.message, isBlocked: err?.code==="unavailable" || err?.code==="permission-denied" });
       onError?.(err);
     },
   );
@@ -255,22 +342,47 @@ export function subscribeForgeLessons(uid, callback, onError) {
 
 export async function fetchForgeSubjects(uid) {
   if (!isFirebaseConfigured) {
-    return localForgeSubjects(uid);
+    const local = localForgeSubjects(uid);
+    console.log("[forgeService] fetchForgeSubjects LOCAL", { uid, count: local.length });
+    return local;
   }
 
-  const [subjectsSnap, unitsSnap, subUnitsSnap, lessonsSnap] = await Promise.all([
-    getDocs(query(collection(db, "users", uid, "subjects"), orderBy("updatedAt", "desc"))),
-    getDocs(collection(db, "users", uid, "units")),
-    getDocs(collection(db, "users", uid, "subUnits")),
-    getDocs(collection(db, "users", uid, "lessons")),
-  ]);
+  console.log("[forgeService] fetchForgeSubjects READ start", { uid, path: `users/${uid}/subjects` });
+  try {
+    // Smallest fix: read without orderBy to avoid index / serverTimestamp-null ordering issues and blocked-orderBy failures.
+    // Sort client-side by updatedAt after fetch; keeps persistence retrieval robust.
+    const [subjectsSnap, unitsSnap, subUnitsSnap, lessonsSnap] = await Promise.all([
+      getDocs(collection(db, "users", uid, "subjects")),
+      getDocs(collection(db, "users", uid, "units")),
+      getDocs(collection(db, "users", uid, "subUnits")),
+      getDocs(collection(db, "users", uid, "lessons")),
+    ]);
 
-  const subjects = subjectsSnap.docs.map((item) => ({ id: item.id, ...item.data() })).filter((item) => item.forge);
-  const units = unitsSnap.docs.map((item) => ({ id: item.id, ...item.data() }));
-  const subUnits = subUnitsSnap.docs.map((item) => ({ id: item.id, ...item.data() }));
-  const lessons = lessonsSnap.docs.map((item) => ({ id: item.id, ...item.data() }));
+    const rawSubjects = subjectsSnap.docs.map((item) => ({ id: item.id, ...item.data() }))
+      .sort((a,b)=> String(b.updatedAt||b.createdAt||"").localeCompare(String(a.updatedAt||a.createdAt||"")));
+    const subjects = rawSubjects.filter((item) => item.forge);
+    const units = unitsSnap.docs.map((item) => ({ id: item.id, ...item.data() }));
+    const subUnits = subUnitsSnap.docs.map((item) => ({ id: item.id, ...item.data() }));
+    const lessons = lessonsSnap.docs.map((item) => ({ id: item.id, ...item.data() }));
+    console.log("[forgeService] fetchForgeSubjects READ result", {
+      uid,
+      rawSubjects: rawSubjects.length,
+      forgeSubjects: subjects.length,
+      units: units.length,
+      subUnits: subUnits.length,
+      lessons: lessons.length,
+      forgeIds: subjects.map(s=>s.id),
+      reasonEmpty: subjects.length===0 ? (rawSubjects.length===0 ? "no_docs_in_subjects_collection" : "docs_exist_but_forge_flag_false_or_missing") : "ok",
+    });
+    if (subjects.length===0 && rawSubjects.length>0) {
+      console.warn("[forgeService] subjects exist but filtered out – check forge field", rawSubjects.slice(0,2));
+    }
 
-  return subjects.map((subject) => assembleForgeTree(subject, units, subUnits, lessons));
+    return subjects.map((subject) => assembleForgeTree(subject, units, subUnits, lessons));
+  } catch (e) {
+    console.error("[forgeService] fetchForgeSubjects READ failed", { uid, code: e?.code, message: e?.message });
+    throw e;
+  }
 }
 
 export async function readFileContent(file) {
@@ -473,6 +585,9 @@ const subUnitIdMap = new Map();
 
   flat.lessons.forEach((lesson) => {
     const { id: _lessonId, ...lessonData } = lesson;
+    // Log Firestore document shape for matching exercises before save
+    const matchExercise = (lessonData.exercises||[]).find(e=>e.type==="matchPairs");
+    if (matchExercise) console.log("[forgeService] saved Firestore document (lesson)", { lessonId: _lessonId, exerciseId: matchExercise.id, pairs: matchExercise.pairs, hasPairs: !!(matchExercise.pairs && matchExercise.pairs.length) });
     const lessonRef = doc(collection(db, "users", uid, "lessons"));
     batch.set(lessonRef, {
       ...lessonData,
@@ -489,8 +604,17 @@ const subUnitIdMap = new Map();
     updatedAt: serverTimestamp(),
   });
 
-  await batch.commit();
-  return fetchForgeSubjects(uid).then((items) => items.find((item) => item.id === subjectRef.id));
+  console.log("[forgeService] WRITE start batch.commit", { uid, subjectId: subjectRef.id, units: flat.units.length, subUnits: flat.subUnits.length, lessons: flat.lessons.length, title: flat.subject.title });
+  try {
+    await batch.commit();
+    console.log("[forgeService] WRITE batch.commit SUCCESS", { uid, subjectId: subjectRef.id });
+  } catch (e) {
+    console.error("[forgeService] WRITE batch.commit FAILED", { uid, code: e?.code, message: e?.message });
+    throw e;
+  }
+  const after = await fetchForgeSubjects(uid);
+  console.log("[forgeService] WRITE verification read", { uid, totalForge: after.length, foundNew: !!after.find(i=>i.id===subjectRef.id) });
+  return after.find((item) => item.id === subjectRef.id);
 }
 
 export async function regenerateForgeStructure(uid, subjectId, sourceText) {

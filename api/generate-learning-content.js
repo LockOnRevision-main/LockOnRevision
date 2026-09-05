@@ -100,11 +100,13 @@ Return strict JSON only with this exact shape:
               "questions": [
                 {
                   "type": "multipleChoice|fillBlank|matchPairs|ordering|trueFalse|shortAnswer",
-                  "question": "The question text",
-                  "content": "Additional content or context if needed",
+                  "question": "2-4 sentence scenario/context + question – NOT single-line recall",
+                  "content": "Additional background/context that supports reasoning (case study, data, scenario)",
                   "options": ["Option A", "Option B", "Option C", "Option D"],
-                  "correctAnswer": "The correct answer",
-                  "explanation": "Why this answer is correct"
+                  "pairs": [{"left":{"id":"l1","text":"..."},"right":{"id":"r1","text":"..."}}],
+                  "items": [{"id":"item1","text":"step"}],
+                  "correctAnswer": "exact answer or 'l1-r1,l2-r2' for matchPairs or 'id1,id2' for ordering",
+                  "explanation": "2-3 sentences: why correct, why distractors wrong, conceptual link"
                 }
               ]
             }
@@ -115,22 +117,27 @@ Return strict JSON only with this exact shape:
   ]
 }
 
+SCHEMA FOR INTERACTIVE TYPES (STRICT):
+- matchPairs: MUST use "pairs": [{"left":{"id":"l1","text":"..."},"right":{"id":"r1","text":"..."}}] 3-5 pairs, NOT "options".
+- ordering: MUST use "items": [{"id":"item1","text":"..."}] 4-6 items.
+
 REQUIREMENTS:
 1. Hierarchy: Subject -> Unit -> Lesson.
 2. Every Lesson MUST contain:
    - explanation: A deep dive into the concept.
    - examples: At least 2 concrete examples.
-   - difficulty: One of 'easy', 'medium', 'hard'.
-   - questions: 3-5 exercises per lesson.
-3. Exercise Types Support:
-   - multipleChoice: 4 options.
-   - fillBlank: A sentence with a blank.
-   - matchPairs: Pairs of related items.
-   - ordering: A sequence of steps.
-   - trueFalse: A statement to verify.
-   - shortAnswer: A question requiring a brief response.
-4. Content: Grounded strictly in the notes.
-5. Explanations: Provide detailed explanations for every exercise.
+   - difficulty: One of 'easy', 'medium', 'hard' – default medium/hard, require connecting ideas.
+   - questions: 3-5 exercises per lesson, 2-4 sentence stems with context, mix types.
+3. Exercise Types Support – all must be RICH:
+   - multipleChoice: 4 plausible options requiring reasoning.
+   - fillBlank: contextual sentence.
+   - matchPairs: 3-5 left/right pairs (term↔description) using "pairs" schema.
+   - ordering: 4-6 steps using "items" schema.
+   - trueFalse: scenario-based statement.
+   - shortAnswer: reasoning question.
+4. Content: Grounded strictly in the notes AND strictly within detected curriculum (CBSE/NCERT/GCSE/JEE/AP etc.) – extra context only to deepen understanding of syllabus, NOT expand beyond it.
+5. Explanations: 2-3 sentences why correct and why distractors fail, rewarding understanding.
+6. Difficulty: Slightly more challenging – connect 2-3 ideas, cause-effect, compare/justify, best explanation, data interpretation.
 
 NOTES:
 ${sourceText}`;

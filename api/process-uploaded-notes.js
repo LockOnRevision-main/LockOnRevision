@@ -269,19 +269,19 @@ export default requireAuth(async function handler(req, res) {
     }
 
     const lang = preferredLanguage || "en";
-    const prompt = `You are an expert educational AI. Your goal is to transform the uploaded study notes into a premium, interactive, and structured learning experience.
+     const prompt = `You are an expert educational AI. Your goal is to transform the uploaded study notes into a premium, interactive, and structured learning experience.
 
 IMPORTANT: Generate all content ONLY in the user's preferred language: "${lang}". All titles, descriptions, summaries, concepts, exercises, questions, options, correct answers, and explanations must be in this language. Maintain educational terminology appropriate for that language. Never translate from English afterwards.
     
 Analyze the provided files and generate a highly structured JSON response representing a complete subject curriculum.
  
 Follow these strict requirements:
-1. Subject Analysis: Identify the primary subject, curriculum, and target syllabus level.
+1. Subject Analysis: Identify the primary subject, curriculum, and target syllabus level (e.g., CBSE/NCERT/JEE/GCSE/AP). STAY STRICTLY WITHIN THAT CURRICULUM – extra information only if it directly supports understanding of the prescribed syllabus (intuition, real-world analogy, case study). Do NOT introduce topics outside the syllabus.
 2. Structure: Break down the content into logical Units -> Subunits -> Lessons.
-3. Lessons: Every lesson must be focused, active-recall-oriented, and designed for 2-5 minutes of engagement.
+3. Lessons: Every lesson must be focused, active-recall-oriented, and designed for 2-5 minutes of engagement. Difficulty default medium-hard, requiring students to connect ideas.
 4. Lesson Types: Use diverse interaction types (multipleChoice, fillBlank, matchPairs, arrangeOrder, etc.) appropriate to the subject matter.
-5. Interactive Exercises: For each lesson, generate 3-5 rigorous, high-quality exercises that reinforce understanding.
-6. Validation: Every exercise must have a clear "correctAnswer" and a concise, educational "explanation".
+5. Interactive Exercises: For each lesson, generate 3-5 rigorous exercises where each stem is 2-4 sentences with relevant background/context/scenario/data before asking. Reward reasoning over keyword matching via case studies, data interpretation, cause-effect, compare/justify, best-explanation. Encourage realistic scenarios.
+6. Validation: Every exercise must have a clear "correctAnswer" and a rich 2-3 sentence "explanation" (why correct, why others wrong).
 
 Return ONLY valid JSON with this structure:
 {
@@ -306,11 +306,13 @@ Return ONLY valid JSON with this structure:
                 "keyPoints": ["string"],
                 "exercises": [
                   {
-                    "type": "string",
-                    "question": "string",
-                    "options": ["string"],
-                    "correctAnswer": "string",
-                    "explanation": "string"
+                    "type": "multipleChoice|fillBlank|matchPairs|arrangeOrder|trueFalse|shortAnswer",
+                    "question": "2-4 sentence contextual stem (background + scenario) then question",
+                    "options": ["For multipleChoice: 4 plausibly close options; for matchPairs/arrangeOrder leave []"],
+                    "pairs": [{"left":{"id":"l1","text":"term"},"right":{"id":"r1","text":"definition"}}],
+                    "items": [{"id":"item1","text":"step"}],
+                    "correctAnswer": "For multipleChoice/fillBlank: answer text; for matchPairs: 'l1-r1,l2-r2,...'; for arrangeOrder: 'id1,id2,...'",
+                    "explanation": "2-3 sentences: why correct, conceptual link, why distractors fail"
                   }
                 ]
               }
@@ -321,6 +323,7 @@ Return ONLY valid JSON with this structure:
     ]
   }
 }
+SCHEMA NOTES: matchPairs MUST use "pairs": [{"left":{"id":"l1","text":"..."},"right":{"id":"r1","text":"..."}}] with 3-5 pairs. arrangeOrder MUST use "items": [{"id":"item1","text":"..."}] with 4-6 items. Do NOT put matching data in "options".
 `;
 
     const generated = await callGeminiWithFiles(geminiFiles, prompt);

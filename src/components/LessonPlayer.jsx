@@ -338,7 +338,9 @@ function TypeAnswer({ exercise, userAnswer, onAnswer }) {
 
 function MatchPairs({ exercise, userAnswer: _userAnswer, onAnswer }) {
   const { t } = useTranslation();
+  console.log("[LessonPlayer] props received by matching component", { exerciseId: exercise.id, question: exercise.question?.slice(0,60), pairs: exercise.pairs, pairsLen: (exercise.pairs||[]).length, type: exercise.type });
   const pairs = exercise.pairs || [];
+  if (pairs.length===0) console.warn("[LessonPlayer] MATCHING BLANK – pairs empty, will render only instructions", { exercise });
   const [selectedLeft, setSelectedLeft] = useState(null);
   const [matchedPairs, setMatchedPairs] = useState([]);
 
@@ -363,6 +365,17 @@ function MatchPairs({ exercise, userAnswer: _userAnswer, onAnswer }) {
   const leftItems = pairs.filter(p => !matchedPairs.find(m => m.left.id === p.left.id)).map(p => p.left);
   const rightItems = pairs.filter(p => !matchedPairs.find(m => m.right.id === p.right.id)).map(p => p.right);
 
+  if (pairs.length === 0) {
+    return (
+      <div>
+        <h3 className="text-lg font-bold text-text-primary mb-4">{exercise.question}</h3>
+        <div className="p-4 rounded-xl border border-status-error/20 bg-status-error/10">
+          <p className="text-sm font-bold text-status-error">Matching data missing – please regenerate this lesson. If this persists, check that Gemini returned pairs.</p>
+          {exercise.options?.length ? <p className="text-xs text-text-muted mt-2">Fallback options: {exercise.options.join(", ")}</p> : null}
+        </div>
+      </div>
+    );
+  }
   return (
     <div>
       <h3 className="text-lg font-bold text-text-primary mb-4">{exercise.question}</h3>

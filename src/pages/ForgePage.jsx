@@ -24,15 +24,29 @@ export function ForgePage() {
   const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user?.uid) {
+      console.log("[ForgePage] skip subscribe – no uid", { user, auth: !!user });
+      return;
+    }
+    console.log("[ForgePage] subscribe START", { uid: user.uid, isFirebaseConfigured: !!user });
     setLoadError("");
     const onErr = (err) => {
+      console.error("[ForgePage] load failed", { code: err?.code, message: err?.message });
       const msg = err?.message || "Failed to load subjects.";
       const isBlocked = (err?.code === "unavailable" || String(msg).toLowerCase().includes("failed to fetch"));
       setLoadError(isBlocked ? "Could not load subjects. Your network or DNS filter (NextDNS/AdGuard/Pi-hole) may be blocking firestore.googleapis.com. Please allow it and retry." : msg);
     };
-    const unsub1 = subscribeForgeSubjects(user.uid, setSubjects, onErr);
-    const unsub2 = subscribeForgeLessons(user.uid, setLessons, onErr);
+    const unsub1 = subscribeForgeSubjects(user.uid, (items)=>{
+      console.log("[ForgePage] subjects loaded", { count: items.length, ids: items.map(s=>s.id) });
+      if (items.length===0) {
+        console.warn("[ForgePage] EMPTY state – reason: no forge docs for this uid. Check Firestore write path users/"+user.uid+"/subjects, read permission, or blocked endpoint");
+      }
+      setSubjects(items);
+    }, onErr);
+    const unsub2 = subscribeForgeLessons(user.uid, (items)=>{
+      console.log("[ForgePage] lessons loaded", { count: items.length });
+      setLessons(items);
+    }, onErr);
     return () => { unsub1(); unsub2(); };
   }, [user?.uid]);
 

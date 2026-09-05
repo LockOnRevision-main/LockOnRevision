@@ -142,14 +142,38 @@ export function validateForgeStructure(data) {
           if (!exercise.question || typeof exercise.question !== 'string') {
             throw new Error('Exercise question is missing');
           }
+          // Enforce richer context: stems should be 2-4 sentences / scenario-based for reasoning
+          if (exercise.question.trim().split(/\s+/).length < 12) {
+            // allow short but warn – require reasoning depth
+            console.warn(`Exercise question too short, may reward memorization: "${exercise.question.slice(0,60)}"`);
+          }
           if (detectPlaceholder(exercise.question)) {
             throw new Error(`Exercise question "${exercise.question}" appears to be a placeholder`);
           }
           if (exercise.type === 'multipleChoice' && (!Array.isArray(exercise.options) || exercise.options.length < 2)) {
             throw new Error(`Multiple choice exercise "${exercise.question}" has insufficient options`);
           }
+          if ((exercise.type === 'matchPairs' || exercise.type === 'matching' || exercise.type === 'matchVocabulary')) {
+            const pairs = exercise.pairs || exercise.matches || exercise.items;
+            if (!Array.isArray(pairs) || pairs.length < 2) {
+              throw new Error(`Matching exercise "${exercise.question}" missing pairs (need >=2 pairs with left/right)`);
+            }
+            // Validate pairs shape
+            for (const p of pairs) {
+              const hasLeft = !!(p.left || p.term || p.key || p.label || (Array.isArray(p) && p[0]));
+              const hasRight = !!(p.right || p.definition || p.description || p.value || (Array.isArray(p) && p[1]));
+              if (!hasLeft || !hasRight) throw new Error(`Matching exercise "${exercise.question}" has malformed pair ${JSON.stringify(p).slice(0,100)}`);
+            }
+          }
+          if ((exercise.type === 'arrangeOrder' || exercise.type === 'ordering' || exercise.type === 'sequence')) {
+            const items = exercise.items || exercise.sequence || exercise.options;
+            if (!Array.isArray(items) || items.length < 2) throw new Error(`Ordering exercise "${exercise.question}" missing items`);
+          }
           if (!exercise.correctAnswer) {
             throw new Error('Exercise correctAnswer is missing');
+          }
+          if (!exercise.explanation || exercise.explanation.trim().length < 20) {
+            throw new Error(`Exercise "${exercise.question}" missing rich explanation (why answer is correct)`);
           }
         }
       }
