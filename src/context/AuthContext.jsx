@@ -1,10 +1,19 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
+  EmailAuthProvider,
+  GoogleAuthProvider,
   createUserWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
+  linkWithCredential,
+  linkWithPopup,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   sendPasswordResetEmail,
+  signInWithCredential,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut,
+  unlink,
   updatePassword,
   updateProfile,
 } from "firebase/auth";
@@ -13,6 +22,7 @@ import { auth, db, isFirebaseConfigured } from "../config/firebase.js";
 import { readLocalUser, writeLocalUser } from "../services/localStore.js";
 import { signOutLocalUser } from "../services/localStore.js";
 import i18n from "../i18n/index.js";
+import { getUserFriendlyMessage, isNetworkError } from "../utils/networkErrors.js";
 
 const AuthContext = createContext(null);
 
@@ -77,23 +87,18 @@ async function ensureUserDocument(user, name) {
     const data = snapshot.data();
     const patch = {};
 
-    // Core Identity
     if (!data.name) patch.name = name || user.displayName || user.email?.split('@')[0] || PLACEHOLDER_NAME;
     if (!data.email) patch.email = user.email;
     if (!data.username) patch.username = user.email?.split('@')[0] || "learner";
 
-    // Migrate role -> isAdmin
     if (data.role === "admin" && data.isAdmin !== true) {
       patch.isAdmin = true;
     }
 
-    // If the display name is the placeholder AND onboardingCompleted is not set,
-    // treat as incomplete onboarding (only if explicitly undefined, not if false)
     if (data.name === PLACEHOLDER_NAME && data.onboardingCompleted === undefined) {
       patch.onboardingCompleted = false;
     }
 
-    // Gamification Defaults
     if (typeof data.xp !== "number") patch.xp = 0;
     if (typeof data.energy !== "number") patch.energy = 0;
     if (typeof data.streak !== "number") patch.streak = 0;
@@ -102,14 +107,12 @@ async function ensureUserDocument(user, name) {
     const expectedTotal = (data.xp || 0) + (data.energy || 0) * 100;
     if (typeof data.totalScore !== "number" || data.totalScore !== expectedTotal) patch.totalScore = expectedTotal;
 
-    // Data Structures
     if (!Array.isArray(data.completedTests)) patch.completedTests = [];
     if (!Array.isArray(data.completedUnits)) patch.completedUnits = [];
     if (!Array.isArray(data.favoriteSubjects)) patch.favoriteSubjects = [];
     if (typeof data.activity !== "object" || data.activity === null) patch.activity = {};
     if (!("lastTestAttempt" in data)) patch.lastTestAttempt = null;
 
-    // Profile Settings
     if (data.bio === undefined) patch.bio = "";
     if (data.goals === undefined) patch.goals = "";
     if (data.grade === undefined) patch.grade = "";
@@ -120,7 +123,6 @@ async function ensureUserDocument(user, name) {
     if (data.avatarIcon === undefined) patch.avatarIcon = "";
     if (data.hasCustomAvatar === undefined) patch.hasCustomAvatar = false;
 
-    // Onboarding
     if (data.onboardingCompleted === undefined) patch.onboardingCompleted = false;
     if (data.referralSource === undefined) patch.referralSource = "";
 
@@ -131,6 +133,7 @@ async function ensureUserDocument(user, name) {
 
     return true;
   } catch (error) {
+    const friendly = getUserFriendlyMessage(error, "loading your profile");
     console.error(
       "[AuthContext] Firestore operation failed while ensuring the user document.",
       {
@@ -138,23 +141,31 @@ async function ensureUserDocument(user, name) {
         path: userPath,
         code: error?.code,
         message: error?.message ?? String(error),
+        friendly,
+        isNetwork: isNetworkError(error),
       },
     );
     return false;
   }
 }
 
+function buildGoogleProvider() {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  return provider;
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [profileError, setProfileError] = useState("");
+  const [authError, setAuthError] = useState("");
 
   useEffect(() => {
     if (!isFirebaseConfigured || !auth) {
       const localUser = readLocalUser();
-      // If there's an existing local user from dev mode, migrate and use it
       if (localUser && localUser.uid) {
-        // Build profile ensuring all required fields exist
         const defaultProfile = {
           uid: localUser.uid,
           name: localUser.name || "Local learner",
@@ -191,7 +202,6 @@ export function AuthProvider({ children }) {
         return undefined;
       }
 
-      // No existing local user – create a fresh demo profile
       const demoProfile = {
         uid: "local-demo-user",
         name: "Local learner",
@@ -232,20 +242,29 @@ export function AuthProvider({ children }) {
     return onAuthStateChanged(
       auth,
       async (firebaseUser) => {
+        setAuthError("");
         setUser(firebaseUser);
         if (firebaseUser) {
-          await ensureUserDocument(firebaseUser);
+          const ok = await ensureUserDocument(firebaseUser);
+          if (!ok) {
+            setProfileError(getUserFriendlyMessage({ code: "unavailable", message: "Could not load your profile." }, "loading your profile"));
+          } else {
+            setProfileError("");
+          }
         } else {
           setProfile(null);
+          setProfileError("");
         }
         setLoading(false);
       },
-      (authError) => {
+      (authErr) => {
+        const friendly = getUserFriendlyMessage(authErr, "checking auth");
         console.error(
-          "[AuthContext] Firebase Auth observer reported an error. If this repeats, check the Firebase API key, authorized domains, and that the sign-in provider is enabled.",
-          { code: authError?.code, message: authError?.message ?? String(authError) },
+          "[AuthContext] Firebase Auth observer reported an error.",
+          { code: authErr?.code, message: authErr?.message ?? String(authErr), friendly },
         );
-        if (authError?.code && FATAL_AUTH_ERRORS.has(authError.code)) {
+        setAuthError(friendly);
+        if (authErr?.code && FATAL_AUTH_ERRORS.has(authErr.code)) {
           signOutLocalUser();
           setUser(null);
           setProfile(null);
@@ -256,7 +275,6 @@ export function AuthProvider({ children }) {
     );
   }, []);
 
-  // Apply theme whenever profile changes
   useEffect(() => {
     if (!profile?.theme) return;
     const root = document.documentElement;
@@ -265,13 +283,11 @@ export function AuthProvider({ children }) {
     } else if (profile.theme === "light") {
       root.classList.remove("dark");
     } else {
-      // system preference
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
       root.classList.toggle("dark", prefersDark);
     }
   }, [profile?.theme]);
 
-  // Apply preferredLanguage whenever profile changes (login, snapshot update)
   useEffect(() => {
     if (profile?.preferredLanguage) {
       i18n.changeLanguage(profile.preferredLanguage);
@@ -280,13 +296,17 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (!user || !db || loading) return undefined;
+    // Clear previous error on uid change
+    setProfileError("");
     const userPath = `users/${user.uid}`;
     return onSnapshot(
       doc(db, "users", user.uid),
       (snapshot) => {
+        setProfileError("");
         setProfile(snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null);
       },
       (snapshotError) => {
+        const friendly = getUserFriendlyMessage(snapshotError, "syncing your profile");
         console.error(
           "[AuthContext] Firestore user profile subscription failed.",
           {
@@ -294,8 +314,11 @@ export function AuthProvider({ children }) {
             path: userPath,
             code: snapshotError?.code,
             message: snapshotError?.message ?? String(snapshotError),
+            friendly,
+            isNetwork: isNetworkError(snapshotError),
           },
         );
+        setProfileError(friendly);
       },
     );
   }, [user, loading]);
@@ -306,6 +329,11 @@ export function AuthProvider({ children }) {
       profile,
       loading,
       isFirebaseConfigured,
+      profileError,
+      authError,
+      linkedProviders: user?.providerData?.map((p) => p.providerId) || [],
+      isGoogleLinked: !!user?.providerData?.some((p) => p.providerId === GoogleAuthProvider.PROVIDER_ID),
+      hasPasswordProvider: !!user?.providerData?.some((p) => p.providerId === "password"),
       async login(email, password) {
         if (!auth || !isFirebaseConfigured) {
           const demoProfile = {
@@ -386,6 +414,103 @@ export function AuthProvider({ children }) {
         await updateProfile(result.user, { displayName: name });
         await ensureUserDocument(result.user, name);
       },
+      async signInWithGoogle() {
+        if (!auth || !isFirebaseConfigured) {
+          throw new Error("Google Sign-In is not available in local demo mode. Configure Firebase.");
+        }
+        const provider = buildGoogleProvider();
+        try {
+          const result = await signInWithPopup(auth, provider);
+          await ensureUserDocument(result.user);
+          return result;
+        } catch (error) {
+          // Firebase best-practice: account-exists-with-different-credential
+          if (error?.code === "auth/account-exists-with-different-credential") {
+            const pendingCred = GoogleAuthProvider.credentialFromError(error);
+            const email = error?.customData?.email || error?.email || "";
+            // Surface to caller so it can prompt for password and link
+            const linkError = new Error(
+              "An account already exists with this email. Please sign in with your password to link Google."
+            );
+            linkError.code = "auth/account-exists-with-different-credential";
+            linkError.email = email;
+            linkError.credential = pendingCred;
+            // Also help caller know methods
+            try {
+              if (email) {
+                const methods = await fetchSignInMethodsForEmail(auth, email);
+                linkError.methods = methods;
+              }
+            } catch {}
+            throw linkError;
+          }
+          // Popup blocked / closed etc – surface friendly message
+          if (error?.code === "auth/popup-blocked" || error?.code === "auth/popup-closed-by-user" || error?.code === "auth/cancelled-popup-request") {
+            throw error;
+          }
+          // Network – give friendly hint
+          if (isNetworkError(error)) {
+            const friendly = getUserFriendlyMessage(error, "Google Sign-In");
+            const e = new Error(friendly);
+            e.code = error.code;
+            e.cause = error;
+            throw e;
+          }
+          throw error;
+        }
+      },
+      async completeGoogleLinkWithPassword(email, password, pendingCredential) {
+        // Firebase best-practice: sign into existing account first, then linkWithCredential()
+        if (!auth || !isFirebaseConfigured) throw new Error("Firebase not configured.");
+        // pendingCredential may be OAuthCredential from GoogleAuthProvider.credentialFromError
+        let credential = pendingCredential;
+        if (!credential) throw new Error("Missing Google credential. Please retry Google sign-in.");
+        // Sign in with password (existing account) – preserves UID / Firestore doc
+        const userCred = await signInWithEmailAndPassword(auth, email, password);
+        // Link Google provider – same UID, no second Firestore doc
+        await linkWithCredential(userCred.user, credential);
+        await ensureUserDocument(userCred.user);
+        return userCred;
+      },
+      async linkGoogleAccount() {
+        if (!auth?.currentUser) throw new Error("Not authenticated.");
+        const provider = buildGoogleProvider();
+        try {
+          // Firebase best-practice for linking while signed in: linkWithPopup preserves UID + all Firestore data
+          const result = await linkWithPopup(auth.currentUser, provider);
+          await ensureUserDocument(result.user);
+          return result;
+        } catch (error) {
+          if (error?.code === "auth/credential-already-in-use" || error?.code === "auth/provider-already-linked") {
+            throw new Error("This Google account is already linked to another user.");
+          }
+          if (isNetworkError(error)) {
+            throw new Error(getUserFriendlyMessage(error, "linking Google"));
+          }
+          throw error;
+        }
+      },
+      async linkGoogleWithCredential(googleCredential) {
+        if (!auth?.currentUser) throw new Error("Not authenticated.");
+        await linkWithCredential(auth.currentUser, googleCredential);
+        await ensureUserDocument(auth.currentUser);
+      },
+      async unlinkGoogleAccount() {
+        if (!auth?.currentUser) throw new Error("Not authenticated.");
+        const providers = auth.currentUser.providerData.map((p) => p.providerId);
+        if (!providers.includes(GoogleAuthProvider.PROVIDER_ID)) {
+          throw new Error("Google is not linked.");
+        }
+        if (providers.length < 2) {
+          throw new Error("Cannot unlink Google: it is your only sign-in method. Add a password first.");
+        }
+        await unlink(auth.currentUser, GoogleAuthProvider.PROVIDER_ID);
+      },
+      async reauthenticateWithPassword(password) {
+        if (!auth?.currentUser?.email) throw new Error("Not authenticated.");
+        const cred = EmailAuthProvider.credential(auth.currentUser.email, password);
+        await reauthenticateWithCredential(auth.currentUser, cred);
+      },
       async resetPassword(email) {
         if (!auth || !isFirebaseConfigured) {
           return;
@@ -403,7 +528,7 @@ export function AuthProvider({ children }) {
         return auth && isFirebaseConfigured ? signOut(auth).catch(() => {}) : undefined;
       },
     }),
-    [loading, profile, user],
+    [loading, profile, user, profileError, authError],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

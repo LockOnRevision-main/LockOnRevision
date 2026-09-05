@@ -204,7 +204,7 @@ function localForgeSubjects(uid) {
   );
 }
 
-export function subscribeForgeSubjects(uid, callback) {
+export function subscribeForgeSubjects(uid, callback, onError) {
   if (!isFirebaseConfigured) {
     return subscribeLocalState(() => callback(localForgeSubjects(uid)));
   }
@@ -213,40 +213,44 @@ export function subscribeForgeSubjects(uid, callback) {
   const unsub = onSnapshot(
     query(collection(db, "users", uid, "subjects"), orderBy("updatedAt", "desc")),
     () => {
-      if (!cancelled) fetchForgeSubjects(uid).then(callback).catch(() => {});
+      if (!cancelled) fetchForgeSubjects(uid).then(callback).catch((err) => onError?.(err));
+    },
+    (err) => {
+      console.error("[forgeService] subscribeForgeSubjects failed", { code: err?.code, message: err?.message });
+      onError?.(err);
     },
   );
   return () => { cancelled = true; unsub(); };
 }
 
-export function subscribeForgeUnits(uid, callback) {
+export function subscribeForgeUnits(uid, callback, onError) {
   if (!isFirebaseConfigured) {
     return subscribeLocalState(() => callback(getLocalUser(uid)?.units || []));
   }
 
   return onSnapshot(query(collection(db, "users", uid, "units"), orderBy("updatedAt", "desc")), (snapshot) => {
     callback(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
-  });
+  }, (err) => { console.error("[forgeService] subscribeForgeUnits failed", err?.code); onError?.(err); });
 }
 
-export function subscribeForgeSubUnits(uid, callback) {
+export function subscribeForgeSubUnits(uid, callback, onError) {
   if (!isFirebaseConfigured) {
     return subscribeLocalState(() => callback(getLocalUser(uid)?.subUnits || []));
   }
 
   return onSnapshot(query(collection(db, "users", uid, "subUnits"), orderBy("updatedAt", "desc")), (snapshot) => {
     callback(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
-  });
+  }, (err) => { console.error("[forgeService] subscribeForgeSubUnits failed", err?.code); onError?.(err); });
 }
 
-export function subscribeForgeLessons(uid, callback) {
+export function subscribeForgeLessons(uid, callback, onError) {
   if (!isFirebaseConfigured) {
     return subscribeLocalState(() => callback(getLocalUser(uid)?.lessons || []));
   }
 
   return onSnapshot(query(collection(db, "users", uid, "lessons"), orderBy("updatedAt", "desc")), (snapshot) => {
     callback(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
-  });
+  }, (err) => { console.error("[forgeService] subscribeForgeLessons failed", err?.code); onError?.(err); });
 }
 
 export async function fetchForgeSubjects(uid) {

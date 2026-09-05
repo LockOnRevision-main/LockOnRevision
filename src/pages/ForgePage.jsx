@@ -21,11 +21,18 @@ export function ForgePage() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
   const [progress, setProgress] = useState(0);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     if (!user?.uid) return;
-    const unsub1 = subscribeForgeSubjects(user.uid, setSubjects);
-    const unsub2 = subscribeForgeLessons(user.uid, setLessons);
+    setLoadError("");
+    const onErr = (err) => {
+      const msg = err?.message || "Failed to load subjects.";
+      const isBlocked = (err?.code === "unavailable" || String(msg).toLowerCase().includes("failed to fetch"));
+      setLoadError(isBlocked ? "Could not load subjects. Your network or DNS filter (NextDNS/AdGuard/Pi-hole) may be blocking firestore.googleapis.com. Please allow it and retry." : msg);
+    };
+    const unsub1 = subscribeForgeSubjects(user.uid, setSubjects, onErr);
+    const unsub2 = subscribeForgeLessons(user.uid, setLessons, onErr);
     return () => { unsub1(); unsub2(); };
   }, [user?.uid]);
 
@@ -122,6 +129,15 @@ export function ForgePage() {
       )}
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 space-y-6">
+        {loadError ? (
+          <div className="rounded-2xl border border-warning/30 bg-warning/10 p-4 flex items-center justify-between gap-3">
+            <p className="text-sm font-bold text-warning">{loadError}</p>
+            <button onClick={() => window.location.reload()} className="shrink-0 rounded-xl bg-warning px-4 py-2 text-sm font-black text-white">Retry</button>
+          </div>
+        ) : null}
+        {!loadError && subjects.length === 0 && lessons.length === 0 ? (
+          <p className="text-sm text-text-muted text-center">No subjects yet — or Firestore is unreachable due to network filtering (check browser console for [forgeService] errors).</p>
+        ) : null}
         {/* Generate New Subject */}
         <section className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
           <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">{t("forge.new_label")}</p>

@@ -143,13 +143,13 @@ async function buildFirebaseGeminiCourse(uid, sourceText, sourceFileId = null) {
   return writeFirebaseCourse(uid, generated, sourceFileId);
 }
 
-export function subscribeUserCollection(uid, name, callback, constraints = []) {
+export function subscribeUserCollection(uid, name, callback, constraints = [], onError) {
   if (!isFirebaseConfigured) {
     return emitLocalCollection(uid, name, callback);
   }
   return onSnapshot(query(collection(db, "users", uid, name), ...constraints), (snapshot) => {
     callback(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
-  });
+  }, (err) => { console.error(`[learningService] subscribeUserCollection ${name} failed`, err?.code); onError?.(err); });
 }
 
 export function subscribeSubjects(uid, callback) {

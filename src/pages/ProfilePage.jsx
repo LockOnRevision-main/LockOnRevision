@@ -46,7 +46,7 @@ import { useTranslation } from 'react-i18next';
 
 export function ProfilePage() {
   const { t } = useTranslation();
-  const { profile, user, changePassword } = useAuth();
+  const { profile, user, changePassword, isGoogleLinked, hasPasswordProvider, linkGoogleAccount, unlinkGoogleAccount, logout, profileError } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [saveStatus, setSaveStatus] = useState("");
   const saveTimeoutRef = useRef(null);
@@ -55,6 +55,9 @@ export function ProfilePage() {
   const [pwError, setPwError] = useState("");
   const [pwSuccess, setPwSuccess] = useState("");
   const [pwBusy, setPwBusy] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
+  const [googleMsg, setGoogleMsg] = useState("");
+  const [googleError, setGoogleError] = useState("");
 
   // Live data subscriptions
   const [subjects, setSubjects] = useState([]);
@@ -75,14 +78,23 @@ export function ProfilePage() {
     return () => { cancelled = true; };
   }, [user?.uid, profile?.xp, profile?.energy, profile?.totalScore]);
 
-  // Real-time subscriptions
+  // Real-time subscriptions – with error handling for restrictive networks
   useEffect(() => {
     if (!user?.uid) return;
+    const onSubjectsError = (err) => {
+      console.error("[ProfilePage] subjects sync failed", err?.code);
+      setSubsReady((s) => ({ ...s, subjects: true }));
+    };
+    const onForgeError = (err) => {
+      console.error("[ProfilePage] forge sync failed", err?.code);
+      setSubsReady((s) => ({ ...s, forge: true }));
+    };
     const unsubs = [
       subscribeSubjects(user.uid, (data) => { setSubjects(data); setSubsReady((s) => ({ ...s, subjects: true })); }),
-      subscribeForgeSubjects(user.uid, (data) => { setForgeSubjects(data); setSubsReady((s) => ({ ...s, forge: true })); }),
+      subscribeForgeSubjects(user.uid, (data) => { setForgeSubjects(data); setSubsReady((s) => ({ ...s, forge: true })); }, onForgeError),
       subscribeTimetables(user.uid, (data) => { setTimetables(data); setSubsReady((s) => ({ ...s, timetables: true })); }),
     ];
+    // subscribeSubjects error callback not yet supported – use wrapper try
     return () => unsubs.forEach((fn) => fn?.());
   }, [user?.uid]);
 
@@ -167,8 +179,30 @@ export function ProfilePage() {
     ? profile.createdAt.toDate().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })
     : null;
 
+  async function handleLinkGoogle() {
+    setGoogleError(""); setGoogleMsg(""); setGoogleBusy(true);
+    try {
+      await linkGoogleAccount();
+      setGoogleMsg("Google account linked. You can now sign in with Google.");
+    } catch (err) { setGoogleError(err.message); }
+    finally { setGoogleBusy(false); }
+  }
+  async function handleUnlinkGoogle() {
+    setGoogleError(""); setGoogleMsg(""); setGoogleBusy(true);
+    try {
+      await unlinkGoogleAccount();
+      setGoogleMsg("Google account unlinked.");
+    } catch (err) { setGoogleError(err.message); }
+    finally { setGoogleBusy(false); }
+  }
+
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-8">
+      {profileError ? (
+        <div className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm font-bold text-warning">
+          Sync issue: {profileError} — check if your DNS filter (NextDNS, AdGuard, Pi-hole) is blocking firestore.googleapis.com, then refresh.
+        </div>
+      ) : null}
       {/* Save status toast */}
       {saveStatus && (
         <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl border shadow-lg text-sm font-bold transition-all animate-fadeIn ${
@@ -604,6 +638,53 @@ export function ProfilePage() {
                 <KeyRound size={16} />
                 {t("profile.change_password")}
               </button>
+
+              {/* Google account management – Firebase best practice */}
+              <div className="rounded-xl border border-border bg-background p-3 space-y-3">
+                <p className="text-xs font-bold uppercase tracking-widest text-text-muted">Connected accounts</p>
+                <div className="flex flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border bg-surface border-border text-text-secondary">
+                    <Mail size={12} /> Email/password {hasPasswordProvider ? "✓" : "–"}
+                  </span>
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${isGoogleLinked ? "bg-success/10 border-success/30 text-success" : "bg-surface border-border text-text-muted"}`}>
+                    Google {isGoogleLinked ? "linked ✓" : "not linked"}
+                  </span>
+                </div>
+                {user?.providerData?.length ? (
+                  <p className="text-xs text-text-muted">UID: {user.uid} — preserved across linking; Firestore data never duplicated.</p>
+                ) : null}
+                {googleMsg ? <p className="rounded-lg bg-success/10 p-2 text-xs font-bold text-success">{googleMsg}</p> : null}
+                {googleError ? <p className="rounded-lg bg-status-error/20 p-2 text-xs font-bold text-status-error">{googleError}</p> : null}
+                <div className="flex gap-2">
+                  {!isGoogleLinked ? (
+                    <button
+                      type="button"
+                      onClick={handleLinkGoogle}
+                      disabled={googleBusy}
+                      className="flex-1 rounded-xl bg-primary px-3 py-2 text-sm font-black text-white disabled:opacity-50"
+                    >
+                      {googleBusy ? "Linking..." : "Link Google account"}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleUnlinkGoogle}
+                      disabled={googleBusy}
+                      className="flex-1 rounded-xl border border-border bg-surface px-3 py-2 text-sm font-bold text-text-secondary disabled:opacity-50"
+                    >
+                      {googleBusy ? "..." : "Unlink Google"}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => logout()}
+                    className="rounded-xl border border-border bg-surface px-3 py-2 text-sm font-bold text-text-secondary hover:border-status-error/30 hover:text-status-error"
+                  >
+                    Sign out
+                  </button>
+                </div>
+                <p className="text-xs text-text-muted">Linking uses Firebase linkWithPopup → same UID, no second Firestore user document.</p>
+              </div>
             </div>
             <button
               type="button"
