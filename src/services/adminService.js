@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -9,7 +10,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
-import { db, functions, isFirebaseConfigured } from "../config/firebase.js";
+import { auth, db, functions, isFirebaseConfigured } from "../config/firebase.js";
 import { deleteForgeSubject, fetchForgeSubjects } from "./forgeService.js";
 import { calculateTotalScore } from "./userService.js";
 import { emitScoreChanged } from "./forgeEvents.js";
@@ -25,10 +26,61 @@ function stripAdminFields(obj) {
 }
 
 async function verifyAdminServer() {
-  if (!functions) throw new Error("Firebase is not configured.");
-  const check = httpsCallable(functions, "verifyAdminAccess");
-  const result = await check();
-  return result.data.admin === true;
+  // Prefer server verification via callable (handles CORS automatically).
+  // If functions are not deployed (Spark plan) the callable will 404/CORS fail.
+  // Fall back to client-side Firestore check so admin page still works.
+  if (functions) {
+    try {
+      const check = httpsCallable(functions, "verifyAdminAccess");
+      // Log request for debugging: URL is auto-resolved by SDK to
+      // https://us-central1-{projectId}.cloudfunctions.net/verifyAdminAccess
+      console.log("[admin] verifyAdminAccess callable invoked", { region: "us-central1" });
+      const result = await check();
+      console.log("[admin] verifyAdminAccess callable succeeded", result.data);
+      if (result?.data?.admin === true) return true;
+      // If server explicitly says not admin, don't fall back - respect server.
+      return false;
+    } catch (err) {
+      const code = err?.code || err?.message || "unknown";
+      console.warn("[admin] verifyAdminAccess callable failed, falling back to Firestore", { code, message: err?.message });
+      // Fall through to Firestore fallback for deploy/ CORS errors
+      const isDeployOrCorsError =
+        code === "functions/not-found" ||
+        code === "functions/unavailable" ||
+        code.includes("CORS") ||
+        err?.message?.includes("CORS") ||
+        err?.message?.includes("Failed to fetch") ||
+        err?.message?.includes("not-found");
+      if (!isDeployOrCorsError && code !== "unauthenticated" && code !== "permission-denied") {
+        // For unexpected errors, still try fallback but also surface error
+        console.warn("[admin] unexpected callable error, attempting fallback", err);
+      }
+      // permission-denied / unauthenticated from callable are definitive - do not fallback to bypass
+      if (code === "permission-denied" || code === "functions/permission-denied") {
+        throw new Error("Admin access required.");
+      }
+      if (code === "unauthenticated" || code === "functions/unauthenticated") {
+        throw new Error("You must be authenticated to call this function.");
+      }
+    }
+  }
+
+  // --- Fallback: direct Firestore read (works on Spark plan without Blaze/functions) ---
+  // Security is still enforced by Firestore rules (isAdmin() check in rules).
+  // This fallback only affects UI gating; actual writes are still rejected by rules if not admin.
+  if (!db) throw new Error("Firebase is not configured.");
+  const uid = auth?.currentUser?.uid;
+  if (!uid) throw new Error("You must be authenticated to call this function.");
+  console.log("[admin] fallback Firestore admin check", { uid });
+  const snap = await getDoc(doc(db, "users", uid));
+  if (!snap.exists()) {
+    console.warn("[admin] fallback - user doc not found", { uid });
+    throw new Error("User profile not found.");
+  }
+  const data = snap.data();
+  const isAdmin = data.isAdmin === true || data.role === "admin";
+  console.log("[admin] fallback verification result", { uid, isAdmin, isAdminField: data.isAdmin, role: data.role });
+  return isAdmin;
 }
 
 async function requireAdmin() {

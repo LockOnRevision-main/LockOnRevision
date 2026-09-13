@@ -39,25 +39,79 @@ export function AdminPage() {
 
   const isAdmin = canAccessAdmin(profile);
   const [serverVerified, setServerVerified] = useState(false);
+  const [verifyError, setVerifyError] = useState("");
+  const [usingFallback, setUsingFallback] = useState(false);
 
   useEffect(() => {
-    if (!isAdmin || !isFirebaseConfigured || !functions) return;
-    const check = httpsCallable(functions, "verifyAdminAccess");
-    check().then(() => {
-      setServerVerified(true);
-      getAdminOverview().then(setOverview).catch(() => setOverview({ available: false }));
-      searchUsers("").then(setUsers).catch(() => setUsers([]));
-      fetchAllForgeSubjects().then(setForgeContent).catch(() => setForgeContent([]));
-    }).catch(() => {
-      setServerVerified(false);
-    });
-  }, [isAdmin, isFirebaseConfigured]);
+    if (!isAdmin || !isFirebaseConfigured) return;
+    let cancelled = false;
+    async function verify() {
+      setVerifyError("");
+      // Try callable first; on failure (CORS / not-found on Spark) fall back to client profile
+      if (functions) {
+        try {
+          const check = httpsCallable(functions, "verifyAdminAccess");
+          console.log("[AdminPage] verifyAdminAccess request", { hasFunctions: !!functions, isAdminClient: isAdmin });
+          await check();
+          if (cancelled) return;
+          console.log("[AdminPage] server verification succeeded");
+          setServerVerified(true);
+          setUsingFallback(false);
+          getAdminOverview().then(setOverview).catch(() => setOverview({ available: false }));
+          searchUsers("").then(setUsers).catch(() => setUsers([]));
+          fetchAllForgeSubjects().then(setForgeContent).catch(() => setForgeContent([]));
+          return;
+        } catch (err) {
+          const code = err?.code || "";
+          console.warn("[AdminPage] server verification failed, checking fallback", { code, message: err?.message });
+          // For definitive server denials, don't fallback
+          if (code === "permission-denied" || code === "functions/permission-denied") {
+            if (!cancelled) {
+              setVerifyError(err.message || "Admin access required.");
+              setServerVerified(false);
+            }
+            return;
+          }
+          // Otherwise (CORS, not-found, unavailable, unauthenticated without function) fall back to client isAdmin
+          // The Spark plan has no functions deployed, so 404/CORS is expected - treat as fallback success if client says admin
+        }
+      }
+      // Fallback: trust client profile (already Firestore-backed) when server unavailable
+      // Firestore rules still enforce server-side on every read/write
+      if (!cancelled) {
+        if (isAdmin) {
+          console.log("[AdminPage] using fallback client verification (functions unavailable)");
+          setUsingFallback(true);
+          setServerVerified(true);
+          getAdminOverview().then(setOverview).catch(() => setOverview({ available: false }));
+          searchUsers("").then(setUsers).catch(() => setUsers([]));
+          fetchAllForgeSubjects().then(setForgeContent).catch(() => setForgeContent([]));
+        } else {
+          setVerifyError("Admin access required.");
+          setServerVerified(false);
+        }
+      }
+    }
+    verify();
+    return () => { cancelled = true; };
+  }, [isAdmin, isFirebaseConfigured, functions]);
 
   if (!isAdmin) {
     return <Navigate to="/app" replace />;
   }
 
   if (!serverVerified) {
+    if (verifyError) {
+      return (
+        <main className="grid min-h-[50vh] place-items-center bg-background p-6 text-text-primary">
+          <div className="max-w-md rounded-xl border border-error/20 bg-error/10 p-6 text-center">
+            <p className="font-black text-error">Admin verification failed</p>
+            <p className="mt-2 text-sm text-text-secondary">{verifyError}</p>
+            {usingFallback ? <p className="mt-2 text-xs text-text-secondary">Retrying via fallback...</p> : null}
+          </div>
+        </main>
+      );
+    }
     return (
       <main className="grid min-h-screen place-items-center bg-background text-text-primary">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
@@ -172,6 +226,11 @@ export function AdminPage() {
         <p className="rounded-lg border border-warning/20 bg-warning/10 p-3 text-sm font-bold text-warning">{t("admin.firebase_required")}</p>
       ) : null}
 
+      {usingFallback ? (
+        <p className="rounded-lg border border-warning/20 bg-warning/10 p-3 text-sm font-bold text-warning">
+          Running in fallback mode (Cloud Function not deployed — Spark plan). Admin is verified via Firestore. Upgrade to Blaze to enable server verification.
+        </p>
+      ) : null}
       {status ? <p className="rounded-lg border border-info/20 bg-info/10 p-3 text-sm font-bold text-info">{status}</p> : null}
 
       <section className="grid gap-4 sm:grid-cols-3">
