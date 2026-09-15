@@ -89,7 +89,7 @@ export async function handler(req, res) {
     if (process.env.NODE_ENV !== 'production') {
       log.warn('Gemini not configured, using local fallback response', { reason: initError });
       return res.status(200).json({
-        reply: 'I’m running in local fallback mode right now because the Gemini API key is not configured. You can still continue testing the chat experience, and I’ll use a basic educational reply until the API key is added.',
+        reply: 'The AI assistant is temporarily unavailable. You can still continue exploring, and we’ll get back to full support shortly.',
         provider: 'Google Gemini',
         model: modelName,
         configured: false,

@@ -32,7 +32,7 @@ export function ForgeSubjectPage() {
 
   useEffect(() => {
     if (!user?.uid) return;
-    const onErr = (err) => setLoadError(err?.message?.includes("Failed to fetch") ? "Network blocked — check DNS/ad-blocker for firestore.googleapis.com" : (err?.message || "Failed to sync subject."));
+    const onErr = (err) => setLoadError(err?.message?.includes("Failed to fetch") ? "We couldn't load your learning data. Please check your connection and try again." : (err?.message || "We couldn't load your learning data. Please try again."));
     const unsub1 = subscribeForgeSubjects(user.uid, setSubjects, onErr);
     const unsub2 = subscribeForgeUnits(user.uid, setUnits, onErr);
     const unsub3 = subscribeForgeSubUnits(user.uid, setSubUnits, onErr);
@@ -104,7 +104,7 @@ export function ForgeSubjectPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6">
         {loadError ? (
           <div className="mb-4 rounded-2xl border border-warning/30 bg-warning/10 p-3 text-sm font-bold text-warning">
-            {loadError} — if you use NextDNS/AdGuard/Pi-hole, allow firestore.googleapis.com and refresh.
+            {loadError}
           </div>
         ) : null}
         <div className="flex items-center justify-between mb-6">

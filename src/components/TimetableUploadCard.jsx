@@ -109,17 +109,14 @@ export function TimetableUploadCard({ timetableId }) {
         throw new Error(`Extraction failed: ${e.message}`);
       }
       loader.setStage(4);
-      setStatus("Saving to Firestore…");
+      setStatus("Saving your timetable…");
       loader.setProgress(88);
-      // Verify Firestore write: dashboard reads from Firestore via subscription, so check that timetable exists
       try {
         if (!result?.timetable?.weeks && !result?.timetable?.preferences) {
-          console.warn("[TimetableUploadCard] Stage Firestore write: no timetable in result, but docs marked");
+          console.warn("[TimetableUploadCard] save: no timetable in result, but docs marked");
         }
-        console.log("[TimetableUploadCard] Stage Firestore write verified – dashboard will update via subscription");
       } catch (e) {
-        console.error("[TimetableUploadCard] Stage Firestore write failed", e);
-        throw new Error(`Firestore write failed: ${e.message}`);
+        throw new Error(`We couldn't save your timetable. Please try again.`);
       }
       await new Promise(r => setTimeout(r, 350));
       loader.setStage(5);
@@ -188,9 +185,8 @@ export function TimetableUploadCard({ timetableId }) {
         throw new Error(`Extraction failed: ${e.message}`);
       }
       loader.setStage(4);
-      setStatus("Saving to Firestore…");
+      setStatus("Saving your timetable…");
       loader.setProgress(88);
-      console.log("[TimetableUploadCard] Reprocess Stage Firestore write succeeded – dashboard subscription will update");
       await new Promise(r => setTimeout(r, 300));
       loader.setStage(5);
       setStatus(t("timetable.upload_reprocessed") || "Reprocessed successfully – dashboard updated");

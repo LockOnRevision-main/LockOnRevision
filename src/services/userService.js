@@ -35,7 +35,7 @@ export const TESTS = [
 ];
 
 export async function completeMockTest(uid, testId, score) {
-  if (!db) throw new Error("Firebase is not configured.");
+  if (!db) throw new Error("We couldn't save your progress. Please try again.");
   const test = TESTS.find(t => t.id === testId);
   if (!test) throw new Error("Test not found.");
 
@@ -57,7 +57,7 @@ export async function completeMockTest(uid, testId, score) {
 }
 
 export async function completeUnit(uid, unitId, profile = {}) {
-  if (!db) throw new Error("Firebase is not configured.");
+  if (!db) throw new Error("We couldn't save your progress. Please try again.");
   
   const userRef = doc(db, "users", uid);
   const userSnap = await getDoc(userRef);
@@ -98,7 +98,7 @@ export async function updateUserProfile(uid, updates) {
     }));
     return;
   }
-  if (!db) throw new Error("Firebase is not configured.");
+  if (!db) throw new Error("We couldn't save your changes. Please try again.");
   const userRef = doc(db, "users", uid);
   const safeUpdates = Object.fromEntries(
     Object.entries(updates).filter(([key]) => PROFILE_ALLOWED_FIELDS.includes(key)),
@@ -110,7 +110,7 @@ export async function updateUserProfile(uid, updates) {
 }
 
 export async function trackStudyTime(uid, minutes) {
-  if (!db) throw new Error("Firebase is not configured.");
+  if (!db) throw new Error("We couldn't save your progress. Please try again.");
   const userRef = doc(db, "users", uid);
   const today = new Date().toISOString().split('T')[0];
   
@@ -122,7 +122,7 @@ export async function trackStudyTime(uid, minutes) {
 }
 
 export async function updateGoal(uid, goalId, goalData) {
-  if (!db) throw new Error("Firebase is not configured.");
+  if (!db) throw new Error("We couldn't save your changes. Please try again.");
   const userRef = doc(db, "users", uid);
   
   return updateDoc(userRef, {
@@ -132,7 +132,7 @@ export async function updateGoal(uid, goalId, goalData) {
 }
 
 export async function toggleFavoriteSubject(uid, subjectName, currentlyFavorites) {
-  if (!db) throw new Error("Firebase is not configured.");
+  if (!db) throw new Error("We couldn't save your changes. Please try again.");
   const userRef = doc(db, "users", uid);
   const isFavorited = currentlyFavorites?.includes(subjectName);
   return updateDoc(userRef, {

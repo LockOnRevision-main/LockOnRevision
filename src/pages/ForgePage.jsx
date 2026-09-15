@@ -39,7 +39,7 @@ export function ForgePage() {
       console.error("[ForgePage] load failed", { code: err?.code, message: err?.message });
       const msg = err?.message || "Failed to load subjects.";
       const isBlocked = (err?.code === "unavailable" || String(msg).toLowerCase().includes("failed to fetch"));
-      setLoadError(isBlocked ? "Could not load subjects. Your network or DNS filter (NextDNS/AdGuard/Pi-hole) may be blocking firestore.googleapis.com. Please allow it and retry." : msg);
+      setLoadError(isBlocked ? "We couldn't load your subjects. Please check your connection and try again." : "We couldn't load your subjects. Please try again.");
     };
     const unsub1 = subscribeForgeSubjects(user.uid, (items)=>{
       console.log("[ForgePage] subjects loaded", { count: items.length, ids: items.map(s=>s.id) });
@@ -163,7 +163,7 @@ export function ForgePage() {
           </div>
         ) : null}
         {!loadError && subjects.length === 0 && lessons.length === 0 ? (
-          <p className="text-sm text-text-muted text-center">No subjects yet — or Firestore is unreachable due to network filtering (check browser console for [forgeService] errors).</p>
+          <p className="text-sm text-text-muted text-center">No subjects yet. Create your first subject to get started.</p>
         ) : null}
         {/* Generate New Subject */}
         <section className="rounded-3xl border border-border bg-surface p-6 shadow-sm">

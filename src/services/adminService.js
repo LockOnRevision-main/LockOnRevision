@@ -57,10 +57,10 @@ async function verifyAdminServer() {
       }
       // permission-denied / unauthenticated from callable are definitive - do not fallback to bypass
       if (code === "permission-denied" || code === "functions/permission-denied") {
-        throw new Error("Admin access required.");
+        throw new Error("You don't have permission to access this page.");
       }
       if (code === "unauthenticated" || code === "functions/unauthenticated") {
-        throw new Error("You must be authenticated to call this function.");
+        throw new Error("Please sign in again.");
       }
     }
   }
@@ -68,14 +68,14 @@ async function verifyAdminServer() {
   // --- Fallback: direct Firestore read (works on Spark plan without Blaze/functions) ---
   // Security is still enforced by Firestore rules (isAdmin() check in rules).
   // This fallback only affects UI gating; actual writes are still rejected by rules if not admin.
-  if (!db) throw new Error("Firebase is not configured.");
+  if (!db) throw new Error("We couldn't load your data. Please try again.");
   const uid = auth?.currentUser?.uid;
-  if (!uid) throw new Error("You must be authenticated to call this function.");
+  if (!uid) throw new Error("Please sign in again.");
   console.log("[admin] fallback Firestore admin check", { uid });
   const snap = await getDoc(doc(db, "users", uid));
   if (!snap.exists()) {
     console.warn("[admin] fallback - user doc not found", { uid });
-    throw new Error("User profile not found.");
+    throw new Error("We couldn't find your profile. Please try again.");
   }
   const data = snap.data();
   const isAdmin = data.isAdmin === true || data.role === "admin";
@@ -85,11 +85,11 @@ async function verifyAdminServer() {
 
 async function requireAdmin() {
   const isAdmin = await verifyAdminServer();
-  if (!isAdmin) throw new Error("Admin access required.");
+  if (!isAdmin) throw new Error("You don't have permission to access this page.");
 }
 
 export async function searchUsers(searchTerm = "", max = 50) {
-  if (!db) throw new Error("Firebase is not configured.");
+  if (!db) throw new Error("We couldn't load your data. Please try again.");
   await requireAdmin();
 
   const snapshot = await getDocs(query(collection(db, "users"), limit(max)));
@@ -106,13 +106,13 @@ export async function searchUsers(searchTerm = "", max = 50) {
 }
 
 export async function adjustUserXp(uid, delta) {
-  if (!db) throw new Error("Firebase is not configured.");
+  if (!db) throw new Error("We couldn't load your data. Please try again.");
   await requireAdmin();
   const userRef = doc(db, "users", uid);
 
   return runTransaction(db, async (transaction) => {
     const snapshot = await transaction.get(userRef);
-    if (!snapshot.exists()) throw new Error("User not found.");
+    if (!snapshot.exists()) throw new Error("We couldn't find that user. Please try again.");
 
     const data = snapshot.data();
     const nextXp = Math.max(0, Number(data.xp || 0) + Number(delta || 0));
@@ -130,13 +130,13 @@ export async function adjustUserXp(uid, delta) {
 }
 
 export async function adjustUserEnergy(uid, delta) {
-  if (!db) throw new Error("Firebase is not configured.");
+  if (!db) throw new Error("We couldn't load your data. Please try again.");
   await requireAdmin();
   const userRef = doc(db, "users", uid);
 
   return runTransaction(db, async (transaction) => {
     const snapshot = await transaction.get(userRef);
-    if (!snapshot.exists()) throw new Error("User not found.");
+    if (!snapshot.exists()) throw new Error("We couldn't find that user. Please try again.");
 
     const data = snapshot.data();
     const nextEnergy = Math.max(0, Number(data.energy || 0) + Number(delta || 0));
@@ -154,13 +154,13 @@ export async function adjustUserEnergy(uid, delta) {
 }
 
 export async function setUserTotalScore(uid, totalScore) {
-  if (!db) throw new Error("Firebase is not configured.");
+  if (!db) throw new Error("We couldn't load your data. Please try again.");
   await requireAdmin();
   const userRef = doc(db, "users", uid);
 
   return runTransaction(db, async (transaction) => {
     const snapshot = await transaction.get(userRef);
-    if (!snapshot.exists()) throw new Error("User not found.");
+    if (!snapshot.exists()) throw new Error("We couldn't find that user. Please try again.");
 
     transaction.update(userRef, {
       totalScore: Math.max(0, Number(totalScore || 0)),
@@ -173,13 +173,13 @@ export async function setUserTotalScore(uid, totalScore) {
 }
 
 export async function grantLeaderboardReward(uid, { xp = 0, energy = 0, reason = "Admin reward" }) {
-  if (!db) throw new Error("Firebase is not configured.");
+  if (!db) throw new Error("We couldn't load your data. Please try again.");
   await requireAdmin();
   const userRef = doc(db, "users", uid);
 
   return runTransaction(db, async (transaction) => {
     const snapshot = await transaction.get(userRef);
-    if (!snapshot.exists()) throw new Error("User not found.");
+    if (!snapshot.exists()) throw new Error("We couldn't find that user. Please try again.");
 
     const data = snapshot.data();
     const nextXp = Math.max(0, Number(data.xp || 0) + Number(xp || 0));
@@ -204,7 +204,7 @@ export async function grantLeaderboardReward(uid, { xp = 0, energy = 0, reason =
 }
 
 export async function fetchAllForgeSubjects() {
-  if (!db) throw new Error("Firebase is not configured.");
+  if (!db) throw new Error("We couldn't load your data. Please try again.");
   await requireAdmin();
 
   const usersSnap = await getDocs(query(collection(db, "users"), limit(100)));
@@ -236,7 +236,7 @@ export async function getAdminOverview() {
   if (!isFirebaseConfigured) {
     return {
       available: false,
-      message: "Firebase is not configured.",
+      message: "We couldn't load your data. Please try again.",
     };
   }
 

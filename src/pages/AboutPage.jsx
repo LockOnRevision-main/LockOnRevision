@@ -137,11 +137,11 @@ export function AboutPage() {
 
   const techStack = [
     { label: t("about.tech_stack_frontend"), value: "React 18, Vite 6, Tailwind CSS 3" },
-    { label: t("about.tech_stack_backend"), value: "Firebase Auth, Firestore, Cloud Functions" },
+    { label: t("about.tech_stack_backend"), value: "Secure authentication, cloud database, server functions" },
     { label: t("about.tech_stack_ai"), value: "Google Gemini API via Vercel serverless functions" },
     { label: t("about.tech_stack_icons"), value: "Lucide React" },
     { label: t("about.tech_stack_markdown"), value: "react-markdown, KaTeX, rehype-highlight" },
-    { label: t("about.tech_stack_deployment"), value: "Vercel (frontend + serverless functions), Firebase (backend)" },
+    { label: t("about.tech_stack_deployment"), value: "Vercel (frontend + serverless functions), cloud backend" },
   ];
 
   const roadmap = [

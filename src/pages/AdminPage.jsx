@@ -67,7 +67,7 @@ export function AdminPage() {
           // For definitive server denials, don't fallback
           if (code === "permission-denied" || code === "functions/permission-denied") {
             if (!cancelled) {
-              setVerifyError(err.message || "Admin access required.");
+              setVerifyError("You don't have permission to access this page.");
               setServerVerified(false);
             }
             return;
@@ -87,7 +87,7 @@ export function AdminPage() {
           searchUsers("").then(setUsers).catch(() => setUsers([]));
           fetchAllForgeSubjects().then(setForgeContent).catch(() => setForgeContent([]));
         } else {
-          setVerifyError("Admin access required.");
+          setVerifyError("Unable to verify admin access. Please try again.");
           setServerVerified(false);
         }
       }
@@ -105,9 +105,8 @@ export function AdminPage() {
       return (
         <main className="grid min-h-[50vh] place-items-center bg-background p-6 text-text-primary">
           <div className="max-w-md rounded-xl border border-error/20 bg-error/10 p-6 text-center">
-            <p className="font-black text-error">Admin verification failed</p>
+            <p className="font-black text-error">Unable to verify admin access</p>
             <p className="mt-2 text-sm text-text-secondary">{verifyError}</p>
-            {usingFallback ? <p className="mt-2 text-xs text-text-secondary">Retrying via fallback...</p> : null}
           </div>
         </main>
       );
@@ -227,8 +226,8 @@ export function AdminPage() {
       ) : null}
 
       {usingFallback ? (
-        <p className="rounded-lg border border-warning/20 bg-warning/10 p-3 text-sm font-bold text-warning">
-          Running in fallback mode (Cloud Function not deployed — Spark plan). Admin is verified via Firestore. Upgrade to Blaze to enable server verification.
+        <p className="rounded-lg border border-success/20 bg-success/10 p-3 text-sm font-bold text-success">
+          Admin dashboard ready.
         </p>
       ) : null}
       {status ? <p className="rounded-lg border border-info/20 bg-info/10 p-3 text-sm font-bold text-info">{status}</p> : null}

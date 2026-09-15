@@ -116,7 +116,7 @@ async function fetchAllUsers() {
       createdAt: data.profile?.createdAt,
     }));
   }
-  if (!db) throw new Error("Firebase is not configured.");
+  if (!db) throw new Error("We couldn't load the leaderboard. Please try again.");
   const usersSnap = await getDocs(
     query(collection(db, "users"), orderBy("totalScore", "desc"), limit(5000))
   );

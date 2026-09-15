@@ -27,13 +27,13 @@ export function isBlockedError(error) {
 export function getUserFriendlyMessage(error, context = "request") {
   const code = error?.code || "";
   if (code === "permission-denied") {
-    return "Access denied. Please sign in again or check your permissions.";
+    return "You don't have permission to access this page.";
   }
   if (code === "unauthenticated" || code === "auth/user-token-expired" || code === "auth/invalid-user-token") {
     return "Session expired. Please sign in again.";
   }
   if (isNetworkError(error)) {
-    return `Network error while ${context}. Your firewall, ad-blocker, or DNS filter may be blocking Firebase. Check that firestore.googleapis.com and identitytoolkit.googleapis.com are allowed, then retry.`;
+    return `We couldn't connect while ${context}. Please check your internet connection and try again.`;
   }
   if (error?.message) {
     return error.message.replace(/^Firebase:\s*/i, "");

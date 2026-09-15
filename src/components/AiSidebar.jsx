@@ -196,7 +196,7 @@ export function AiSidebar() {
                   ) : (
                     <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-black text-warning">
                       <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warning" />
-                      {t("ai.not_connected_gemini", { apiKey: "GEMINI_API_KEY" })}
+                      {t("ai.not_connected_gemini")}
                     </p>
                   )
                 ) : null}

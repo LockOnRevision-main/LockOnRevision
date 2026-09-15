@@ -200,7 +200,7 @@ export function ProfilePage() {
     <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-8">
       {profileError ? (
         <div className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm font-bold text-warning">
-          Sync issue: {profileError} — check if your DNS filter (NextDNS, AdGuard, Pi-hole) is blocking firestore.googleapis.com, then refresh.
+          We couldn't sync your profile. Please check your connection and refresh.
         </div>
       ) : null}
       {/* Save status toast */}
@@ -606,7 +606,7 @@ export function ProfilePage() {
               <span className="text-sm font-bold text-text-primary">Enable "Stats for Nerds" (Coming Soon)</span>
               <span className="ml-auto rounded-full bg-warning/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-warning">Soon</span>
             </label>
-            <p className="mt-2 text-xs text-text-muted">When available: upload latency, AI generation time, Firestore read/write durations, cache status, network requests, retry counts, processing stages, device & browser info.</p>
+            <p className="mt-2 text-xs text-text-muted">When available: upload status, AI generation time and processing details.</p>
           </div>
 
           {/* Account Information */}
@@ -665,7 +665,7 @@ export function ProfilePage() {
                   </span>
                 </div>
                 {user?.providerData?.length ? (
-                  <p className="text-xs text-text-muted">UID: {user.uid} — preserved across linking; Firestore data never duplicated.</p>
+                  <p className="text-xs text-text-muted">Your learning data stays linked to your account.</p>
                 ) : null}
                 {googleMsg ? <p className="rounded-lg bg-success/10 p-2 text-xs font-bold text-success">{googleMsg}</p> : null}
                 {googleError ? <p className="rounded-lg bg-status-error/20 p-2 text-xs font-bold text-status-error">{googleError}</p> : null}
@@ -697,7 +697,7 @@ export function ProfilePage() {
                     Sign out
                   </button>
                 </div>
-                <p className="text-xs text-text-muted">Linking uses Firebase linkWithPopup → same UID, no second Firestore user document.</p>
+                <p className="text-xs text-text-muted">Linking keeps all your progress in one place.</p>
               </div>
             </div>
             <button

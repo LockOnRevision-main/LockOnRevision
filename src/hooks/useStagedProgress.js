@@ -5,7 +5,7 @@ export const DEFAULT_STAGES = [
   "Processing document",
   "Extracting subjects/topics",
   "Generating timetable",
-  "Saving to Firestore",
+  "Saving your timetable",
   "Finalizing",
 ];
 
@@ -105,7 +105,7 @@ export function useStagedProgress(options = {}) {
     const elapsed = Date.now() - startTimeRef.current;
     const remainingMin = Math.max(0, minDuration - elapsed);
 
-    // Immediately move to 90% (Saving to Firestore)
+    // Immediately move to 90% (Saving)
     setProgress((prev) => Math.max(prev, 90));
     setStageIndex(stages.length - 2);
 
