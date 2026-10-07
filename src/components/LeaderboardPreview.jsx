@@ -112,7 +112,7 @@ export function LeaderboardPreview({ users, currentUserId }) {
               </p>
             </div>
 
-            <div className="w-24 shrink-0 text-right">
+            <div className="w-20 shrink-0 text-right sm:w-24">
               <span className="text-sm font-bold tabular-nums text-primary">{total.toLocaleString()}</span>
             </div>
           </div>

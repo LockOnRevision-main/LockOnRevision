@@ -1,10 +1,11 @@
 import { useTranslation } from "react-i18next";
-import { Award, BookOpen, Search, ShieldCheck, Trophy, Users, Zap } from "lucide-react";
+import { Award, BarChart3, BookOpen, Search, ShieldCheck, Trophy, Users, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { httpsCallable } from "firebase/functions";
 import { StatCard } from "../components/StatCard.jsx";
 import { EmptyState } from "../components/EmptyState.jsx";
+import { TrendBars } from "../components/TrendBars.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { functions } from "../config/firebase.js";
 import {
@@ -12,6 +13,8 @@ import {
   adjustUserXp,
   fetchAllForgeSubjects,
   getAdminOverview,
+  getPlatformAnalytics,
+  getUserAnalytics,
   grantLeaderboardReward,
   moderateForgeSubject,
   searchUsers,
@@ -19,6 +22,180 @@ import {
 } from "../services/adminService.js";
 import { calculateTotalScore } from "../services/userService.js";
 import { canAccessAdmin } from "../utils/permissions.js";
+
+/** Cached across tab switches so the panel never refetches on revisit. */
+let platformCache = null;
+
+function fmt(value) {
+  if (value === null || value === undefined) return "—";
+  return Number(value).toLocaleString();
+}
+
+function AdminAnalyticsPanel({ t, selectedUserId }) {
+  const [platform, setPlatform] = useState(platformCache);
+  const [platformLoading, setPlatformLoading] = useState(!platformCache);
+  const [platformError, setPlatformError] = useState("");
+  const [userStats, setUserStats] = useState(null);
+  const [userLoading, setUserLoading] = useState(false);
+  const [userError, setUserError] = useState("");
+
+  useEffect(() => {
+    if (platformCache) return;
+    let cancelled = false;
+    setPlatformLoading(true);
+    getPlatformAnalytics()
+      .then((data) => {
+        if (cancelled) return;
+        platformCache = data;
+        setPlatform(data);
+      })
+      .catch((err) => { if (!cancelled) setPlatformError(err.message); })
+      .finally(() => { if (!cancelled) setPlatformLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedUserId) {
+      setUserStats(null);
+      setUserError("");
+      return;
+    }
+    let cancelled = false;
+    setUserLoading(true);
+    setUserError("");
+    getUserAnalytics(selectedUserId)
+      .then((data) => { if (!cancelled) setUserStats(data); })
+      .catch((err) => { if (!cancelled) setUserError(err.message); })
+      .finally(() => { if (!cancelled) setUserLoading(false); });
+    return () => { cancelled = true; };
+  }, [selectedUserId]);
+
+  return (
+    <div className="grid gap-4">
+      <section className="card card-pad" aria-label={t("admin.platform_overview")}>
+        <div className="section-head">
+          <div className="flex items-center gap-3">
+            <span className="icon-tile" style={{ width: "2.25rem", height: "2.25rem" }}><BarChart3 size={17} /></span>
+            <div>
+              <p className="eyebrow">{t("admin.analytics_tab")}</p>
+              <h2 className="mt-0.5 text-text-primary">{t("admin.platform_overview")}</h2>
+            </div>
+          </div>
+        </div>
+        <p className="mb-4 text-[13px] text-text-secondary">{t("admin.platform_desc")}</p>
+        {platformLoading ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" role="status" aria-label={t("common.loading")}>
+            {[0, 1, 2, 3].map((i) => (<div key={i} className="skeleton h-24 w-full !rounded-2xl" />))}
+          </div>
+        ) : platformError ? (
+          <p className="alert alert-error" role="alert">{platformError}</p>
+        ) : platform ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 [&>*]:min-w-0">
+            <StatCard label={t("admin.total_users")} value={fmt(platform.totalUsers)} icon={<Users size={16} />} />
+            <StatCard label={t("admin.active_today")} value={fmt(platform.activeToday)} icon={<Zap size={16} />} />
+            <StatCard label={t("admin.active_7d")} value={fmt(platform.active7d)} icon={<Zap size={16} />} />
+            <StatCard label={t("admin.challenge_today")} value={fmt(platform.challengeToday)} helper={t("admin.challenge_today_helper")} icon={<Trophy size={16} />} />
+            <StatCard label={t("admin.lessons_total")} value={fmt(platform.lessonsTotal)} icon={<BookOpen size={16} />} />
+            <StatCard label={t("admin.hours_total")} value={fmt(platform.hoursTotal)} icon={<BarChart3 size={16} />} />
+            <StatCard label={t("admin.avg_energy")} value={platform.avgEnergy === null ? "—" : String(platform.avgEnergy)} icon={<Award size={16} />} />
+            <StatCard label={t("admin.lessons_created")} value={fmt(platform.usage?.lessons)} helper={t("admin.subjects_total")} icon={<BookOpen size={16} />} />
+          </div>
+        ) : null}
+      </section>
+
+      {platform?.newUsersTrend ? (
+        <section className="card card-pad" aria-label={t("admin.new_users_title")}>
+          <div className="section-head">
+            <div>
+              <p className="eyebrow">{t("admin.analytics_tab")}</p>
+              <h2 className="mt-0.5 text-text-primary">{t("admin.new_users_title")}</h2>
+            </div>
+          </div>
+          <p className="mb-4 text-[13px] text-text-secondary">{t("admin.new_users_desc")}</p>
+          <TrendBars data={platform.newUsersTrend} ariaLabel={t("admin.new_users_title")} emptyText={t("admin.unavailable")} />
+        </section>
+      ) : null}
+
+      <section className="card card-pad" aria-label={t("admin.user_insights")}>
+        <div className="section-head">
+          <div className="flex items-center gap-3">
+            <span className="icon-tile" style={{ width: "2.25rem", height: "2.25rem" }}><Users size={17} /></span>
+            <div>
+              <p className="eyebrow">{t("admin.analytics_tab")}</p>
+              <h2 className="mt-0.5 text-text-primary">{t("admin.user_insights")}</h2>
+            </div>
+          </div>
+        </div>
+        <p className="mb-4 text-[13px] text-text-secondary">{t("admin.user_insights_desc")}</p>
+        {!selectedUserId ? (
+          <EmptyState title={t("admin.select_user")} copy={t("admin.pick_user")} />
+        ) : userLoading ? (
+          <div className="grid gap-3" role="status" aria-label={t("common.loading")}>
+            <div className="skeleton h-6 w-1/3" />
+            <div className="skeleton h-16 w-full !rounded-xl" />
+            <div className="skeleton h-16 w-full !rounded-xl" />
+          </div>
+        ) : userError ? (
+          <p className="alert alert-error" role="alert">{userError}</p>
+        ) : userStats ? (
+          <div className="grid gap-4">
+            <div className="rounded-xl border border-border bg-background p-4">
+              <p className="font-bold text-text-primary">{userStats.profile.name || t("admin.unnamed")}</p>
+              <p className="text-xs text-text-secondary">{userStats.profile.email}</p>
+              <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs tabular-nums text-text-secondary">
+                <span>XP {(userStats.profile.xp || 0).toLocaleString()}</span>
+                <span>{t("dashboard.energy")} {userStats.profile.energy || 0}</span>
+                <span>{t("dashboard.streak")}: {userStats.profile.streak || 0}</span>
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3 [&>*]:min-w-0">
+              <StatCard label={t("analytics.completion_rate")} value={`${userStats.progress.percent}%`} helper={`${userStats.progress.completed}/${userStats.progress.total} ${t("analytics.lessons_label")}`} />
+              <StatCard label={t("analytics.consistency_title")} value={`${userStats.consistency.activeDays28}`} helper={`${userStats.consistency.hours28}h · ${t("analytics.active_days")}`} />
+              <StatCard
+                label={t("analytics.timetable_adherence")}
+                value={userStats.adherence.percent === null ? "—" : `${userStats.adherence.percent}%`}
+                helper={`${userStats.adherence.completed}/${userStats.adherence.total} ${t("analytics.sessions_done")}`}
+              />
+            </div>
+            {userStats.breakdown.length > 0 ? (
+              <div className="grid gap-2">
+                {userStats.breakdown.slice(0, 6).map((s) => (
+                  <div key={s.id} className="flex items-center gap-3 text-[13px]">
+                    <span className="w-32 truncate font-semibold text-text-secondary">{s.title}</span>
+                    <div className="progress-track flex-1">
+                      <div className="progress-fill" style={{ width: `${s.percent}%` }} />
+                    </div>
+                    <span className="w-10 text-right font-bold tabular-nums text-text-primary">{s.percent}%</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            <div>
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-text-muted">{t("admin.recent_lessons")}</p>
+              {userStats.recentLessons.length ? (
+                <ul className="grid gap-2">
+                  {userStats.recentLessons.map((l) => (
+                    <li key={l.id} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-3 py-2 text-[13px]">
+                      <span className="min-w-0 truncate font-semibold text-text-primary">
+                        {l.title}
+                        <span className="ml-2 font-normal text-text-muted">{l.subjectName}</span>
+                      </span>
+                      <span className="shrink-0 tabular-nums text-text-secondary">
+                        {l.completed ? `+${l.xpEarned} XP` : "—"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-text-muted">{t("admin.no_recent")}</p>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </section>
+    </div>
+  );
+}
 
 export function AdminPage() {
   const { t } = useTranslation();
@@ -36,6 +213,7 @@ export function AdminPage() {
   const [rewardReason, setRewardReason] = useState(t("admin_page.manual_reward_event"));
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  const [view, setView] = useState("manage");
 
   const isAdmin = canAccessAdmin(profile);
   const [serverVerified, setServerVerified] = useState(false);
@@ -43,7 +221,17 @@ export function AdminPage() {
   const [usingFallback, setUsingFallback] = useState(false);
 
   useEffect(() => {
-    if (!isAdmin || !isFirebaseConfigured) return;
+    if (!isAdmin) return;
+    // Local demo mode has no backend to verify against — trust the local
+    // profile (consistent with the rest of demo mode) so admins can explore.
+    if (!isFirebaseConfigured) {
+      setUsingFallback(true);
+      setServerVerified(true);
+      getAdminOverview().then(setOverview).catch(() => setOverview({ available: false }));
+      searchUsers("").then(setUsers).catch(() => setUsers([]));
+      fetchAllForgeSubjects().then(setForgeContent).catch(() => setForgeContent([]));
+      return;
+    }
     let cancelled = false;
     async function verify() {
       setVerifyError("");
@@ -207,7 +395,7 @@ export function AdminPage() {
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="grid min-w-0 grid-cols-1 gap-6 [&>*]:min-w-0">
       <section className="card overflow-hidden">
         <div className="p-6" style={{ background: "var(--color-secondary)" }}>
           <div className="flex items-center gap-3">
@@ -232,6 +420,30 @@ export function AdminPage() {
       ) : null}
       {status ? <p className="rounded-lg border border-info/20 bg-info/10 p-3 text-sm font-bold text-info">{status}</p> : null}
 
+      <div role="tablist" aria-label={t("admin.title")} className="flex gap-2">
+        {[
+          { id: "manage", label: t("admin.manage_tab") },
+          { id: "analytics", label: t("admin.analytics_tab") },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={view === tab.id}
+            onClick={() => setView(tab.id)}
+            className={`rounded-xl px-5 py-2.5 text-sm font-bold transition-colors ${
+              view === tab.id ? "bg-secondary text-white" : "border border-border bg-surface text-text-secondary hover:border-primary hover:text-primary"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {view === "analytics" ? (
+        <AdminAnalyticsPanel t={t} selectedUserId={selectedUserId} />
+      ) : (
+      <>
       <section className="grid gap-4 sm:grid-cols-3">
         <StatCard label={t("admin.users_loaded")} value={users.length} helper={t("admin.search_results")} tone="bg-surface" />
         <StatCard label={t("admin.forge_subjects")} value={forgeContent.length} helper={t("admin.across_all_users")} tone="bg-info/10" />
@@ -243,7 +455,7 @@ export function AdminPage() {
         />
       </section>
 
-      <section className="grid items-start gap-4 lg:grid-cols-[1fr_1fr]">
+      <section className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] [&>*]:min-w-0">
         <article className="card card-pad">
           <div className="section-head">
             <div className="flex items-center gap-3">
@@ -382,7 +594,7 @@ export function AdminPage() {
         </article>
       </section>
 
-      <section className="grid items-start gap-4 lg:grid-cols-[1fr_1fr]">
+      <section className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] [&>*]:min-w-0">
         <article className="card card-pad">
           <div className="section-head">
             <div className="flex items-center gap-3">
@@ -485,6 +697,8 @@ export function AdminPage() {
           </div>
         </article>
       </section>
+      </>
+      )}
     </div>
   );
 }

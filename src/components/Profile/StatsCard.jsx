@@ -12,14 +12,14 @@ export function StatsCard({ label, value, icon: Icon, color = "blue" }) {
   };
 
   return (
-    <div className={`p-5 rounded-2xl border transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
+    <div className={`min-w-0 rounded-2xl border p-5 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
       colorClasses[color] || colorClasses.blue
     }`}>
-      <div className="flex items-center gap-3 mb-2">
+      <div className="mb-2 flex items-center gap-3">
         {Icon && <Icon size={20} className="shrink-0" />}
-        <span className="text-xs font-bold uppercase tracking-widest opacity-80">{label}</span>
+        <span className="min-w-0 text-xs font-bold uppercase tracking-widest opacity-80">{label}</span>
       </div>
-      <div className="text-3xl font-black text-text-primary tracking-tighter">{value}</div>
+      <div className="break-words text-3xl font-black tabular-nums tracking-tighter text-text-primary">{value}</div>
     </div>
   );
 }

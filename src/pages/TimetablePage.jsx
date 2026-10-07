@@ -96,7 +96,7 @@ export function TimetablePage() {
   };
 
   return (
-    <div className="grid gap-8">
+    <div className="grid min-w-0 grid-cols-1 gap-8 [&>*]:min-w-0">
       {/* Page header */}
       <section className="card overflow-hidden">
         <div className="p-6 sm:p-7" style={{ background: "var(--color-secondary)" }}>

@@ -50,8 +50,8 @@ export function AppShell({ children }) {
               </div>
             </NavLink>
 
-            {/* Desktop nav – hidden on <md to prevent horizontal scroll */}
-            <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
+            {/* Desktop nav – pills need ~950px; drawer below lg to prevent horizontal scroll */}
+            <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
               <NavLink to="/app" className={pill}>{t("nav.dashboard")}</NavLink>
               <NavLink to="/forge" className={pill}><Hammer size={15} /><span>{t("nav.forge")}</span></NavLink>
               <NavLink to="/analytics" className={pill}><BarChart3 size={15} /><span>{t("nav.analytics")}</span></NavLink>
@@ -62,13 +62,13 @@ export function AppShell({ children }) {
               {isFirebaseConfigured ? (<><button type="button" onClick={() => { setShowChangePw(true); setPwError(""); setPwSuccess(""); setNewPassword(""); }} className="btn-ghost ml-1 !px-3" aria-label={t("profile.change_password")}><KeyRound size={16} /></button><button type="button" onClick={logout} className="btn-ghost !px-3" aria-label={t("nav.logout")}><LogOut size={16} /></button></>) : null}
             </nav>
             {/* Mobile hamburger – prevents horizontal scroll, ensures tappable 44px */}
-            <button type="button" onClick={() => setMobileOpen(v=>!v)} className="md:hidden inline-flex items-center justify-center rounded-xl border border-border bg-surface p-2 min-h-[44px] min-w-[44px] text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" aria-label="Open navigation" aria-expanded={mobileOpen} aria-controls="mobile-nav">
+            <button type="button" onClick={() => setMobileOpen(v=>!v)} className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-border bg-surface p-2 text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 lg:hidden" aria-label="Open navigation" aria-expanded={mobileOpen} aria-controls="mobile-nav">
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
         </div>
         {/* Mobile drawer – fluid, no horizontal scroll */}
         {mobileOpen ? (
-          <nav id="mobile-nav" className="md:hidden border-t border-border bg-surface px-4 py-4 flex flex-col gap-2" role="navigation" aria-label="Mobile">
+          <nav id="mobile-nav" className="flex flex-col gap-2 border-t border-border bg-surface px-4 py-4 lg:hidden" role="navigation" aria-label="Mobile">
             <NavLink to="/app" onClick={()=>setMobileOpen(false)} className={({isActive})=>`rounded-xl px-4 py-3 min-h-[44px] text-sm font-bold ${isActive ? "bg-primary text-white" : "bg-background text-text-secondary"}`}>{t("nav.dashboard")}</NavLink>
             <NavLink to="/forge" onClick={()=>setMobileOpen(false)} className={({isActive})=>`rounded-xl px-4 py-3 min-h-[44px] text-sm font-bold flex items-center gap-2 ${isActive ? "bg-primary text-white" : "bg-background text-text-secondary"}`}><Hammer size={16}/>{t("nav.forge")}</NavLink>
             <NavLink to="/analytics" onClick={()=>setMobileOpen(false)} className={({isActive})=>`rounded-xl px-4 py-3 min-h-[44px] text-sm font-bold flex items-center gap-2 ${isActive ? "bg-primary text-white" : "bg-background text-text-secondary"}`}><BarChart3 size={16}/>{t("nav.analytics")}</NavLink>

@@ -70,7 +70,7 @@ export function LeaderboardPage() {
   const totalPages = result?.totalPages || 1;
 
   return (
-    <div className="grid gap-8">
+    <div className="grid min-w-0 grid-cols-1 gap-8 [&>*]:min-w-0">
       <section className="card card-pad">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>

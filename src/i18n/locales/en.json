@@ -456,7 +456,33 @@
     "sub_units": "sub-units",
     "remove_subject": "Remove subject",
     "no_forge_content": "No Forge content",
-    "no_forge_content_desc": "Generated Forge subjects will appear here."
+    "no_forge_content_desc": "Generated Forge subjects will appear here.",
+    "manage_tab": "Manage",
+    "analytics_tab": "Analytics",
+    "platform_overview": "Platform overview",
+    "platform_desc": "Server-side totals across all users. Unavailable metrics show as —.",
+    "total_users": "Total users",
+    "active_today": "Active today",
+    "active_7d": "Active (7 days)",
+    "challenge_today": "Today's challenge",
+    "challenge_today_helper": "Completed today's Daily Challenge",
+    "lessons_total": "Lessons completed",
+    "hours_total": "Study hours logged",
+    "avg_energy": "Average Energy",
+    "usage_title": "Content created",
+    "usage_desc": "Forge subjects, lessons, and timetables stored on the platform.",
+    "subjects_total": "Forge subjects",
+    "lessons_created": "Lessons created",
+    "timetables_total": "Timetables",
+    "new_users_title": "New users per week",
+    "new_users_desc": "Signups per week for the last 8 weeks.",
+    "user_insights": "User insights",
+    "user_insights_desc": "Learning progress for the selected user. Only name and email are shown.",
+    "pick_user": "Select a user in the Manage tab to inspect their learning insights.",
+    "recent_lessons": "Recent lessons",
+    "no_recent": "No lessons yet.",
+    "unavailable": "Unavailable",
+    "loading_analytics": "Loading platform analytics..."
   },
   "onboarding": {
     "welcome": "Welcome to LockOnRevision!",
@@ -619,9 +645,6 @@
     "error_500": "My brain is having a moment. Let me know if it persists!",
     "error_connection": "I'm having trouble connecting to my brain right now. Please try again in a moment!",
     "error_unexpected": "An unexpected error occurred."
-  },
-  "leaderboard": {
-    "pts_suffix": " pts"
   },
   "errors": {
     "not_found": "Page not found",

@@ -1,6 +1,10 @@
 import {
+  average,
   collection,
+  collectionGroup,
   doc,
+  getAggregateFromServer,
+  getCountFromServer,
   getDoc,
   getDocs,
   limit,
@@ -8,6 +12,9 @@ import {
   query,
   runTransaction,
   serverTimestamp,
+  sum,
+  Timestamp,
+  where,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { auth, db, functions, isFirebaseConfigured } from "../config/firebase.js";
@@ -15,6 +22,12 @@ import { deleteForgeSubject, fetchForgeSubjects } from "./forgeService.js";
 import { calculateTotalScore } from "./userService.js";
 import { emitScoreChanged } from "./forgeEvents.js";
 import { applyCompetitionRanking, mapUserData } from "./leaderboardService.js";
+import {
+  computeAdherence,
+  computeConsistency,
+  computeSubjectBreakdown,
+  toDate,
+} from "./analyticsService.js";
 
 const ADMIN_FIELDS = new Set(["isAdmin", "role"]);
 
@@ -252,3 +265,167 @@ export async function getAdminOverview() {
     })),
   };
 }
+
+/** Resolve with null on any failure so one missing index never breaks the panel. */
+function safe(promise) {
+  return promise.then((v) => v).catch(() => null);
+}
+
+function mondayStarts(weeks = 8) {
+  const now = new Date();
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  return Array.from({ length: weeks }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(d.getDate() - i * 7);
+    return d;
+  }).reverse();
+}
+
+/**
+ * Platform-level analytics for verified admins only.
+ * Uses server-side count/sum/average aggregations — no user documents
+ * are transferred. Every metric degrades to null (shown as "—")
+ * instead of failing when data or an index is unavailable.
+ */
+export async function getPlatformAnalytics() {
+  await requireAdmin();
+  if (!db) throw new Error("We couldn't load your data. Please try again.");
+
+  const usersCol = collection(db, "users");
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 864e5);
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const weekStarts = mondayStarts(8);
+
+  const [
+    totalUsers,
+    activeToday,
+    active7d,
+    challengeToday,
+    totals,
+    cumulative,
+    subjectsCreated,
+    lessonsCreated,
+    timetablesCreated,
+  ] = await Promise.all([
+    safe(getCountFromServer(usersCol).then((s) => s.data().count)),
+    safe(getCountFromServer(query(usersCol, where("updatedAt", ">=", Timestamp.fromDate(startOfToday)))).then((s) => s.data().count)),
+    safe(getCountFromServer(query(usersCol, where("updatedAt", ">=", Timestamp.fromDate(sevenDaysAgo)))).then((s) => s.data().count)),
+    safe(getCountFromServer(query(usersCol, where("lastCompletedDate", "==", todayStr))).then((s) => s.data().count)),
+    safe(
+      getAggregateFromServer(usersCol, {
+        xpTotal: sum("xp"),
+        lessonsTotal: sum("completedLessons"),
+        hoursTotal: sum("totalStudyHours"),
+        avgEnergy: average("energy"),
+      }).then((s) => s.data()),
+    ),
+    Promise.all(
+      weekStarts.map((d) =>
+        safe(
+          getCountFromServer(query(usersCol, where("createdAt", ">=", Timestamp.fromDate(d)))).then((s) => s.data().count),
+        ),
+      ),
+    ),
+    // Collection-group counts need a collection-group index (see firestore.indexes.json).
+    safe(getCountFromServer(collectionGroup(db, "subjects")).then((s) => s.data().count)),
+    safe(getCountFromServer(collectionGroup(db, "lessons")).then((s) => s.data().count)),
+    safe(getCountFromServer(collectionGroup(db, "timetables")).then((s) => s.data().count)),
+  ]);
+
+  // Derive per-week signups from cumulative counts (oldest → newest).
+  let newUsersTrend = null;
+  if (cumulative && cumulative.every((c) => typeof c === "number")) {
+    newUsersTrend = weekStarts.map((d, i) => ({
+      label: d.toLocaleDateString(undefined, { day: "numeric", month: "short" }),
+      count: Math.max(0, cumulative[i] - (cumulative[i + 1] ?? 0)),
+    }));
+  }
+
+  return {
+    totalUsers,
+    activeToday,
+    active7d,
+    challengeToday,
+    xpTotal: totals?.xpTotal ?? null,
+    lessonsTotal: totals?.lessonsTotal ?? null,
+    hoursTotal: totals?.hoursTotal != null ? Math.round(totals.hoursTotal * 10) / 10 : null,
+    avgEnergy: totals?.avgEnergy != null ? Math.round(totals.avgEnergy * 10) / 10 : null,
+    newUsersTrend,
+    usage: {
+      subjects: subjectsCreated,
+      lessons: lessonsCreated,
+      timetables: timetablesCreated,
+    },
+  };
+}
+
+/**
+ * Individual-user learning insights for verified admins only.
+ * Returns the same rollups as the student Analytics page plus identity
+ * already visible in the admin user list (name/email) — nothing more.
+ */
+export async function getUserAnalytics(targetUid) {
+  await requireAdmin();
+  if (!db) throw new Error("We couldn't load your data. Please try again.");
+  if (!targetUid) throw new Error("Select a user first.");
+
+  const [userSnap, subjectsSnap, lessonsSnap, questionsSnap, ttSnap] = await Promise.all([
+    getDoc(doc(db, "users", targetUid)),
+    getDocs(query(collection(db, "users", targetUid, "subjects"), limit(100))),
+    getDocs(query(collection(db, "users", targetUid, "lessons"), limit(200))),
+    getDocs(query(collection(db, "users", targetUid, "questions"), limit(200))),
+    getDocs(collection(db, "users", targetUid, "timetables")),
+  ]);
+
+  if (!userSnap.exists()) throw new Error("We couldn't find that user. Please try again.");
+  const userData = userSnap.data();
+  const subjects = subjectsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const lessons = lessonsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const questions = questionsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const timetables = ttSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  const breakdown = computeSubjectBreakdown(subjects, lessons, questions);
+  const done = lessons.filter((l) => l.completed);
+  const recentLessons = [...lessons]
+    .sort((a, b) => {
+      const da = toDate(a.completedAt || a.updatedAt);
+      const db2 = toDate(b.completedAt || b.updatedAt);
+      return (db2?.getTime() || 0) - (da?.getTime() || 0);
+    })
+    .slice(0, 5)
+    .map((l) => ({
+      id: l.id,
+      title: l.title || "Untitled lesson",
+      subjectName: l.subjectName || "",
+      completed: !!l.completed,
+      xpEarned: Number(l.xpEarned || 0),
+      at: (() => { const d = toDate(l.completedAt || l.updatedAt); return d ? d.toISOString() : null; })(),
+    }));
+
+  return {
+    profile: stripAdminFields({
+      id: targetUid,
+      name: userData.name || "",
+      email: userData.email || "",
+      xp: Number(userData.xp || 0),
+      energy: Number(userData.energy || 0),
+      totalScore: Number(userData.totalScore || 0),
+      streak: Number(userData.currentStreak ?? userData.streak ?? 0),
+      completedLessons: Number(userData.completedLessons || 0),
+    }),
+    progress: {
+      total: lessons.length,
+      completed: done.length,
+      percent: lessons.length ? Math.round((done.length / lessons.length) * 100) : 0,
+      perfect: done.filter((l) => l.perfect).length,
+    },
+    consistency: computeConsistency(userData.activity && typeof userData.activity === "object" ? userData.activity : {}),
+    adherence: computeAdherence(timetables),
+    breakdown,
+    recentLessons,
+  };
+}
+

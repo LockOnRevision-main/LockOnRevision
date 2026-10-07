@@ -225,9 +225,9 @@ export function ProfilePage() {
       {/* Header Section */}
       <div className="relative rounded-3xl border border-border bg-surface overflow-hidden shadow-sm">
         <div className="h-32 bg-gradient-to-r from-primary to-secondary" />
-        <div className="px-8 pb-8">
-          <div className="relative flex flex-col md:flex-row items-end gap-6 -mt-12">
-            <div className="relative">
+        <div className="px-5 pb-6 sm:px-8 sm:pb-8">
+          <div className="relative -mt-12 flex min-w-0 flex-col items-end gap-6 md:flex-row">
+            <div className="relative shrink-0">
               {(() => {
                 const av = getLeaderAvatar(profile, user?.uid);
                 if (av.type === "image") {
@@ -260,7 +260,7 @@ export function ProfilePage() {
                 <Edit3 size={16} />
               </button>
             </div>
-            <div className="flex-1 mb-2 text-center md:text-left">
+            <div className="mb-2 min-w-0 flex-1 text-center md:text-left">
               <h1 className="text-4xl font-black text-text-primary tracking-tight">
                 {profile.name || profile.email?.split('@')[0] || t("common.learner")}
               </h1>

@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { EmptyState } from "../components/EmptyState.jsx";
 import { StatCard } from "../components/StatCard.jsx";
+import { TrendBars } from "../components/TrendBars.jsx";
 import { ActivityHeatmap } from "../components/Profile/ActivityHeatmap.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { subscribeForgeLessons, subscribeForgeSubjects } from "../services/forgeService.js";
@@ -20,56 +21,6 @@ import {
   fetchQuestionSnapshot,
   toDate,
 } from "../services/analyticsService.js";
-
-function WeeklyBars({ data }) {
-  const max = Math.max(1, ...data.map((w) => w.lessons));
-  const W = 560;
-  const H = 180;
-  const PAD = 28;
-  const bw = (W - PAD * 2) / data.length;
-  return (
-    <div role="img" aria-label="Lessons completed per week">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="presentation">
-        {[0.25, 0.5, 0.75, 1].map((f) => (
-          <line
-            key={f}
-            x1={PAD}
-            x2={W - PAD}
-            y1={H - PAD - (H - PAD * 2) * f}
-            y2={H - PAD - (H - PAD * 2) * f}
-            stroke="var(--color-border)"
-            strokeWidth="1"
-          />
-        ))}
-        {data.map((w, i) => {
-          const h = Math.max(4, ((H - PAD * 2) * w.lessons) / max);
-          const x = PAD + i * bw + bw * 0.22;
-          return (
-            <g key={w.label}>
-              <title>{`${w.label}: ${w.lessons} lessons, ${w.xp} XP`}</title>
-              <rect
-                x={x}
-                y={H - PAD - h}
-                width={bw * 0.56}
-                height={h}
-                rx="5"
-                fill={i === data.length - 1 ? "var(--color-primary)" : "color-mix(in srgb, var(--color-primary) 45%, transparent)"}
-              />
-              <text x={x + (bw * 0.56) / 2} y={H - 10} textAnchor="middle" fontSize="10" fill="var(--color-text-muted)">
-                {w.label}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-      <ul className="sr-only">
-        {data.map((w) => (
-          <li key={w.label}>{`${w.label}: ${w.lessons} lessons, ${w.xp} XP`}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
 
 function SectionHead({ eyebrow, title, action }) {
   return (
@@ -169,7 +120,7 @@ export function AnalyticsPage() {
   }
 
   return (
-    <div className="grid gap-5">
+    <div className="grid min-w-0 grid-cols-1 gap-5 [&>*]:min-w-0">
       <div>
         <p className="eyebrow">{t("nav.analytics")}</p>
         <h1 className="mt-1 text-text-primary">{t("analytics.title")}</h1>
@@ -254,7 +205,11 @@ export function AnalyticsPage() {
       <section className="card card-pad" aria-label={t("analytics.weekly_trend")}>
         <SectionHead eyebrow={t("nav.analytics")} title={t("analytics.weekly_trend")} />
         <p className="mb-4 text-[13px] text-text-secondary">{t("analytics.weekly_trend_desc")}</p>
-        <WeeklyBars data={trend} />
+        <TrendBars
+          data={trend.map((w) => ({ label: w.label, count: w.lessons }))}
+          ariaLabel={t("analytics.weekly_trend")}
+          emptyText={t("analytics.empty_desc")}
+        />
       </section>
 
       {/* Subject breakdown */}

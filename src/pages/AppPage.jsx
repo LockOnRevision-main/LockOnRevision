@@ -69,18 +69,18 @@ export function AppPage() {
   }, []);
 
   return (
-    <div className="grid gap-8">
+    <div className="grid min-w-0 grid-cols-1 gap-8 [&>*]:min-w-0">
 <section className="card overflow-hidden">
         <div className="p-6 sm:p-8" style={{ background: "var(--color-secondary)" }}>
           <p className="eyebrow !text-white/60">{t("dashboard.title")}</p>
           <div className="mt-3 flex flex-col justify-between gap-5 md:flex-row md:items-end">
-            <div className="flex flex-col gap-1.5">
+            <div className="flex min-w-0 flex-col gap-1.5">
               <h1 className="text-white">{t("dashboard.welcome", { name: profile?.name || "Learner" })}</h1>
               <p className="max-w-2xl text-[15px] text-white/75">{t("dashboard.welcome_subtitle")}</p>
             </div>
             <Link
               to="/leaderboard"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-secondary"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-secondary"
             >
               <Trophy size={16} />
               {t("nav.leaderboard")}
@@ -96,7 +96,7 @@ export function AppPage() {
       ) : null}
 
       <section aria-label={t("dashboard.learning_progress")}>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 [&>*]:min-w-0">
           <StatCard label={t("dashboard.total_score")} value={score.totalScore.toLocaleString()} helper={t("dashboard.total_score_formula")} tone="bg-surface" icon={<Trophy size={16} />} />
           <StatCard label={t("dashboard.xp")} value={score.xp.toLocaleString()} helper={t("dashboard.learning_progress")} tone="bg-surface" icon={<Zap size={16} />} />
           <StatCard label={t("dashboard.energy")} value={String(score.energy)} helper={t("dashboard.energy_helper")} tone="bg-surface" icon={<Award size={16} />} />
@@ -363,7 +363,7 @@ export function AppPage() {
         </Link>
       )}
 
-      <section className="grid items-start gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+      <section className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] [&>*]:min-w-0">
         <article className="card card-pad flex h-full flex-col">
             <div className="section-head">
               <div className="flex items-center gap-3">
@@ -416,7 +416,7 @@ export function AppPage() {
                />
              </div>
            ) : (
-             <div className="grid gap-5 flex-1">
+              <div className="grid min-w-0 flex-1 gap-5 [&>*]:min-w-0">
                {subjects.map((subject) => {
                  const subjectLessons = lessons.filter((l) => l.subjectId === subject.id);
                  const completedLessons = subjectLessons.filter((l) => l.completed);
