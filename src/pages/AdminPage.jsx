@@ -149,12 +149,12 @@ function AdminAnalyticsPanel({ t, selectedUserId }) {
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-3 [&>*]:min-w-0">
-              <StatCard label={t("analytics.completion_rate")} value={`${userStats.progress.percent}%`} helper={`${userStats.progress.completed}/${userStats.progress.total} ${t("analytics.lessons_label")}`} />
-              <StatCard label={t("analytics.consistency_title")} value={`${userStats.consistency.activeDays28}`} helper={`${userStats.consistency.hours28}h · ${t("analytics.active_days")}`} />
+              <StatCard label={t("admin.completion_rate")} value={`${userStats.progress.percent}%`} helper={`${userStats.progress.completed}/${userStats.progress.total} ${t("admin.lessons_label")}`} />
+              <StatCard label={t("admin.consistency_title")} value={`${userStats.consistency.activeDays28}`} helper={`${userStats.consistency.hours28}h · ${t("admin.active_days")}`} />
               <StatCard
-                label={t("analytics.timetable_adherence")}
+                label={t("admin.timetable_adherence")}
                 value={userStats.adherence.percent === null ? "—" : `${userStats.adherence.percent}%`}
-                helper={`${userStats.adherence.completed}/${userStats.adherence.total} ${t("analytics.sessions_done")}`}
+                helper={`${userStats.adherence.completed}/${userStats.adherence.total} ${t("admin.sessions_done")}`}
               />
             </div>
             {userStats.breakdown.length > 0 ? (

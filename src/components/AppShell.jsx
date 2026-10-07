@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, KeyRound, LogOut, Hammer, Trophy, User, X, Menu } from "lucide-react";
+import { CalendarDays, KeyRound, LogOut, Hammer, Trophy, User, X, Menu } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -54,7 +54,6 @@ export function AppShell({ children }) {
             <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
               <NavLink to="/app" className={pill}>{t("nav.dashboard")}</NavLink>
               <NavLink to="/forge" className={pill}><Hammer size={15} /><span>{t("nav.forge")}</span></NavLink>
-              <NavLink to="/analytics" className={pill}><BarChart3 size={15} /><span>{t("nav.analytics")}</span></NavLink>
               <NavLink to="/timetable" className={pill}><CalendarDays size={15} /><span>{t("nav.timetable")}</span></NavLink>
               <NavLink to="/leaderboard" className={pill}><Trophy size={15} /><span>{t("nav.leaderboard")}</span></NavLink>
               <NavLink to="/profile" className={pill}><User size={15} /><span>{t("nav.profile")}</span></NavLink>
@@ -71,7 +70,6 @@ export function AppShell({ children }) {
           <nav id="mobile-nav" className="flex flex-col gap-2 border-t border-border bg-surface px-4 py-4 lg:hidden" role="navigation" aria-label="Mobile">
             <NavLink to="/app" onClick={()=>setMobileOpen(false)} className={({isActive})=>`rounded-xl px-4 py-3 min-h-[44px] text-sm font-bold ${isActive ? "bg-primary text-white" : "bg-background text-text-secondary"}`}>{t("nav.dashboard")}</NavLink>
             <NavLink to="/forge" onClick={()=>setMobileOpen(false)} className={({isActive})=>`rounded-xl px-4 py-3 min-h-[44px] text-sm font-bold flex items-center gap-2 ${isActive ? "bg-primary text-white" : "bg-background text-text-secondary"}`}><Hammer size={16}/>{t("nav.forge")}</NavLink>
-            <NavLink to="/analytics" onClick={()=>setMobileOpen(false)} className={({isActive})=>`rounded-xl px-4 py-3 min-h-[44px] text-sm font-bold flex items-center gap-2 ${isActive ? "bg-primary text-white" : "bg-background text-text-secondary"}`}><BarChart3 size={16}/>{t("nav.analytics")}</NavLink>
             <NavLink to="/timetable" onClick={()=>setMobileOpen(false)} className={({isActive})=>`rounded-xl px-4 py-3 min-h-[44px] text-sm font-bold flex items-center gap-2 ${isActive ? "bg-primary text-white" : "bg-background text-text-secondary"}`}><CalendarDays size={16}/>{t("nav.timetable")}</NavLink>
             <NavLink to="/leaderboard" onClick={()=>setMobileOpen(false)} className={({isActive})=>`rounded-xl px-4 py-3 min-h-[44px] text-sm font-bold flex items-center gap-2 ${isActive ? "bg-primary text-white" : "bg-background text-text-secondary"}`}><Trophy size={16}/>{t("nav.leaderboard")}</NavLink>
             <NavLink to="/profile" onClick={()=>setMobileOpen(false)} className={({isActive})=>`rounded-xl px-4 py-3 min-h-[44px] text-sm font-bold flex items-center gap-2 ${isActive ? "bg-primary text-white" : "bg-background text-text-secondary"}`}><User size={16}/>{t("nav.profile")}</NavLink>

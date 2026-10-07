@@ -2,7 +2,6 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/AppShell.jsx";
 import { OnboardingWizard } from "./components/OnboardingWizard.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
-import { AnalyticsPage } from "./pages/AnalyticsPage.jsx";
 import { AppPage } from "./pages/AppPage.jsx";
 import { AdminPage } from "./pages/AdminPage.jsx";
 import { ForgePage } from "./pages/ForgePage.jsx";
@@ -88,14 +87,6 @@ export default function App() {
         element={
           <ProtectedRoute>
             <ForgeLessonPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/analytics"
-        element={
-          <ProtectedRoute>
-            <AnalyticsPage />
           </ProtectedRoute>
         }
       />
