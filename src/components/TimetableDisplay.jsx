@@ -24,6 +24,12 @@ export function TimetableDisplay({ timetable, onRegenerate }) {
   const [currentWeek, setCurrentWeek] = useState(0);
   const weeks = timetable?.weeks || [];
   const week = weeks[currentWeek];
+  const todayKey = (() => {
+    try {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    } catch { return ""; }
+  })();
   if (!week) return null;
 
   const totalWeeks = weeks.length;
@@ -59,43 +65,40 @@ export function TimetableDisplay({ timetable, onRegenerate }) {
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* Header */}
-      <div className="flex flex-col gap-4 rounded-3xl border border-border bg-surface p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div>
-          <h2 className="text-xl font-black tracking-tight text-text-primary">
+          <p className="eyebrow">{t('timetable.weekly')}</p>
+          <h2 className="mt-1 text-text-primary">
             {t('timetable_display.week_of', { current: week.weekNumber, total: totalWeeks })}
           </h2>
           <p className="mt-1 text-sm text-text-secondary">
             {week.startDate} &middot; {t('timetable_display.scheduled', { hours: Math.round(totalMinutes / 60), minutes: totalMinutes % 60 })}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setCurrentWeek((p) => Math.max(0, p - 1))}
             disabled={currentWeek === 0}
-            className="rounded-xl border border-border bg-surface p-2.5 text-text-secondary transition-all hover:bg-primary hover:text-white disabled:opacity-30 disabled:pointer-events-none"
+            className="btn-ghost !min-h-[40px] !px-3"
             aria-label={t('timetable_display.previous_week')}
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={17} />
           </button>
-          <span className="min-w-[6rem] text-center text-sm font-bold text-text-primary">
+          <span className="min-w-[4.5rem] text-center text-sm font-bold tabular-nums text-text-primary">
             {currentWeek + 1} / {totalWeeks}
           </span>
           <button
             type="button"
             onClick={() => setCurrentWeek((p) => Math.min(totalWeeks - 1, p + 1))}
             disabled={currentWeek >= totalWeeks - 1}
-            className="rounded-xl border border-border bg-surface p-2.5 text-text-secondary transition-all hover:bg-primary hover:text-white disabled:opacity-30 disabled:pointer-events-none"
+            className="btn-ghost !min-h-[40px] !px-3"
             aria-label={t('timetable_display.next_week')}
           >
-            <ChevronRight size={18} />
+            <ChevronRight size={17} />
           </button>
           {onRegenerate ? (
-            <button
-              type="button"
-              onClick={onRegenerate}
-              className="rounded-xl bg-primary px-4 py-2.5 text-sm font-black text-white shadow-sm transition-all hover:bg-primary-active"
-            >
+            <button type="button" onClick={onRegenerate} className="btn-primary !min-h-[40px] !py-2 text-[13px]">
               {t('timetable_display.regenerate')}
             </button>
           ) : null}
@@ -117,27 +120,37 @@ export function TimetableDisplay({ timetable, onRegenerate }) {
       ) : null}
 
       {/* Week grid – vertical on <md, fluid on larger */}
-      <div className="timetable-week-grid grid gap-4 grid-cols-1 xs:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 3xl:grid-cols-7">
+      <div className="timetable-week-grid grid gap-3 grid-cols-1 xs:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 3xl:grid-cols-7">
         {DAYS.map((day, dayIdx) => {
           const slots = week.days?.[day] || [];
+          const dayDate = new Date(weekStart);
+          dayDate.setDate(dayDate.getDate() + dayIdx);
+          const dayKey = `${dayDate.getFullYear()}-${String(dayDate.getMonth() + 1).padStart(2, "0")}-${String(dayDate.getDate()).padStart(2, "0")}`;
+          const isToday = dayKey === todayKey;
           if (!slots.length) {
             return (
               <div
                 key={day}
-                className="rounded-2xl border border-dashed border-border bg-surface/30 p-4 opacity-50"
+                className={`rounded-2xl border p-4 ${isToday ? "border-primary/40 bg-primary/5" : "border-dashed border-border bg-surface/50"}`}
               >
-                <p className="text-xs font-bold uppercase tracking-widest text-text-muted">{DAY_ABBR[day]}</p>
-                <p className="mt-3 text-xs text-text-muted">{dateStr(dayIdx)}</p>
-                <p className="mt-4 text-center text-xs italic text-text-muted">{t('timetable_display.free')}</p>
+                <p className="flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.1em] text-text-muted">
+                  <span>{DAY_ABBR[day]}</span>
+                  {isToday ? <span className="badge badge-primary !text-[10px]">Today</span> : null}
+                </p>
+                <p className="mt-2 text-xs text-text-muted">{dateStr(dayIdx)}</p>
+                <p className="mt-3 text-center text-xs text-text-muted">{t('timetable_display.free')}</p>
               </div>
             );
           }
 
           return (
-            <div key={day} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+            <div key={day} className={`rounded-2xl border bg-surface p-4 ${isToday ? "border-primary/40" : "border-border"}`} style={{ boxShadow: "var(--shadow-card)" }}>
               <div className="mb-3 flex items-center justify-between">
-                <p className="text-xs font-bold uppercase tracking-widest text-text-secondary">{DAY_ABBR[day]}</p>
-                <p className="text-xs font-medium text-text-muted">{dateStr(dayIdx)}</p>
+                <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-text-secondary">
+                  <span>{DAY_ABBR[day]}</span>
+                  {isToday ? <span className="badge badge-primary !text-[10px]">Today</span> : null}
+                </p>
+                <p className="text-xs font-medium tabular-nums text-text-muted">{dateStr(dayIdx)}</p>
               </div>
               <div className="space-y-2">
                 {slots.map((slot) => (

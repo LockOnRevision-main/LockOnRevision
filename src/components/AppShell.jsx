@@ -1,4 +1,4 @@
-import { CalendarDays, KeyRound, LogOut, Hammer, Trophy, User, X, Menu } from "lucide-react";
+import { BarChart3, CalendarDays, KeyRound, LogOut, Hammer, Trophy, User, X, Menu } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -35,29 +35,31 @@ export function AppShell({ children }) {
     }
   }
 
+  const pill = ({ isActive }) => `nav-pill whitespace-nowrap ${isActive ? "nav-pill-active" : ""}`;
   return (
     <main className="min-h-screen bg-background text-text-primary">
-      <header className="sticky top-0 z-20 border-b border-border bg-surface/85 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
-            <NavLink to="/app" className="group flex items-center gap-2 sm:gap-4 transition-opacity hover:opacity-90 shrink-0">
-              <div className="h-9 w-9 sm:h-11 sm:w-11 overflow-hidden rounded-xl bg-secondary shadow-lg shadow-secondary/20 transition-transform group-hover:scale-110">
+      <header className="sticky top-0 z-20 border-b border-border bg-surface/90 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
+            <NavLink to="/app" className="group flex shrink-0 items-center gap-3">
+              <div className="h-9 w-9 overflow-hidden rounded-xl bg-secondary">
                 <Logo variant="icon" className="h-full w-full" />
               </div>
-              <div className="flex-col hidden sm:flex">
-                <p className="font-black tracking-tight text-text-primary leading-none text-sm sm:text-base">{t("app.name")}</p>
-                <p className="text-xs font-medium text-text-secondary mt-1">{profile?.name || t("app_shell.local_learner")}</p>
+              <div className="hidden flex-col sm:flex">
+                <p className="text-sm font-extrabold leading-none tracking-tight text-text-primary">{t("app.name")}</p>
+                <p className="mt-1 text-xs font-medium text-text-secondary">{profile?.name || t("app_shell.local_learner")}</p>
               </div>
             </NavLink>
- 
+
             {/* Desktop nav – hidden on <md to prevent horizontal scroll */}
-            <nav className="hidden md:flex items-center gap-1 sm:gap-2">
-              <NavLink to="/app" className={({ isActive }) => `rounded-lg px-2 sm:px-4 py-2 min-h-[44px] inline-flex items-center text-xs sm:text-sm font-bold transition-all whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${isActive ? "bg-primary text-white shadow-md" : "text-text-secondary hover:bg-surface hover:text-text-primary"}`}>{t("nav.dashboard")}</NavLink>
-              <NavLink to="/forge" className={({ isActive }) => `inline-flex items-center gap-1 sm:gap-2 rounded-lg px-2 sm:px-4 py-2 min-h-[44px] text-xs sm:text-sm font-bold transition-all whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${isActive ? "bg-primary text-white shadow-md" : "text-text-secondary hover:bg-surface hover:text-text-primary"}`}><Hammer size={14} className="sm:size-[16px]" /><span>{t("nav.forge")}</span></NavLink>
-              <NavLink to="/timetable" className={({ isActive }) => `inline-flex items-center gap-1 sm:gap-2 rounded-lg px-2 sm:px-4 py-2 min-h-[44px] text-xs sm:text-sm font-bold transition-all whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${isActive ? "bg-primary text-white shadow-md" : "text-text-secondary hover:bg-surface hover:text-text-primary"}`}><CalendarDays size={14} className="sm:size-[16px]" /><span>{t("nav.timetable")}</span></NavLink>
-              <NavLink to="/leaderboard" className={({ isActive }) => `inline-flex items-center gap-1 sm:gap-2 rounded-lg px-2 sm:px-4 py-2 min-h-[44px] text-xs sm:text-sm font-bold transition-all whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${isActive ? "bg-primary text-white shadow-md" : "text-text-secondary hover:bg-surface hover:text-text-primary"}`}><Trophy size={14} className="sm:size-[16px]" /><span>{t("nav.leaderboard")}</span></NavLink>
-              <NavLink to="/profile" className={({ isActive }) => `inline-flex items-center gap-1 sm:gap-2 rounded-lg px-2 sm:px-4 py-2 min-h-[44px] text-xs sm:text-sm font-bold transition-all whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${isActive ? "bg-primary text-white shadow-md" : "text-text-secondary hover:bg-surface hover:text-text-primary"}`}><User size={14} className="sm:size-[16px]" /><span>{t("nav.profile")}</span></NavLink>
-              {showAdmin ? <NavLink to="/admin" className={({ isActive }) => `rounded-lg px-2 sm:px-4 py-2 min-h-[44px] inline-flex items-center text-xs sm:text-sm font-bold transition-all whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${isActive ? "bg-primary text-white shadow-md" : "text-text-secondary hover:bg-surface hover:text-text-primary"}`}>{t("nav.admin")}</NavLink> : null}
-              {isFirebaseConfigured ? (<><button type="button" onClick={() => { setShowChangePw(true); setPwError(""); setPwSuccess(""); setNewPassword(""); }} className="rounded-lg border border-border bg-surface p-1.5 sm:p-2 min-h-[44px] min-w-[44px] text-text-secondary shadow-sm transition-all hover:bg-primary hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 shrink-0" aria-label={t("profile.change_password")}><KeyRound size={16} className="sm:size-[18px]" /></button><button type="button" onClick={logout} className="rounded-lg border border-border bg-surface p-1.5 sm:p-2 min-h-[44px] min-w-[44px] text-text-secondary shadow-sm transition-all hover:bg-primary hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 shrink-0" aria-label={t("nav.logout")}><LogOut size={16} className="sm:size-[18px]" /></button></>) : null}
+            <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
+              <NavLink to="/app" className={pill}>{t("nav.dashboard")}</NavLink>
+              <NavLink to="/forge" className={pill}><Hammer size={15} /><span>{t("nav.forge")}</span></NavLink>
+              <NavLink to="/analytics" className={pill}><BarChart3 size={15} /><span>{t("nav.analytics")}</span></NavLink>
+              <NavLink to="/timetable" className={pill}><CalendarDays size={15} /><span>{t("nav.timetable")}</span></NavLink>
+              <NavLink to="/leaderboard" className={pill}><Trophy size={15} /><span>{t("nav.leaderboard")}</span></NavLink>
+              <NavLink to="/profile" className={pill}><User size={15} /><span>{t("nav.profile")}</span></NavLink>
+              {showAdmin ? <NavLink to="/admin" className={pill}>{t("nav.admin")}</NavLink> : null}
+              {isFirebaseConfigured ? (<><button type="button" onClick={() => { setShowChangePw(true); setPwError(""); setPwSuccess(""); setNewPassword(""); }} className="btn-ghost ml-1 !px-3" aria-label={t("profile.change_password")}><KeyRound size={16} /></button><button type="button" onClick={logout} className="btn-ghost !px-3" aria-label={t("nav.logout")}><LogOut size={16} /></button></>) : null}
             </nav>
             {/* Mobile hamburger – prevents horizontal scroll, ensures tappable 44px */}
             <button type="button" onClick={() => setMobileOpen(v=>!v)} className="md:hidden inline-flex items-center justify-center rounded-xl border border-border bg-surface p-2 min-h-[44px] min-w-[44px] text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" aria-label="Open navigation" aria-expanded={mobileOpen} aria-controls="mobile-nav">
@@ -69,6 +71,7 @@ export function AppShell({ children }) {
           <nav id="mobile-nav" className="md:hidden border-t border-border bg-surface px-4 py-4 flex flex-col gap-2" role="navigation" aria-label="Mobile">
             <NavLink to="/app" onClick={()=>setMobileOpen(false)} className={({isActive})=>`rounded-xl px-4 py-3 min-h-[44px] text-sm font-bold ${isActive ? "bg-primary text-white" : "bg-background text-text-secondary"}`}>{t("nav.dashboard")}</NavLink>
             <NavLink to="/forge" onClick={()=>setMobileOpen(false)} className={({isActive})=>`rounded-xl px-4 py-3 min-h-[44px] text-sm font-bold flex items-center gap-2 ${isActive ? "bg-primary text-white" : "bg-background text-text-secondary"}`}><Hammer size={16}/>{t("nav.forge")}</NavLink>
+            <NavLink to="/analytics" onClick={()=>setMobileOpen(false)} className={({isActive})=>`rounded-xl px-4 py-3 min-h-[44px] text-sm font-bold flex items-center gap-2 ${isActive ? "bg-primary text-white" : "bg-background text-text-secondary"}`}><BarChart3 size={16}/>{t("nav.analytics")}</NavLink>
             <NavLink to="/timetable" onClick={()=>setMobileOpen(false)} className={({isActive})=>`rounded-xl px-4 py-3 min-h-[44px] text-sm font-bold flex items-center gap-2 ${isActive ? "bg-primary text-white" : "bg-background text-text-secondary"}`}><CalendarDays size={16}/>{t("nav.timetable")}</NavLink>
             <NavLink to="/leaderboard" onClick={()=>setMobileOpen(false)} className={({isActive})=>`rounded-xl px-4 py-3 min-h-[44px] text-sm font-bold flex items-center gap-2 ${isActive ? "bg-primary text-white" : "bg-background text-text-secondary"}`}><Trophy size={16}/>{t("nav.leaderboard")}</NavLink>
             <NavLink to="/profile" onClick={()=>setMobileOpen(false)} className={({isActive})=>`rounded-xl px-4 py-3 min-h-[44px] text-sm font-bold flex items-center gap-2 ${isActive ? "bg-primary text-white" : "bg-background text-text-secondary"}`}><User size={16}/>{t("nav.profile")}</NavLink>
@@ -83,7 +86,7 @@ export function AppShell({ children }) {
         ) : null}
       </header>
 
-      <section className="mx-auto max-w-6xl px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 3xl:px-8 max-w-[1600px] 3xl:max-w-[1800px] w-full">{children}</section>
+      <section className="page-shell">{children}</section>
       <AiSidebar />
 
       {showChangePw ? (

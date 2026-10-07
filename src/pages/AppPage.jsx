@@ -1,7 +1,8 @@
-import { Award, BookOpen, CalendarDays, CheckCircle2, Clock, ListChecks, Medal, Target, Trophy, Zap, AlertTriangle, GraduationCap } from "lucide-react";
+import { Award, BookOpen, CalendarDays, CheckCircle2, Clock, ListChecks, Target, Trophy, Zap, AlertTriangle, GraduationCap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { EmptyState } from "../components/EmptyState.jsx";
 import { StatCard } from "../components/StatCard.jsx";
 import { LeaderboardPreview } from "../components/LeaderboardPreview.jsx";
 import { DailyChallengeCard } from "../components/DailyChallengeCard.jsx";
@@ -69,19 +70,19 @@ export function AppPage() {
 
   return (
     <div className="grid gap-8">
-<section className="overflow-hidden rounded-3xl border border-border bg-surface shadow-sm">
-        <div className="bg-gradient-to-r from-secondary to-primary p-10 text-text-primary">
-          <p className="text-xs font-bold uppercase tracking-widest text-text-secondary">{t("dashboard.title")}</p>
-          <div className="mt-4 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-            <div className="flex flex-col gap-2">
-              <h1 className="text-4xl font-black tracking-tight text-text-primary">{t("dashboard.welcome", { name: profile?.name || "Learner" })}</h1>
-              <p className="max-w-2xl text-text-primary/85 text-lg">{t("dashboard.welcome_subtitle")}</p>
+<section className="card overflow-hidden">
+        <div className="p-6 sm:p-8" style={{ background: "var(--color-secondary)" }}>
+          <p className="eyebrow !text-white/60">{t("dashboard.title")}</p>
+          <div className="mt-3 flex flex-col justify-between gap-5 md:flex-row md:items-end">
+            <div className="flex flex-col gap-1.5">
+              <h1 className="text-white">{t("dashboard.welcome", { name: profile?.name || "Learner" })}</h1>
+              <p className="max-w-2xl text-[15px] text-white/75">{t("dashboard.welcome_subtitle")}</p>
             </div>
             <Link
               to="/leaderboard"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-secondary px-6 py-3 font-black text-white shadow-lg transition-all hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-secondary"
             >
-              <Trophy size={18} />
+              <Trophy size={16} />
               {t("nav.leaderboard")}
             </Link>
           </div>
@@ -94,17 +95,19 @@ export function AppPage() {
         </p>
       ) : null}
 
-      <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard label={t("dashboard.xp")} value={score.xp.toLocaleString()} helper={t("dashboard.learning_progress")} tone="bg-surface" />
-        <StatCard label={t("dashboard.energy")} value={String(score.energy)} helper={t("dashboard.energy_helper")} tone="bg-card" />
-        <StatCard label={t("dashboard.total_score")} value={score.totalScore.toLocaleString()} helper={t("dashboard.xp_energy_bonus")} tone="bg-surface" />
-        <StatCard label={t("dashboard.streak")} value={`${profile?.currentStreak ?? profile?.streak ?? 0} ${t("common.days")}`} helper={t("dashboard.lessons_completed")} tone="bg-card" />
-        <StatCard
-          label={t("dashboard.completed")}
-          value={`${profile?.completedLessons || 0}`}
-          helper={t("dashboard.lessons_completed_count", { count: profile?.completedLessons || 0 })}
-          tone="bg-surface"
-        />
+      <section aria-label={t("dashboard.learning_progress")}>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label={t("dashboard.total_score")} value={score.totalScore.toLocaleString()} helper={t("dashboard.total_score_formula")} tone="bg-surface" icon={<Trophy size={16} />} />
+          <StatCard label={t("dashboard.xp")} value={score.xp.toLocaleString()} helper={t("dashboard.learning_progress")} tone="bg-surface" icon={<Zap size={16} />} />
+          <StatCard label={t("dashboard.energy")} value={String(score.energy)} helper={t("dashboard.energy_helper")} tone="bg-surface" icon={<Award size={16} />} />
+          <StatCard
+            label={t("dashboard.streak")}
+            value={`${profile?.currentStreak ?? profile?.streak ?? 0} ${t("common.days")}`}
+            helper={t("dashboard.lessons_completed_count", { count: profile?.completedLessons || 0 })}
+            tone="bg-surface"
+            icon={<CalendarDays size={16} />}
+          />
+        </div>
       </section>
 
       {/* Daily AI Challenge */}
@@ -112,7 +115,7 @@ export function AppPage() {
 
       {/* Last updated timestamp */}
       {activeTimetable && lastUpdated && (
-        <p className="text-xs text-text-muted text-right -mt-4">Last updated: {new Date(lastUpdated).toLocaleString()} • <Link to="/timetable" className="text-primary font-bold hover:underline">Manage timetable</Link></p>
+        <p className="text-right text-xs text-text-muted">Updated {new Date(lastUpdated).toLocaleString()} · <Link to="/timetable" className="font-semibold text-primary hover:underline">Manage timetable</Link></p>
       )}
 
       {/* Exam countdown + Syllabus progress + Deadlines row */}
@@ -209,7 +212,15 @@ export function AppPage() {
 
       {/* Timetable dashboard row */}
       {activeTimetable ? (
-        <section className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <section aria-label={t("timetable.todays_study")}>
+          <div className="section-head">
+            <div>
+              <p className="eyebrow">{t("timetable.weekly")}</p>
+              <h2 className="mt-1 text-text-primary">{t("timetable.todays_study")}</h2>
+            </div>
+            <Link to="/timetable" className="btn-ghost !min-h-[40px] !py-2 text-[13px]">{t("timetable.view_full")}</Link>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {/* Today's Study */}
           <article className="rounded-3xl border border-border bg-surface p-6 shadow-sm transition-all hover:shadow-md h-full flex flex-col">
             <div className="mb-4 flex items-center gap-3">
@@ -252,7 +263,7 @@ export function AppPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold uppercase tracking-widest text-text-secondary">{t("timetable.upcoming")}</p>
-                <h3 className="text-lg font-black tracking-tight text-text-primary">{t("Timetable")}</h3>
+                <h3 className="text-lg font-bold tracking-tight text-text-primary">{t("timetable.title")}</h3>
               </div>
             </div>
             {upcomingLessons.length > 0 ? (
@@ -332,43 +343,48 @@ export function AppPage() {
               </div>
             ) : null}
           </article>
+          </div>
         </section>
       ) : (
         <Link
           to="/timetable"
-          className="group flex items-center justify-between rounded-3xl border-2 border-dashed border-border bg-surface/50 p-6 text-left transition-all hover:border-primary/50 hover:bg-surface"
+          className="card card-hover flex flex-col gap-4 p-5 text-left sm:flex-row sm:items-center sm:justify-between sm:p-6"
         >
           <div className="flex items-center gap-4">
-            <div className="rounded-xl bg-primary/10 p-3 text-primary">
-              <CalendarDays size={24} />
-            </div>
+            <span className="icon-tile"><CalendarDays size={20} /></span>
             <div>
-              <p className="text-lg font-black tracking-tight text-text-primary">{t("timetable.create_timetable")}</p>
-              <p className="text-sm text-text-secondary">{t("timetable.create_subtitle")}</p>
+              <p className="font-bold text-text-primary">{t("timetable.create_timetable")}</p>
+              <p className="mt-0.5 text-sm text-text-secondary">{t("timetable.create_subtitle")}</p>
             </div>
           </div>
-          <span className="rounded-xl bg-primary px-5 py-2.5 text-xs font-black text-white transition-all group-hover:bg-primary-active">
+          <span className="btn-primary !w-full sm:!w-auto">
             {t("common.create")}
           </span>
         </Link>
       )}
 
-      <section className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-<article className="rounded-3xl border border-border bg-surface p-8 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1 h-full flex flex-col">
-            <div className="mb-6 flex items-center gap-4">
-              <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
-                <Trophy size={24} />
+      <section className="grid items-start gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+        <article className="card card-pad flex h-full flex-col">
+            <div className="section-head">
+              <div className="flex items-center gap-3">
+                <span className="icon-tile"><Trophy size={19} /></span>
+                <div className="min-w-0">
+                  <p className="eyebrow">{t("nav.leaderboard")}</p>
+                  <h2 className="mt-0.5 text-text-primary">{t("leaderboard.top_learners")}</h2>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold uppercase tracking-widest text-text-secondary">{t("nav.leaderboard")}</p>
-                <h2 className="text-2xl font-black tracking-tight text-text-primary">{t("Leaderboard")}</h2>
-              </div>
+              <Link to="/leaderboard" className="btn-ghost !min-h-[40px] !py-2 text-[13px]">{t("leaderboard.view_full")}</Link>
             </div>
 
             {leaderboardUsers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center flex-1">
-                <Medal size={40} className="text-text-muted" />
-                <p className="mt-4 text-sm font-bold text-text-secondary">{t("common.loading")}</p>
+              <div className="grid flex-1 gap-3" aria-label={t("common.loading")} role="status">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="skeleton h-6 w-8" />
+                    <div className="skeleton h-9 w-9 !rounded-xl" />
+                    <div className="skeleton h-4 flex-1" />
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="flex-1">
@@ -378,45 +394,26 @@ export function AppPage() {
                 />
               </div>
             )}
-
-            <div className="mt-6 pt-6 border-t border-border">
-              <Link
-                to="/leaderboard"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-secondary px-6 py-3 font-black text-white shadow-lg transition-all hover:bg-secondary/90 active:scale-95"
-              >
-                <Trophy size={16} />
-                {t("View Full Leaderboard")}
-              </Link>
-            </div>
           </article>
 
-<article className="rounded-3xl border border-border bg-surface p-8 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1 h-full flex flex-col">
-           <div className="mb-8 flex items-center gap-4">
-             <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
-               <Award size={24} />
-             </div>
-             <div className="min-w-0">
-               <p className="text-xs font-bold uppercase tracking-widest text-text-secondary">{t("dashboard.my_subjects")}</p>
-               <h2 className="text-2xl font-black tracking-tight text-text-primary">{t("dashboard.continue_learning")}</h2>
+        <article className="card card-pad flex h-full flex-col">
+           <div className="section-head">
+             <div className="flex items-center gap-3">
+               <span className="icon-tile"><Award size={19} /></span>
+               <div className="min-w-0">
+                 <p className="eyebrow">{t("dashboard.my_subjects")}</p>
+                 <h2 className="mt-0.5 text-text-primary">{t("dashboard.continue_learning")}</h2>
+               </div>
              </div>
            </div>
-  
+
            {subjects.length === 0 ? (
-             <div className="flex flex-col items-center justify-center py-16 text-center flex-1">
-               <div className="mb-6 rounded-full bg-background p-6 text-text-muted border border-border">
-                 <Target size={48} />
-               </div>
-               <h3 className="text-2xl font-black text-text-primary">{t("forge.no_subjects")}</h3>
-               <p className="mt-3 max-w-xs text-sm text-text-secondary leading-relaxed">
-                 {t("dashboard.no_subjects_desc")}
-               </p>
-                <Link
-                   to="/forge"
-                   className="mt-8 inline-flex items-center justify-center rounded-xl bg-secondary px-8 py-3 font-black text-white shadow-lg transition-all hover:bg-primary hover:scale-105 active:scale-95"
-                 >
-                   {t("dashboard.open_forge")}
-                 </Link>
-  
+             <div className="flex-1">
+               <EmptyState
+                 title={t("forge.no_subjects")}
+                 copy={t("dashboard.no_subjects_desc")}
+                 action={<Link to="/forge" className="btn-primary">{t("dashboard.open_forge")}</Link>}
+               />
              </div>
            ) : (
              <div className="grid gap-5 flex-1">
@@ -464,27 +461,19 @@ export function AppPage() {
                          />
                        </div>
                      </div>
-                     <div className="shrink-0 mt-1">
-                        <button
-                           type="button"
-                           className="rounded-xl bg-primary px-5 py-2.5 text-xs font-black text-white transition-all duration-150 active:scale-95 group-hover:bg-primary-active shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                         >
-                           {t("lesson.continue")}
-                         </button>
-   
-                     </div>
-                   </Link>
-                 );
-               })}
-             </div>
-           )}
-            <div className="mt-8 pt-6 border-t border-border rounded-2xl bg-gradient-to-r from-surface to-card p-0 shadow-sm">
-              <div className="flex items-center gap-3 font-black text-text-primary p-6">
-                <Zap size={20} className="text-warning" />
-                {t("dashboard.total_score_formula")}
+                      <span className="mt-1 shrink-0 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white">
+                        {t("lesson.continue")}
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
-            </div>
-         </article>
+            )}
+             <p className="mt-5 flex items-center gap-2 border-t border-border pt-4 text-xs text-text-muted">
+               <Zap size={14} className="shrink-0 text-warning" />
+               {t("dashboard.total_score_formula")}
+             </p>
+          </article>
 
       </section>
     </div>

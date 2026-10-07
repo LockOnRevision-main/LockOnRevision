@@ -97,24 +97,30 @@ export function DailyChallengeCard() {
 
   if (loading) {
     return (
-      <article className="rounded-3xl border border-border bg-surface p-6 shadow-sm animate-pulse">
-        <div className="h-6 w-48 bg-background rounded mb-3" />
-        <div className="h-4 w-full bg-background rounded mb-2" />
-        <div className="h-10 w-32 bg-background rounded" />
+      <article className="card card-pad" aria-label="Loading" role="status">
+        <div className="flex items-center gap-3">
+          <div className="skeleton h-10 w-10 !rounded-xl" />
+          <div className="flex-1">
+            <div className="skeleton h-3 w-32" />
+            <div className="skeleton mt-2 h-5 w-48" />
+          </div>
+        </div>
+        <div className="skeleton mt-4 h-2 w-full" />
+        <div className="skeleton mt-4 h-11 w-full !rounded-xl" />
       </article>
     );
   }
 
   if (error && !challenge) {
     return (
-      <article className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="p-2 rounded-xl bg-primary/10 text-primary"><Brain size={20} /></div>
-          <h3 className="font-black text-text-primary">Daily AI Challenge</h3>
+      <article className="card card-pad">
+        <div className="mb-3 flex items-center gap-3">
+          <span className="icon-tile"><Brain size={19} /></span>
+          <h3 className="font-bold text-text-primary">Daily Challenge</h3>
         </div>
-        <p className="text-sm text-status-error mb-3">{error}</p>
-        <button onClick={handleGenerate} disabled={generating} className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-bold disabled:opacity-50">
-          {generating ? "Generating..." : "Retry"}
+        <p className="alert alert-error mb-3" role="alert">{error}</p>
+        <button type="button" onClick={handleGenerate} disabled={generating} className="btn-primary !w-full sm:!w-auto">
+          {generating ? "Preparing..." : "Try again"}
         </button>
       </article>
     );
@@ -122,14 +128,17 @@ export function DailyChallengeCard() {
 
   if (!challenge) {
     return (
-      <article className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="p-2 rounded-xl bg-primary/10 text-primary"><Brain size={20} /></div>
-          <h3 className="font-black text-text-primary">Daily AI Challenge</h3>
+      <article className="card card-pad">
+        <div className="mb-3 flex items-center gap-3">
+          <span className="icon-tile"><Brain size={19} /></span>
+          <div>
+            <p className="eyebrow">Daily Challenge</p>
+            <h3 className="mt-0.5 font-bold text-text-primary">Today's practice set</h3>
+          </div>
         </div>
-        <p className="text-sm text-text-secondary mb-3">No challenge yet. Generate your personalized challenge.</p>
-        <button onClick={handleGenerate} disabled={generating} className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-bold disabled:opacity-50">
-          {generating ? "Generating..." : "Generate Challenge"}
+        <p className="mb-4 text-sm text-text-secondary">No challenge yet. Generate a short personalized set based on your recent work.</p>
+        <button type="button" onClick={handleGenerate} disabled={generating} className="btn-primary !w-full sm:!w-auto">
+          {generating ? "Preparing..." : "Generate today's challenge"}
         </button>
       </article>
     );
@@ -142,24 +151,23 @@ export function DailyChallengeCard() {
   const progressPercent = completed ? 100 : 0;
 
   return (
-    <article className="overflow-hidden rounded-3xl border border-border bg-surface shadow-sm hover:shadow-md transition-all">
-      {/* Header gradient */}
-      <div className="bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/5 px-6 py-5 border-b border-border">
+    <article className="card overflow-hidden">
+      <div className="border-b border-border bg-background/60 px-5 py-4 sm:px-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="p-2.5 rounded-xl bg-primary text-white shadow-sm shrink-0">
-              <Sparkles size={20} />
+            <div className="icon-tile shrink-0">
+              <Sparkles size={19} />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-widest text-text-secondary flex items-center gap-2">
-                <span>Today&apos;s AI Challenge</span>
-                {completed && <span className="inline-flex items-center gap-1 rounded-full bg-status-success/15 text-status-success px-2 py-0.5 text-[10px] border border-status-success/20"><CheckCircle2 size={10} /> Completed</span>}
+              <p className="eyebrow flex items-center gap-2">
+                <span>Today&apos;s challenge</span>
+                {completed && <span className="badge !border-success/30 !bg-success/10 !text-success !text-[10px]"><CheckCircle2 size={10} /> Done</span>}
               </p>
-              <h3 className="text-lg font-black tracking-tight text-text-primary truncate">{challenge.title}</h3>
+              <h3 className="mt-1 truncate text-[1.05rem] font-bold tracking-tight text-text-primary">{challenge.title}</h3>
               <p className="text-xs text-text-secondary line-clamp-1">{challenge.description}</p>
             </div>
           </div>
-          <div className={`hidden sm:inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-black shrink-0 ${diffClass}`}>
+          <div className={`hidden shrink-0 items-center gap-1 rounded-full border px-3 py-1 text-xs font-bold capitalize sm:inline-flex ${diffClass}`}>
             <Target size={12} /> {difficulty}
           </div>
         </div>
@@ -174,7 +182,7 @@ export function DailyChallengeCard() {
           <span className="inline-flex items-center gap-1.5 rounded-full bg-background border border-border px-3 py-1 text-xs font-bold text-text-secondary">
             <Clock size={12} /> {challenge.estimatedTime || 10} min
           </span>
-          <span className="sm:hidden inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-black shrink-0 ${diffClass}">{difficulty}</span>
+          <span className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-bold capitalize sm:hidden ${diffClass}`}>{difficulty}</span>
           <span className="inline-flex items-center gap-1 rounded-full bg-background border border-border px-3 py-1 text-xs font-bold text-text-secondary">
             {templateLabel}
           </span>
@@ -222,11 +230,8 @@ export function DailyChallengeCard() {
             </Link>
           </div>
         ) : (
-          <Link
-            to="/daily-challenge"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 font-black text-white shadow-lg hover:bg-primary-active active:scale-[0.98] transition-all"
-          >
-            <Trophy size={18} />
+          <Link to="/daily-challenge" className="btn-primary w-full">
+            <Trophy size={17} />
             Start Challenge
           </Link>
         )}

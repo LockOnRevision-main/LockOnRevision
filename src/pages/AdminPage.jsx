@@ -208,16 +208,16 @@ export function AdminPage() {
 
   return (
     <div className="grid gap-6">
-      <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
-        <div className="bg-gradient-to-r from-secondary to-primary p-6 text-white">
+      <section className="card overflow-hidden">
+        <div className="p-6" style={{ background: "var(--color-secondary)" }}>
           <div className="flex items-center gap-3">
-            <ShieldCheck size={24} />
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-white/12 text-white"><ShieldCheck size={20} /></span>
             <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-white/75">{t("nav.admin")}</p>
-              <h1 className="text-4xl font-black tracking-tight">{t("admin.title")}</h1>
+              <p className="eyebrow !text-white/60">{t("nav.admin")}</p>
+              <h1 className="text-white">{t("admin.title")}</h1>
             </div>
           </div>
-          <p className="mt-3 max-w-2xl text-white/85">{t("admin.description")}</p>
+          <p className="mt-3 max-w-2xl text-sm text-white/75">{t("admin.description")}</p>
         </div>
       </section>
 
@@ -243,13 +243,15 @@ export function AdminPage() {
         />
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-        <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-3">
-            <Users className="text-primary" />
-            <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">{t("admin.user_management")}</p>
-              <h2 className="text-2xl font-black">{t("admin.search_users")}</h2>
+      <section className="grid items-start gap-4 lg:grid-cols-[1fr_1fr]">
+        <article className="card card-pad">
+          <div className="section-head">
+            <div className="flex items-center gap-3">
+              <span className="icon-tile" style={{ width: "2.25rem", height: "2.25rem" }}><Users size={17} /></span>
+              <div>
+                <p className="eyebrow">{t("admin.user_management")}</p>
+                <h2 className="mt-0.5 text-text-primary">{t("admin.search_users")}</h2>
+              </div>
             </div>
           </div>
 
@@ -258,15 +260,16 @@ export function AdminPage() {
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder={t("admin.search_placeholder")}
-              className="min-w-0 flex-1 rounded-lg border border-border px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
+              aria-label={t("admin.search_placeholder")}
+              className="field min-w-0 flex-1"
             />
             <button
               type="button"
               disabled={busy}
               onClick={runSearch}
-              className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-black text-white disabled:bg-text-muted"
+              className="btn-secondary shrink-0"
             >
-              <Search size={16} />
+              <Search size={15} />
               {t("common.search")}
             </button>
           </div>
@@ -302,71 +305,75 @@ export function AdminPage() {
           </div>
         </article>
 
-        <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-3">
-            <Zap className="text-warning" />
-            <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">{t("admin.rewards_progress")}</p>
-              <h2 className="text-2xl font-black">{t("admin.adjust_xp")}</h2>
+        <article className="card card-pad">
+          <div className="section-head">
+            <div className="flex items-center gap-3">
+              <span className="icon-tile" style={{ width: "2.25rem", height: "2.25rem" }}><Zap size={17} /></span>
+              <div>
+                <p className="eyebrow">{t("admin.rewards_progress")}</p>
+                <h2 className="mt-0.5 text-text-primary">{t("admin.adjust_xp")}</h2>
+              </div>
             </div>
           </div>
 
           {selectedUser ? (
-            <p className="mb-4 rounded-lg bg-background p-3 text-sm">
-              <strong>{selectedUser.name}</strong> - {t("leaderboard.xp")} {selectedUser.xp || 0}, {t("dashboard.energy")} {selectedUser.energy || 0},
-              {t("admin.total")} {selectedUser.totalScore || calculateTotalScore(selectedUser)}
+            <p className="mb-4 rounded-xl border border-border bg-background p-3 text-sm text-text-secondary">
+              <strong className="text-text-primary">{selectedUser.name}</strong> · {t("leaderboard.xp")} {(selectedUser.xp || 0).toLocaleString()} · {t("dashboard.energy")} {selectedUser.energy || 0} · {t("admin.total")} {(selectedUser.totalScore || calculateTotalScore(selectedUser)).toLocaleString()}
             </p>
           ) : (
             <p className="mb-4 text-sm text-text-secondary">{t("admin.select_user")}</p>
           )}
 
-          <div className="grid gap-4">
-            <div className="rounded-lg border border-border p-3">
-              <p className="text-sm font-black">{t("leaderboard.xp")}</p>
-              <div className="mt-2 flex items-center gap-2">
+          <div className="grid gap-3">
+            <div className="rounded-xl border border-border bg-background/60 p-3">
+              <p className="text-[13px] font-bold text-text-primary">{t("leaderboard.xp")}</p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 <input
                   type="number"
                   value={xpDelta}
                   onChange={(event) => setXpDelta(event.target.value)}
-                  className="w-24 rounded-lg border border-border px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
+                  aria-label={t("leaderboard.xp")}
+                  className="field !w-24"
                 />
-                <button type="button" disabled={busy} onClick={() => runXpAdjust(1)} className="rounded-lg bg-primary px-3 py-2 text-sm font-black text-white">
+                <button type="button" disabled={busy} onClick={() => runXpAdjust(1)} className="btn-primary !min-h-[40px] !px-3.5 !py-2 text-[13px]">
                   {t("admin.add_xp")}
                 </button>
-                <button type="button" disabled={busy} onClick={() => runXpAdjust(-1)} className="rounded-lg border border-border px-3 py-2 text-sm font-bold">
+                <button type="button" disabled={busy} onClick={() => runXpAdjust(-1)} className="btn-ghost !min-h-[40px] !px-3.5 !py-2 text-[13px]">
                   {t("admin.remove_xp")}
                 </button>
               </div>
             </div>
 
-            <div className="rounded-lg border border-border p-3">
-              <p className="text-sm font-black">{t("dashboard.energy")}</p>
-              <div className="mt-2 flex items-center gap-2">
+            <div className="rounded-xl border border-border bg-background/60 p-3">
+              <p className="text-[13px] font-bold text-text-primary">{t("dashboard.energy")}</p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 <input
                   type="number"
                   value={energyDelta}
                   onChange={(event) => setEnergyDelta(event.target.value)}
-                  className="w-24 rounded-lg border border-border px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
+                  aria-label={t("dashboard.energy")}
+                  className="field !w-24"
                 />
-                <button type="button" disabled={busy} onClick={() => runEnergyAdjust(1)} className="rounded-lg bg-warning px-3 py-2 text-sm font-black text-white">
+                <button type="button" disabled={busy} onClick={() => runEnergyAdjust(1)} className="btn-primary !min-h-[40px] !px-3.5 !py-2 text-[13px]">
                   {t("admin.add_energy")}
                 </button>
-                <button type="button" disabled={busy} onClick={() => runEnergyAdjust(-1)} className="rounded-lg border border-border px-3 py-2 text-sm font-bold">
+                <button type="button" disabled={busy} onClick={() => runEnergyAdjust(-1)} className="btn-ghost !min-h-[40px] !px-3.5 !py-2 text-[13px]">
                   {t("admin.remove_energy")}
                 </button>
               </div>
             </div>
 
-            <div className="rounded-lg border border-border p-3">
-              <p className="text-sm font-black">{t("admin.total_score_override")}</p>
-              <div className="mt-2 flex items-center gap-2">
+            <div className="rounded-xl border border-border bg-background/60 p-3">
+              <p className="text-[13px] font-bold text-text-primary">{t("admin.total_score_override")}</p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 <input
                   type="number"
                   value={totalScoreInput}
                   onChange={(event) => setTotalScoreInput(event.target.value)}
-                  className="w-32 rounded-lg border border-border px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
+                  aria-label={t("admin.total_score_override")}
+                  className="field !w-28"
                 />
-                <button type="button" disabled={busy} onClick={runTotalScoreSet} className="rounded-lg bg-secondary px-3 py-2 text-sm font-black text-white">
+                <button type="button" disabled={busy} onClick={runTotalScoreSet} className="btn-secondary !min-h-[40px] !px-3.5 !py-2 text-[13px]">
                   {t("admin.set_total_score")}
                 </button>
               </div>
@@ -375,44 +382,49 @@ export function AdminPage() {
         </article>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-        <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-3">
-            <Trophy className="text-primary" />
-            <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">{t("leaderboard.title")}</p>
-              <h2 className="text-2xl font-black">{t("admin.reward_events")}</h2>
+      <section className="grid items-start gap-4 lg:grid-cols-[1fr_1fr]">
+        <article className="card card-pad">
+          <div className="section-head">
+            <div className="flex items-center gap-3">
+              <span className="icon-tile" style={{ width: "2.25rem", height: "2.25rem" }}><Trophy size={17} /></span>
+              <div>
+                <p className="eyebrow">{t("leaderboard.title")}</p>
+                <h2 className="mt-0.5 text-text-primary">{t("admin.reward_events")}</h2>
+              </div>
             </div>
           </div>
 
-          <div className="grid gap-3">
+          <div className="grid gap-2.5">
             <input
               type="number"
               value={rewardXp}
               onChange={(event) => setRewardXp(event.target.value)}
-              className="rounded-lg border border-border px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
+              className="field"
               placeholder={t("admin.xp_to_grant")}
+              aria-label={t("admin.xp_to_grant")}
             />
             <input
               type="number"
               value={rewardEnergy}
               onChange={(event) => setRewardEnergy(event.target.value)}
-              className="rounded-lg border border-border px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
+              className="field"
               placeholder={t("admin.energy_to_grant")}
+              aria-label={t("admin.energy_to_grant")}
             />
             <input
               value={rewardReason}
               onChange={(event) => setRewardReason(event.target.value)}
-              className="rounded-lg border border-border px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
+              className="field"
               placeholder={t("admin.reason")}
+              aria-label={t("admin.reason")}
             />
             <button
               type="button"
               disabled={busy}
               onClick={runRewardEvent}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary to-warning px-4 py-3 font-black text-white disabled:opacity-50"
+              className="btn-primary"
             >
-              <Award size={18} />
+              <Award size={16} />
               {t("admin.grant_reward_event")}
             </button>
           </div>
@@ -434,12 +446,14 @@ export function AdminPage() {
           ) : null}
         </article>
 
-        <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-3">
-            <BookOpen className="text-warning" />
-            <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">{t("admin.content")}</p>
-              <h2 className="text-2xl font-black">{t("admin.forge_moderation")}</h2>
+        <article className="card card-pad">
+          <div className="section-head">
+            <div className="flex items-center gap-3">
+              <span className="icon-tile" style={{ width: "2.25rem", height: "2.25rem" }}><BookOpen size={17} /></span>
+              <div>
+                <p className="eyebrow">{t("admin.content")}</p>
+                <h2 className="mt-0.5 text-text-primary">{t("admin.forge_moderation")}</h2>
+              </div>
             </div>
           </div>
 

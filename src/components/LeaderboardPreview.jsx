@@ -56,7 +56,7 @@ export function LeaderboardPreview({ users, currentUserId }) {
   }
 
   return (
-    <div className="divide-y divide-border rounded-xl border border-border bg-background overflow-hidden">
+    <div className="card divide-y divide-border overflow-hidden !shadow-none">
       {previewEntries.map((entry) => {
         const rank = entry._rank;
         const xp = Number(entry.xp || 0);
@@ -74,7 +74,7 @@ export function LeaderboardPreview({ users, currentUserId }) {
                 : "hover:bg-background/50"
             }`}
           >
-            <div className="flex w-10 shrink-0 items-center justify-center font-black text-text-primary text-sm">
+            <div className="flex w-10 shrink-0 items-center justify-center font-bold text-text-primary text-sm tabular-nums">
               {rank <= 3 ? <Medal className="text-warning shrink-0" size={16} /> : <Trophy className="text-text-muted shrink-0" size={14} />}
               <span className="ml-1.5 tabular-nums">{rank}</span>
             </div>
@@ -99,7 +99,7 @@ export function LeaderboardPreview({ users, currentUserId }) {
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-2 truncate text-sm font-black text-text-primary">
+              <p className="flex items-center gap-2 truncate text-sm font-bold text-text-primary">
                 {entry.name || entry.displayName || entry.username || entry.email?.split("@")[0] || t("common.learner")}
                 {isCurrentUser ? (
                   <span className="shrink-0 inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-primary">
@@ -107,13 +107,13 @@ export function LeaderboardPreview({ users, currentUserId }) {
                   </span>
                 ) : null}
               </p>
-              <p className="mt-0.5 text-xs text-text-muted">
-                {t("Energy", { xp: xp.toLocaleString(), energy })}
+              <p className="mt-0.5 truncate text-xs text-text-muted">
+                {t("leaderboard.xp_energy", { xp: xp.toLocaleString(), energy })}
               </p>
             </div>
 
-            <div className="shrink-0 text-right w-24">
-              <span className="text-sm font-black text-primary tabular-nums">{total.toLocaleString()}</span>
+            <div className="w-24 shrink-0 text-right">
+              <span className="text-sm font-bold tabular-nums text-primary">{total.toLocaleString()}</span>
             </div>
           </div>
         );

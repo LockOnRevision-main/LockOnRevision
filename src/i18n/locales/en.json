@@ -6,6 +6,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "forge": "Forge",
+    "analytics": "Analytics",
     "leaderboard": "Leaderboard",
     "profile": "Profile",
     "timetable": "Timetable",
@@ -238,7 +239,8 @@
     "arrange_order_instruction": "Arrange items in the correct order.",
     "up": "Up",
     "down": "Down",
-    "matched_count": "{{count}} / {{total}} matched"
+    "matched_count": "{{count}} / {{total}} matched",
+    "no_answer": "No answer given"
   },
   "leaderboard": {
     "title": "Leaderboard",
@@ -410,7 +412,7 @@
     "rename": "Rename",
     "replace": "Replace",
     "delete": "Delete",
-    "upload_persistence_note": "Originals + extracted metadata are saved. Regeneration never requires re-upload; future uploads merge intelligently and preserve completed sessions."
+    "upload_persistence_note": "Your files are saved, so future uploads build on your current timetable without starting over."
   },
   "admin": {
     "title": "Administration panel",
@@ -647,7 +649,52 @@
     "send": "Send message",
     "connected_gemini": "AI assistant ready ({{model}})",
     "not_connected_gemini": "AI assistant is temporarily unavailable. Please try again later.",
-    "error_unauthorized": "Authentication failed. Please sign in again."
+    "error_unauthorized": "Authentication failed. Please sign in again.",
+    "suggestion_label": "Try asking",
+    "suggestion_1": "Explain a concept I'm stuck on",
+    "suggestion_2": "Quiz me on my weakest topic",
+    "suggestion_3": "Help me plan today's revision",
+    "context_subjects": "{{count}} subjects in context",
+    "context_none": "Add subjects in Forge to personalize answers"
+  },
+  "analytics": {
+    "title": "Learning insights",
+    "subtitle": "Understand your progress, consistency, and what to focus on next.",
+    "focus_next": "What to focus on next",
+    "focus_all_done_title": "Everything is complete",
+    "focus_all_done_desc": "All lessons across your subjects are done. Add a new subject in Forge to keep momentum.",
+    "weakest_subject": "Needs most attention",
+    "suggested_lesson": "Suggested next lesson",
+    "weak_topics": "Topics to revisit",
+    "start_lesson": "Start lesson",
+    "open_forge": "Open Forge",
+    "completion_rate": "Overall completion",
+    "lessons_completed": "Lessons completed",
+    "day_streak": "Day streak",
+    "study_hours": "Study hours (28 days)",
+    "weekly_trend": "Lessons per week",
+    "weekly_trend_desc": "Completed lessons for the last 8 weeks.",
+    "lessons_label": "lessons",
+    "by_subject": "Progress by subject",
+    "by_subject_desc": "Completion, XP earned, and perfect lessons per subject.",
+    "strongest": "Strongest",
+    "needs_attention": "Needs attention",
+    "consistency_title": "Consistency",
+    "consistency_desc": "Active study days over the last 28 days.",
+    "active_days": "active days",
+    "timetable_adherence": "Study plan adherence",
+    "adherence_desc": "Planned timetable sessions completed vs skipped.",
+    "sessions_done": "sessions completed",
+    "challenge_record": "Daily Challenge record",
+    "challenges_done": "completed",
+    "perfect_count": "perfect",
+    "no_challenges": "No completed challenges yet. Your recent results will appear here.",
+    "your_position": "Your leaderboard position",
+    "view_leaderboard": "View leaderboard",
+    "empty_title": "No learning data yet",
+    "empty_desc": "Complete lessons in Forge and your insights will appear here automatically.",
+    "perfect_rate": "Perfect-lesson rate",
+    "avg_mastery": "Average topic mastery"
   },
   "about": {
     "badge": "About LockOnRevision",

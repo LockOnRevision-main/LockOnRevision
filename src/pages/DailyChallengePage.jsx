@@ -246,18 +246,19 @@ export function DailyChallengePage() {
     return (
       <div className="max-w-3xl mx-auto p-4 sm:p-6">
         <button onClick={() => navigate("/app")} className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-text-secondary hover:text-text-primary"><ArrowLeft size={16} /> Back</button>
-        <div className="rounded-3xl border border-status-success/30 bg-status-success/10 p-8 text-center">
-          <div className="mx-auto w-16 h-16 rounded-full bg-status-success/20 flex items-center justify-center text-status-success mb-4"><CheckCircle size={32} /></div>
-          <h2 className="text-2xl font-black text-text-primary">Challenge Completed!</h2>
-          <p className="text-text-secondary mt-1">{challenge.title} • {challenge.subject}</p>
-          <div className="mt-6 flex justify-center gap-6">
-            <div className="text-center"><div className="text-2xl font-black text-warning flex items-center gap-1 justify-center"><Zap size={20} />{challenge.xpAwarded ?? challenge.xpReward}</div><div className="text-xs font-bold uppercase tracking-widest text-text-muted">XP earned</div></div>
-            <div className="text-center"><div className="text-2xl font-black text-primary flex items-center gap-1 justify-center"><Flame size={20} />{challenge.energyAwarded ?? challenge.energyReward}</div><div className="text-xs font-bold uppercase tracking-widest text-text-muted">Energy</div></div>
+        <div className="card card-pad text-center">
+          <div className="icon-tile mx-auto" style={{ width: "3rem", height: "3rem", background: "var(--color-success)", color: "#fff" }}><CheckCircle size={26} /></div>
+          <p className="eyebrow mt-4" style={{ color: "var(--color-success)" }}>Completed</p>
+          <h2 className="mt-1 text-text-primary">Challenge completed</h2>
+          <p className="mt-1 text-sm text-text-secondary">{challenge.title} · {challenge.subject}</p>
+          <div className="mx-auto mt-5 flex max-w-xs justify-center gap-3">
+            <div className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-center"><div className="flex items-center justify-center gap-1 text-xl font-extrabold tabular-nums text-warning"><Zap size={17} />{challenge.xpAwarded ?? challenge.xpReward}</div><div className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.1em] text-text-muted">XP earned</div></div>
+            <div className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-center"><div className="flex items-center justify-center gap-1 text-xl font-extrabold tabular-nums text-primary"><Flame size={17} />{challenge.energyAwarded ?? challenge.energyReward}</div><div className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.1em] text-text-muted">Energy</div></div>
           </div>
-          <p className="mt-4 text-xs text-text-muted">Come back tomorrow for a new personalized challenge. Streak preserved!</p>
-          <div className="mt-6 flex gap-3 justify-center">
-            <Link to="/app" className="px-6 py-2.5 rounded-xl bg-primary text-white font-black">Home</Link>
-            <button onClick={() => setResult({ showReview: true })} className="px-6 py-2.5 rounded-xl border border-border bg-surface font-bold">Review Answers</button>
+          <p className="mt-4 text-[13px] text-text-muted">A new challenge will be ready tomorrow.</p>
+          <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
+            <Link to="/app" className="btn-primary">Back to dashboard</Link>
+            <button type="button" onClick={() => setResult({ showReview: true })} className="btn-ghost">Review answers</button>
           </div>
         </div>
 
@@ -312,15 +313,15 @@ export function DailyChallengePage() {
         <div className={`mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-4 ${score >= 80 ? "bg-status-success/20 text-status-success" : score >= 50 ? "bg-warning/20 text-warning" : "bg-status-error/20 text-status-error"}`}>
           {score >= 50 ? <Trophy size={32} /> : <Target size={32} />}
         </div>
-        <h2 className="text-3xl font-black text-text-primary">{score >= 100 ? "Perfect!" : score >= 80 ? "Great job!" : score >= 50 ? "Good effort!" : "Keep practicing!"}</h2>
-        <p className="text-text-secondary mt-1">{correct}/{total} • {score}% {perfect ? "• Bonus XP!" : ""}</p>
-        <div className="mt-6 flex justify-center gap-8">
-          <div className="text-center"><div className="text-3xl font-black text-warning flex items-center gap-1 justify-center"><Zap size={22} />{xpReward ?? challenge.xpReward}</div><div className="text-xs font-bold uppercase tracking-widest text-text-muted">XP</div></div>
-          <div className="text-center"><div className="text-3xl font-black text-primary flex items-center gap-1 justify-center"><Flame size={22} />{energyReward ?? challenge.energyReward}</div><div className="text-xs font-bold uppercase tracking-widest text-text-muted">Energy</div></div>
+        <h2 className="text-text-primary">{score >= 100 ? "Perfect score" : score >= 80 ? "Great job" : score >= 50 ? "Good effort" : "Keep practicing"}</h2>
+        <p className="mt-1 text-sm text-text-secondary">{correct}/{total} correct · {score}%{perfect ? " · Bonus XP earned" : ""}</p>
+        <div className="mx-auto mt-5 flex max-w-xs justify-center gap-3">
+          <div className="flex-1 rounded-xl border border-border bg-surface px-4 py-3 text-center"><div className="flex items-center justify-center gap-1 text-xl font-extrabold tabular-nums text-warning"><Zap size={17} />{xpReward ?? challenge.xpReward}</div><div className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.1em] text-text-muted">XP</div></div>
+          <div className="flex-1 rounded-xl border border-border bg-surface px-4 py-3 text-center"><div className="flex items-center justify-center gap-1 text-xl font-extrabold tabular-nums text-primary"><Flame size={17} />{energyReward ?? challenge.energyReward}</div><div className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.1em] text-text-muted">Energy</div></div>
         </div>
-        <div className="mt-8 flex gap-3 justify-center">
-          <Link to="/app" className="px-6 py-3 rounded-xl bg-primary text-white font-black">Continue</Link>
-          <button onClick={() => setResult({ showReview: true })} className="px-6 py-3 rounded-xl border border-border bg-surface font-bold">Review</button>
+        <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
+          <Link to="/app" className="btn-primary">Continue</Link>
+          <button type="button" onClick={() => setResult({ showReview: true })} className="btn-ghost">Review answers</button>
         </div>
       </div>
     );
@@ -329,21 +330,19 @@ export function DailyChallengePage() {
   // Active challenge UI
   return (
     <div className="max-w-3xl mx-auto p-4 sm:p-6">
-      <button onClick={() => navigate("/app")} className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-text-secondary hover:text-text-primary"><ArrowLeft size={16} /> Back to Home</button>
+      <button type="button" onClick={() => navigate("/app")} className="mb-4 inline-flex min-h-[44px] items-center gap-2 text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary"><ArrowLeft size={16} /> Back to dashboard</button>
 
-      <div className="rounded-3xl border border-border bg-surface overflow-hidden shadow-sm mb-6">
-        <div className="bg-gradient-to-r from-primary/10 to-secondary/10 px-6 py-4 border-b border-border">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text-secondary">
-            <Sparkles size={14} className="text-primary" /> Daily AI Challenge • {challenge.templateId || templateId}
-          </div>
-          <h1 className="text-xl font-black text-text-primary mt-1">{challenge.title}</h1>
-          <p className="text-sm text-text-secondary">{challenge.description}</p>
+      <div className="card mb-6 overflow-hidden">
+        <div className="border-b border-border bg-background/60 px-5 py-4 sm:px-6">
+          <p className="eyebrow flex items-center gap-1.5"><Sparkles size={13} /> Daily challenge</p>
+          <h1 className="mt-1 text-text-primary">{challenge.title}</h1>
+          <p className="mt-1 text-sm text-text-secondary">{challenge.description}</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-1 rounded-full bg-background border border-border px-3 py-1 text-xs font-bold"><Brain size={12} />{challenge.subject}</span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-background border border-border px-3 py-1 text-xs font-bold"><Clock size={12} />{challenge.estimatedTime}m</span>
-            <span className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-black bg-primary/10 text-primary border-primary/20"><Target size={12} />{challenge.difficulty}</span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 border border-warning/20 px-3 py-1 text-xs font-black text-warning"><Zap size={12} />{challenge.xpReward} XP</span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-black text-primary"><Flame size={12} />{challenge.energyReward} Energy</span>
+            <span className="badge"><Brain size={12} />{challenge.subject}</span>
+            <span className="badge"><Clock size={12} />{challenge.estimatedTime} min</span>
+            <span className="badge capitalize"><Target size={12} />{challenge.difficulty}</span>
+            <span className="badge !border-warning/30 !bg-warning/10 !text-warning"><Zap size={12} />{challenge.xpReward} XP</span>
+            <span className="badge badge-primary"><Flame size={12} />{challenge.energyReward} Energy</span>
           </div>
         </div>
         <div className="px-6 py-4">
@@ -356,9 +355,9 @@ export function DailyChallengePage() {
       </div>
 
       {challengeData.passage && (
-        <div className="mb-4 p-4 rounded-2xl border border-border bg-card">
-          <h3 className="text-xs font-black uppercase tracking-widest text-text-secondary mb-2">Case Passage</h3>
-          <p className="text-sm text-text-secondary leading-relaxed">{challengeData.passage}</p>
+        <div className="card mb-4 p-4 sm:p-5">
+          <h3 className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-text-muted">Reading passage</h3>
+          <p className="text-sm leading-relaxed text-text-secondary">{challengeData.passage}</p>
         </div>
       )}
       {challengeData.instructions && items.length > 1 && (
@@ -376,8 +375,8 @@ export function DailyChallengePage() {
                 <p className="text-sm text-text-secondary bg-background p-3 rounded-lg border border-border mb-3">{currentItem.diagramDescription}</p>
                 <div className="space-y-2">
                   {(currentItem.labels || []).map((lab) => (
-                    <div key={lab.id} className="p-3 rounded-xl border border-border bg-card">
-                      <p className="text-sm font-bold text-text-primary mb-2">{lab.label} ({lab.id})</p>
+                    <div key={lab.id} className="rounded-xl border border-border bg-card p-3">
+                      <p className="mb-2 text-sm font-bold text-text-primary">{lab.label}</p>
                       <div className="grid grid-cols-2 gap-2">
                         {(lab.options || []).map((opt) => (
                           <button key={opt} onClick={() => setAnswer(`diagram-${lab.id}`, opt)} className={`p-2 rounded-lg border text-sm font-medium ${answers[`diagram-${lab.id}`] === opt ? "border-primary bg-primary/10 text-primary" : "border-border bg-surface text-text-secondary"}`}>{opt}</button>
@@ -408,18 +407,18 @@ export function DailyChallengePage() {
       </div>
 
       <div className="flex justify-between gap-3">
-        <button onClick={() => setCurrentIdx((c) => Math.max(0, c - 1))} disabled={currentIdx === 0} className="px-5 py-3 rounded-xl border border-border bg-surface font-bold disabled:opacity-40">Back</button>
+        <button type="button" onClick={() => setCurrentIdx((c) => Math.max(0, c - 1))} disabled={currentIdx === 0} className="btn-ghost">Back</button>
         {currentIdx < items.length - 1 ? (
-          <button onClick={handleNext} disabled={!canProceed} className="px-6 py-3 rounded-xl bg-primary text-white font-black disabled:opacity-40 flex items-center gap-2 shadow-md">
+          <button type="button" onClick={handleNext} disabled={!canProceed} className="btn-primary">
             Next
           </button>
         ) : (
-          <button onClick={() => setResult({ showReview: true })} disabled={Object.keys(answers).length === 0} className="px-6 py-3 rounded-xl bg-primary text-white font-black disabled:opacity-40 shadow-md">
-            Review & Submit
+          <button type="button" onClick={() => setResult({ showReview: true })} disabled={Object.keys(answers).length === 0} className="btn-primary">
+            Review answers
           </button>
         )}
       </div>
-      {error && <p className="mt-3 text-sm text-status-error text-center">{error}</p>}
+      {error && <p className="alert alert-error mt-3 text-center" role="alert">{error}</p>}
     </div>
   );
 }

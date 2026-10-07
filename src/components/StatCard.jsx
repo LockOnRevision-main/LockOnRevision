@@ -1,8 +1,11 @@
-export function StatCard({ label, value, helper, tone = "bg-surface" }) {
+export function StatCard({ label, value, helper, tone = "bg-surface", icon }) {
   return (
-    <article className={`group rounded-2xl border border-border ${tone} p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1`}>
-      <p className="text-xs font-bold uppercase tracking-widest text-text-secondary transition-colors duration-300 group-hover:text-primary">{label}</p>
-      <strong className="mt-2 block text-3xl font-black tracking-tighter text-text-primary">{value}</strong>
+    <article className={`card card-pad ${tone}`}>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-text-secondary">{label}</p>
+        {icon ? <span className="icon-tile" style={{ width: "2rem", height: "2rem" }}>{icon}</span> : null}
+      </div>
+      <strong className="mt-2 block text-[1.7rem] font-extrabold tabular-nums tracking-tight text-text-primary">{value}</strong>
       {helper ? <p className="mt-1 text-xs font-medium text-text-muted">{helper}</p> : null}
     </article>
   );

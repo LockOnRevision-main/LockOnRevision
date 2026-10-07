@@ -50,6 +50,12 @@ export default {
       },
       boxShadow: {
         soft: "0 18px 50px rgba(31, 41, 51, 0.11)",
+        card: "0 1px 2px rgba(15, 23, 42, 0.05), 0 4px 16px rgba(15, 23, 42, 0.06)",
+        elevated: "0 2px 4px rgba(15, 23, 42, 0.06), 0 12px 32px rgba(15, 23, 42, 0.10)",
+        popover: "0 8px 28px rgba(15, 23, 42, 0.14)",
+      },
+      borderRadius: {
+        xl2: "1rem",
       },
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],

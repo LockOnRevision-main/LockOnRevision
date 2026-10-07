@@ -155,34 +155,27 @@ function LandingPageContent() {
           </div>
         </nav>
 
-        <div className="relative mx-auto grid min-h-[700px] max-w-7xl items-center gap-12 px-6 py-16 lg:grid-cols-[1fr_0.9fr] lg:py-20">
-          <div className="flex flex-col gap-6">
-            <p className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-surface/80 px-4 py-2 text-sm font-bold text-primary shadow-sm backdrop-blur-sm">
-              <GraduationCap size={16} />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:py-20">
+          <div className="flex flex-col gap-5">
+            <p className="badge badge-primary w-fit">
+              <GraduationCap size={14} />
               {t("landing.badge")}
             </p>
-            <h1 className="text-4xl font-black tracking-tight leading-[1.1] sm:text-5xl md:text-7xl lg:text-8xl text-text-primary">
+            <h1 className="text-text-primary">
               {t("app.name")}
             </h1>
-            <p className="max-w-2xl text-lg font-semibold leading-relaxed text-text-secondary sm:text-xl">
+            <p className="max-w-xl text-lg font-semibold leading-relaxed text-text-secondary">
               {t("landing.hero_subtitle")}
             </p>
-            <p className="max-w-2xl text-base leading-relaxed text-text-secondary/90 sm:text-lg">
+            <p className="max-w-xl text-[15px] leading-relaxed text-text-secondary">
               {t("landing.hero_desc")}
             </p>
-            <div className="mt-2 flex flex-wrap gap-4">
-              <button
-                type="button"
-                onClick={getStarted}
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary via-primary to-secondary px-8 py-4 font-bold text-white shadow-xl shadow-primary/30 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-primary/50 active:scale-95 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-              >
+            <div className="mt-1 flex flex-wrap gap-3">
+              <button type="button" onClick={getStarted} className="btn-primary !px-7 !py-3.5">
                 {t("landing.cta_start")}
-                <ArrowRight size={18} />
+                <ArrowRight size={17} />
               </button>
-              <Link
-                to="/leaderboard"
-                className="inline-flex items-center justify-center rounded-xl border border-border bg-surface px-8 py-4 font-bold text-text-primary shadow-sm transition-all hover:bg-background hover:border-primary/30 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-              >
+              <Link to="/leaderboard" className="btn-ghost !px-7 !py-3.5">
                 {t("landing.view_leaderboard")}
               </Link>
             </div>
@@ -269,14 +262,14 @@ function LandingPageContent() {
               </div>
             ))}
           </div>
-          <p className="mt-4 rounded-2xl bg-gradient-to-br from-surface to-card p-6 font-black text-text-primary border border-border shadow-sm">
+          <p className="badge mt-4 !px-4 !py-2.5 !text-[13px]">
             {t("landing.score_formula")}
           </p>
         </div>
       </Section>
 
       {/* ───── LEADERBOARD OVERVIEW ───── */}
-      <Section className="bg-gradient-to-br from-background via-surface to-secondary/10 border-y border-border py-20 lg:py-28">
+      <Section className="border-y border-border bg-surface py-16 lg:py-20">
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 lg:grid-cols-[1fr_0.9fr] lg:gap-16">
           <div className="flex flex-col gap-6">
             <p className="text-sm font-bold uppercase tracking-widest text-primary">{t("landing.leaderboard_overview")}</p>
@@ -292,19 +285,23 @@ function LandingPageContent() {
             </p>
           </div>
           <div className="rounded-2xl border border-border bg-surface/50 p-6 shadow-xl shadow-secondary/20 backdrop-blur">
-            <div className="grid grid-cols-3 gap-3 px-6 py-4 text-xs font-black uppercase tracking-widest text-text-muted border-b border-border">
-              <span>{t("Rank")}</span>
-              <span>{t("Name")}</span>
-              <span className="text-right">{t("Total Score")}</span>
+            <div className="grid grid-cols-3 gap-3 border-b border-border px-6 py-4 text-[11px] font-bold uppercase tracking-[0.1em] text-text-muted">
+              <span>{t("leaderboard.rank")}</span>
+              <span>{t("leaderboard.name")}</span>
+              <span className="text-right">{t("leaderboard.total_score")}</span>
             </div>
-            <div className="mt-4 grid gap-4">
-              {[t("landing.preview_student"), t("landing.preview_xp"), t("landing.preview_energy")].map((item, index) => (
+            <div className="mt-4 grid gap-3">
+              {[
+                [t("landing.preview_student"), "2,480"],
+                [t("landing.preview_xp"), "1,920"],
+                [t("landing.preview_energy"), "1,450"],
+              ].map(([item, score], index) => (
                 <div
                   key={item}
-                  className="flex items-center justify-between rounded-xl bg-surface/50 p-4 transition-all hover:bg-background/50 border border-transparent hover:border-border"
+                  className="flex items-center justify-between rounded-xl border border-border bg-surface p-4"
                 >
-                  <span className="font-black text-text-primary">{index + 1}. {item}</span>
-                  <span className="font-bold text-primary">Firestore</span>
+                  <span className="font-bold text-text-primary tabular-nums">{index + 1}. {item}</span>
+                  <span className="font-bold tabular-nums text-primary">{score}</span>
                 </div>
               ))}
             </div>
@@ -343,23 +340,22 @@ function LandingPageContent() {
       </Section>
 
       {/* ───── CTA ───── */}
-      <Section className="px-6 pb-24 lg:pb-32">
-        <div className="mx-auto max-w-5xl rounded-3xl bg-gradient-to-br from-primary via-primary to-secondary p-10 text-center text-white shadow-2xl shadow-primary/30 transition-all duration-300 hover:shadow-primary/40 sm:p-14">
-          <GraduationCap className="mx-auto" size={40} />
-          <h2 className="mt-6 text-3xl font-black tracking-tight leading-tight sm:text-4xl">
+      <Section className="px-4 pb-20 sm:px-6 lg:pb-24">
+        <div className="card mx-auto max-w-5xl !border-secondary/20 p-8 text-center sm:p-12" style={{ background: "var(--color-secondary)", borderColor: "transparent" }}>
+          <GraduationCap className="mx-auto text-white/90" size={32} />
+          <h2 className="mx-auto mt-5 max-w-2xl text-white">
             {t("landing.cta_title")}
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-white/80 sm:text-lg">
+          <p className="mx-auto mt-3 max-w-2xl text-[15px] leading-relaxed text-white/75">
             {t("landing.cta_desc")}
           </p>
-
           <button
             type="button"
             onClick={getStarted}
-            className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 font-bold text-primary shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl active:scale-95"
+            className="mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-bold text-secondary"
           >
             {t("landing.cta_start")}
-            <ArrowRight size={18} />
+            <ArrowRight size={17} />
           </button>
         </div>
       </Section>

@@ -1,9 +1,10 @@
-import { ChevronLeft, ChevronRight, Medal, RefreshCcw, Search, Trophy, User, Zap } from "lucide-react";
+import { ChevronLeft, ChevronRight, Medal, RefreshCcw, Search, User, Zap } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getLeaderboardUsers, subscribeToLeaderboard, findUserPage } from "../services/leaderboardService.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getLeaderAvatar } from "../utils/avatar.js";
+import { EmptyState } from "../components/EmptyState.jsx";
 import { ProfileIconRenderer } from "../components/Profile/ProfileIconPicker.jsx";
 
 const PAGE_SIZE = 20;
@@ -70,31 +71,27 @@ export function LeaderboardPage() {
 
   return (
     <div className="grid gap-8">
-      <section className="rounded-3xl border border-border bg-surface p-8 shadow-sm">
+      <section className="card card-pad">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-primary">{t("nav.leaderboard")}</p>
-            <h1 className="mt-2 text-4xl font-black tracking-tight text-text-primary">{t("Leaderboard")}</h1>
-            <p className="mt-2 flex items-center gap-2 text-sm font-bold text-text-secondary">
-              <Zap size={16} className="text-warning" />
-              {t("(Energyx100)+XP")}
+            <p className="eyebrow">{t("nav.leaderboard")}</p>
+            <h1 className="mt-1.5 text-text-primary">{t("leaderboard.title")}</h1>
+            <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-text-secondary">
+              <Zap size={15} className="text-warning" />
+              {t("leaderboard.energy_to_xp")}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {currentUserId ? (
-              <button
-                type="button"
-                onClick={jumpToMyPosition}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background px-5 py-3 font-black text-text-primary shadow-sm transition-all hover:bg-surface hover:border-primary active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-              >
-                <User size={17} />
-                {t("Your Rank")}
+              <button type="button" onClick={jumpToMyPosition} className="btn-ghost">
+                <User size={16} />
+                {t("leaderboard.your_rank")}
               </button>
             ) : null}
             <button
               type="button"
               onClick={() => { setRefreshKey((k) => k + 1); }}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background px-5 py-3 font-black text-text-primary shadow-sm transition-all hover:bg-surface hover:border-primary active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              className="btn-ghost"
             >
               <RefreshCcw size={17} className={loading ? "animate-spin" : ""} />
               {t("common.refresh")}
@@ -103,42 +100,53 @@ export function LeaderboardPage() {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-border bg-surface p-4 shadow-sm sm:p-6">
+      <section className="card p-4 sm:p-5">
         <div className="relative">
-          <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
+          <Search size={17} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
-            type="text"
+            type="search"
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
-            placeholder={t("Search by name or Id")}
-            className="w-full rounded-xl border border-border bg-background py-3 pl-12 pr-4 text-sm font-bold text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/20"
+            placeholder={t("leaderboard.search_placeholder")}
+            aria-label={t("leaderboard.search_placeholder")}
+            className="field !pl-11"
           />
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-3xl border border-border bg-surface shadow-sm" ref={listRef}>
-        <div className="grid grid-cols-[60px_44px_1fr_100px] gap-3 bg-background px-4 py-4 text-xs font-black uppercase tracking-widest text-text-muted border-b border-border sm:grid-cols-[80px_44px_1fr_160px] sm:px-6">
-          <span>{t("Rank")}</span>
-          <span className="text-center">{t("Avatar")}</span>
-          <span>{t("Name")}</span>
-          <span className="text-right text-[10px] sm:text-xs">{t("Score")}</span>
+      <section className="card overflow-hidden" ref={listRef}>
+        <div className="grid grid-cols-[60px_44px_1fr_100px] gap-3 border-b border-border bg-background px-4 py-3.5 text-[11px] font-bold uppercase tracking-[0.1em] text-text-muted sm:grid-cols-[80px_44px_1fr_160px] sm:px-6">
+          <span>{t("leaderboard.rank")}</span>
+          <span className="text-center">{t("leaderboard.avatar")}</span>
+          <span>{t("leaderboard.name")}</span>
+          <span className="text-right">{t("leaderboard.score")}</span>
         </div>
 
         {loading && !result ? (
-          <div className="flex flex-col items-center justify-center gap-4 p-12 text-center">
-            <RefreshCcw size={28} className="animate-spin text-primary" />
-            <p className="text-sm font-bold text-text-secondary">{t("common.loading")}</p>
+          <div className="grid gap-3 p-4 sm:p-6" aria-label={t("common.loading")} role="status">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="skeleton h-6 w-10" />
+                <div className="skeleton h-10 w-10 !rounded-xl" />
+                <div className="skeleton h-4 flex-1" />
+                <div className="skeleton h-5 w-16" />
+              </div>
+            ))}
           </div>
         ) : null}
 
-        {error ? <p className="p-8 text-sm font-bold text-status-error text-center">{error}</p> : null}
+        {error ? (
+          <div className="p-6 sm:p-8">
+            <p className="alert alert-error text-center">{error}</p>
+          </div>
+        ) : null}
 
         {!loading && !error && items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-4 p-12 text-center">
-            <Trophy size={40} className="text-text-muted" />
-            <p className="text-sm font-bold text-text-secondary">
-              {search ? t("leaderboard.no_search_results") : t("leaderboard.no_entries")}
-            </p>
+          <div className="p-4 sm:p-6">
+            <EmptyState
+              title={search ? t("leaderboard.no_search_results") : t("leaderboard.no_entries")}
+              copy={search ? t("leaderboard.no_search_results") : t("leaderboard.energy_to_xp")}
+            />
           </div>
         ) : null}
 
@@ -195,7 +203,7 @@ export function LeaderboardPage() {
                       ) : null}
                     </p>
                     <p className="mt-0.5 text-xs font-medium text-text-secondary truncate">
-                      {t("Energy", { xp: xp.toLocaleString(), energy })}
+                      {t("leaderboard.xp_energy", { xp: xp.toLocaleString(), energy })}
                     </p>
                   </div>
                 </div>

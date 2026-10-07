@@ -155,8 +155,9 @@ export function OnboardingWizard() {
 
         {/* Step 1: Name */}
         {step === "name" && (
-          <div className="animate-fadeIn rounded-3xl border border-border bg-surface p-8 shadow-2xl shadow-primary/10">
-            <h2 className="text-2xl font-black tracking-tight text-text-primary">{t("onboarding.name_title")}</h2>
+          <div className="card animate-fadeIn p-6 sm:p-8">
+            <p className="eyebrow">{t("onboarding.step1_title")}</p>
+            <h2 className="mt-1 text-text-primary">{t("onboarding.name_title")}</h2>
             <p className="mt-2 text-sm text-text-secondary">{t("onboarding.name_desc")}</p>
 
             <div className="mt-6">
@@ -167,7 +168,7 @@ export function OnboardingWizard() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder={emailPrefix}
-                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-lg font-bold text-text-primary outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/50"
+                className="field !py-3 !text-base font-semibold"
                 autoFocus
                 onKeyDown={(e) => e.key === "Enter" && !saving && handleContinue()}
               />
@@ -182,12 +183,12 @@ export function OnboardingWizard() {
               )}
             </div>
 
-            <div className="mt-8 flex items-center justify-between">
+            <div className="mt-8 flex items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={handleSkip}
                 disabled={saving}
-                className="text-sm font-bold text-text-muted transition-colors hover:text-text-primary"
+                className="min-h-[44px] px-2 text-sm font-semibold text-text-muted transition-colors hover:text-text-primary disabled:opacity-50"
               >
                 {t("onboarding.skip")}
               </button>
@@ -195,10 +196,10 @@ export function OnboardingWizard() {
                 type="button"
                 onClick={handleContinue}
                 disabled={saving}
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-black text-white shadow-lg transition-all hover:bg-primary-active active:scale-95 disabled:opacity-50"
+                className="btn-primary"
               >
                 {saving ? t("common.saving") : t("lesson.continue")}
-                <ChevronRight size={18} />
+                <ChevronRight size={17} />
               </button>
             </div>
           </div>
@@ -206,8 +207,8 @@ export function OnboardingWizard() {
 
         {/* Step 2: Referral */}
         {step === "referral" && (
-          <div className="animate-fadeIn rounded-3xl border border-border bg-surface p-8 shadow-2xl shadow-primary/10">
-            <h2 className="text-2xl font-black tracking-tight text-text-primary">{t("onboarding.referral_title")}</h2>
+          <div className="card animate-fadeIn p-6 sm:p-8">
+            <h2 className="text-text-primary">{t("onboarding.referral_title")}</h2>
             <p className="mt-2 text-sm text-text-secondary">{t("onboarding.referral_desc")}</p>
 
             <div className="mt-6 grid grid-cols-2 gap-3">
@@ -227,12 +228,12 @@ export function OnboardingWizard() {
               ))}
             </div>
 
-            <div className="mt-8 flex items-center justify-between">
+            <div className="mt-8 flex items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={handleSkip}
                 disabled={saving}
-                className="text-sm font-bold text-text-muted transition-colors hover:text-text-primary"
+                className="min-h-[44px] px-2 text-sm font-semibold text-text-muted transition-colors hover:text-text-primary disabled:opacity-50"
               >
                 {t("onboarding.skip")}
               </button>
@@ -240,10 +241,10 @@ export function OnboardingWizard() {
                 type="button"
                 onClick={handleContinue}
                 disabled={saving}
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-black text-white shadow-lg transition-all hover:bg-primary-active active:scale-95 disabled:opacity-50"
+                className="btn-primary"
               >
                 {saving ? t("common.saving") : t("lesson.continue")}
-                <ChevronRight size={18} />
+                <ChevronRight size={17} />
               </button>
             </div>
           </div>
@@ -259,34 +260,34 @@ export function OnboardingWizard() {
               <p className="mt-2 text-text-secondary">{t("onboarding.welcome_desc")}</p>
             </div>
 
-            <div className="grid gap-4">
+            <div className="grid gap-3">
               {WELCOME_FEATURES.map((feature, i) => (
                 <div
                   key={feature.titleKey}
-                  className={`rounded-3xl border border-border bg-surface p-6 shadow-sm transition-all duration-500 hover:shadow-md hover:-translate-y-0.5 ${
-                    welcomeVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+                  className={`card p-5 transition-opacity duration-300 ${
+                    welcomeVisible ? "opacity-100" : "opacity-0"
                   }`}
-                  style={{ transitionDelay: `${i * 120}ms` }}
+                  style={{ transitionDelay: `${i * 90}ms` }}
                 >
-                  <div className="flex items-start gap-4">
-                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${feature.bg}`}>
-                      <feature.icon size={24} className={feature.color} />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-black text-text-primary">{t(feature.titleKey)}</h3>
-                      <p className="mt-1 text-sm text-text-secondary leading-relaxed">{t(feature.descKey)}</p>
+                  <div className="flex items-start gap-3.5">
+                    <span className="icon-tile shrink-0">
+                      <feature.icon size={20} />
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-text-primary">{t(feature.titleKey)}</h3>
+                      <p className="mt-1 text-sm leading-relaxed text-text-secondary">{t(feature.descKey)}</p>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="mt-8 flex items-center justify-between">
+            <div className="mt-8 flex items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={handleSkip}
                 disabled={saving}
-                className="text-sm font-bold text-text-muted transition-colors hover:text-text-primary"
+                className="min-h-[44px] px-2 text-sm font-semibold text-text-muted transition-colors hover:text-text-primary disabled:opacity-50"
               >
                 {t("onboarding.skip")}
               </button>
@@ -294,10 +295,10 @@ export function OnboardingWizard() {
                 type="button"
                 onClick={handleStart}
                 disabled={saving}
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-3 font-black text-white shadow-lg transition-all hover:bg-primary-active active:scale-95 disabled:opacity-50"
+                className="btn-primary"
               >
                 {saving ? t("onboarding.almost_there") : t("onboarding.start_learning")}
-                <Sparkles size={18} />
+                <Sparkles size={17} />
               </button>
             </div>
           </div>

@@ -98,18 +98,16 @@ export function TimetablePage() {
   return (
     <div className="grid gap-8">
       {/* Page header */}
-      <section className="overflow-hidden rounded-3xl border border-border bg-surface shadow-sm">
-        <div className="bg-gradient-to-r from-secondary to-primary p-10 text-text-primary">
+      <section className="card overflow-hidden">
+        <div className="p-6 sm:p-7" style={{ background: "var(--color-secondary)" }}>
           <div className="flex items-center gap-3">
-            <CalendarDays size={28} className="text-white/90" />
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-white/12 text-white"><CalendarDays size={20} /></span>
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-text-secondary">{t("timetable.planning")}</p>
-              <h1 className="text-4xl font-black tracking-tight text-text-primary">{t("timetable.study_timetable")}</h1>
+              <p className="eyebrow !text-white/60">{t("timetable.planning")}</p>
+              <h1 className="text-white">{t("timetable.study_timetable")}</h1>
             </div>
           </div>
-          <p className="mt-4 max-w-2xl text-lg text-text-primary/85">
-            {t("timetable.description")}
-          </p>
+          <p className="mt-3 max-w-2xl text-sm text-white/75">{t("timetable.description")}</p>
         </div>
       </section>
 

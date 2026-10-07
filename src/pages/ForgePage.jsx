@@ -11,6 +11,7 @@ import {
   uploadForgeFiles,
 } from "../services/forgeService.js";
 import { useStagedProgress } from "../hooks/useStagedProgress.js";
+import { EmptyState } from "../components/EmptyState.jsx";
 import { LoadingOverlay } from "../components/LoadingOverlay.jsx";
 
 export function ForgePage() {
@@ -155,20 +156,20 @@ export function ForgePage() {
     <div className="relative space-y-6">
       <LoadingOverlay progress={progress} stage={displayStage || t("common.processing")} visible={loader.visible} />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 space-y-6">
+      <div className="mx-auto max-w-4xl space-y-5 px-4 pt-4 sm:px-6 sm:pt-6">
         {loadError ? (
-          <div className="rounded-2xl border border-warning/30 bg-warning/10 p-4 flex items-center justify-between gap-3">
-            <p className="text-sm font-bold text-warning">{loadError}</p>
-            <button onClick={() => window.location.reload()} className="shrink-0 rounded-xl bg-warning px-4 py-2 text-sm font-black text-white">Retry</button>
+          <div className="card flex items-center justify-between gap-3 p-4">
+            <p className="text-sm font-semibold text-warning">{loadError}</p>
+            <button type="button" onClick={() => window.location.reload()} className="btn-ghost !min-h-[40px] shrink-0 !py-2 text-[13px]">{t("common.retry")}</button>
           </div>
         ) : null}
-        {!loadError && subjects.length === 0 && lessons.length === 0 ? (
-          <p className="text-sm text-text-muted text-center">No subjects yet. Create your first subject to get started.</p>
+        {status && !loader.visible ? (
+          <p className={`alert ${status.includes("success") ? "alert-success" : "alert-info"}`} role="status">{status}</p>
         ) : null}
         {/* Generate New Subject */}
-        <section className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
-          <p className="text-sm font-bold uppercase tracking-widest text-text-secondary">{t("forge.new_label")}</p>
-          <h2 className="mt-1 text-2xl font-black text-text-primary">{t("forge.generate_subject")}</h2>
+        <section className="card card-pad">
+          <p className="eyebrow">{t("forge.new_label")}</p>
+          <h2 className="mt-1 text-text-primary">{t("forge.generate_subject")}</h2>
 
           <label className="mt-4 grid cursor-pointer place-items-center rounded-2xl border-2 border-dashed border-border bg-background p-8 text-center transition hover:border-primary focus-within:ring-2 focus-within:ring-primary/50">
             <FileUp size={32} className="text-primary" />
@@ -196,7 +197,7 @@ export function ForgePage() {
             type="button"
             disabled={busy || !pastedNotes.trim()}
             onClick={handleGenerateFromPaste}
-            className="mt-3 w-full rounded-xl bg-secondary px-4 py-3 font-black text-white disabled:bg-text-muted disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-colors hover:bg-secondary-hover"
+            className="btn-secondary mt-3 w-full"
           >
             {t("forge.generate_from_paste")}
           </button>
@@ -205,55 +206,67 @@ export function ForgePage() {
         {/* Continue Previous Learning */}
         {hasSubjects && (
           <button
+            type="button"
             onClick={handleContinueLearning}
-            className="w-full rounded-3xl border border-border bg-surface p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-left group"
+            className="card card-hover w-full p-5 text-left sm:p-6"
+            aria-label={t("forge.continue_learning")}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-secondary/10 flex items-center justify-center shrink-0">
-                  <BookOpen size={24} className="text-secondary" />
-                </div>
-                <div>
-                  <p className="text-lg font-black text-text-primary group-hover:text-primary transition-colors">{t("forge.continue_learning")}</p>
-                  <p className="text-sm text-text-secondary mt-0.5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex min-w-0 items-center gap-4">
+                <span className="icon-tile shrink-0" style={{ width: "3rem", height: "3rem" }}>
+                  <BookOpen size={22} />
+                </span>
+                <div className="min-w-0">
+                  <p className="eyebrow">{t("forge.continue_learning")}</p>
+                  <p className="mt-1 truncate font-bold text-text-primary">
                     {t("forge.resume", { title: subjects[0]?.title, count: subjects.length })}
+                  </p>
+                  <p className="mt-0.5 text-[13px] text-text-secondary">
+                    {completedLessons}/{totalLessons} lessons complete · {totalXp.toLocaleString()} XP earned
                   </p>
                 </div>
               </div>
-              <span className="text-xl text-text-muted group-hover:text-primary transition-colors">&rarr;</span>
+              <span className="btn-primary shrink-0 !px-4" aria-hidden="true">&rarr;</span>
             </div>
           </button>
         )}
 
+        {!loadError && !hasSubjects && !busy && !loader.visible ? (
+          <EmptyState
+            title={t("forge.no_subjects")}
+            copy={t("forge.paste_placeholder")}
+          />
+        ) : null}
+
         {/* Recent Progress Summary */}
         {hasSubjects && (
-          <section className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <Zap size={20} className="text-primary" />
-              <h2 className="text-lg font-black text-text-primary">{t("forge.recent_progress")}</h2>
+          <section className="card card-pad">
+            <div className="section-head">
+              <div className="flex items-center gap-3">
+                <span className="icon-tile" style={{ width: "2.25rem", height: "2.25rem" }}><Zap size={17} /></span>
+                <h2 className="text-text-primary">{t("forge.recent_progress")}</h2>
+              </div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="p-4 rounded-2xl bg-background border border-border text-center">
-                <p className="text-2xl font-black text-text-primary">{subjects.length}</p>
-                <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">{t("forge.subjects_stat")}</p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-xl border border-border bg-background p-4 text-center">
+                <p className="text-xl font-extrabold tabular-nums text-text-primary">{subjects.length}</p>
+                <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.1em] text-text-muted">{t("forge.subjects_stat")}</p>
               </div>
-              <div className="p-4 rounded-2xl bg-background border border-border text-center">
-                <p className="text-2xl font-black text-text-primary">{completedLessons}/{totalLessons}</p>
-                <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">{t("forge.lessons_stat")}</p>
+              <div className="rounded-xl border border-border bg-background p-4 text-center">
+                <p className="text-xl font-extrabold tabular-nums text-text-primary">{completedLessons}/{totalLessons}</p>
+                <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.1em] text-text-muted">{t("forge.lessons_stat")}</p>
               </div>
-              <div className="p-4 rounded-2xl bg-background border border-border text-center">
-                <p className="text-2xl font-black text-text-primary">
+              <div className="rounded-xl border border-border bg-background p-4 text-center">
+                <p className="text-xl font-extrabold tabular-nums text-text-primary">
                   {totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0}%
                 </p>
-                <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">{t("forge.complete_stat")}</p>
+                <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.1em] text-text-muted">{t("forge.complete_stat")}</p>
               </div>
-              <div className="p-4 rounded-2xl bg-background border border-border text-center">
-                <p className="text-2xl font-black text-text-primary">
-                  <span className="flex items-center justify-center gap-1">
-                    {totalXp} <Trophy size={16} className="text-warning" />
-                  </span>
+              <div className="rounded-xl border border-border bg-background p-4 text-center">
+                <p className="flex items-center justify-center gap-1 text-xl font-extrabold tabular-nums text-text-primary">
+                  {totalXp.toLocaleString()} <Trophy size={15} className="text-warning" />
                 </p>
-                <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">{t("forge.xp_earned_stat")}</p>
+                <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.1em] text-text-muted">{t("forge.xp_earned_stat")}</p>
               </div>
             </div>
           </section>

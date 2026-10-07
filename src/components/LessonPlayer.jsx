@@ -1,6 +1,7 @@
 import { ArrowRight, CheckCircle, XCircle, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { EmptyState } from "./EmptyState.jsx";
 import { getPresentationExercise, shuffleArray } from "../utils/shuffle.js";
 
 export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
@@ -71,38 +72,35 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
   };
 
   if (completed) {
+    const correctCount = exercises.filter((ex) => userAnswers[ex.id] === ex.correctAnswer).length;
     return (
-      <div className="max-w-2xl mx-auto p-6 sm:p-10 text-center">
-        <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-6 bg-status-success/20 rounded-full flex items-center justify-center text-status-success shadow-inner">
-          <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12" />
+      <div className="mx-auto max-w-2xl p-4 text-center sm:p-6">
+        <div className="icon-tile mx-auto" style={{ width: "3rem", height: "3rem", background: "var(--color-success)", color: "#fff" }}>
+          <CheckCircle size={26} />
         </div>
-        <h2 className="text-2xl sm:text-3xl font-black text-text-primary mb-2 tracking-tight">{t("lesson.completed")}</h2>
-        <p className="text-text-secondary mb-8">{lesson.title}</p>
-        <div className="flex justify-center gap-8 sm:gap-12 mb-10">
-          <div className="text-center">
-            <div className="text-3xl sm:text-4xl font-black text-primary">
-              {exercises.filter((ex) => userAnswers[ex.id] === ex.correctAnswer).length}/{exercises.length}
-            </div>
-            <div className="text-xs font-bold uppercase tracking-widest text-text-muted">{t("lesson.correct")}</div>
+        <p className="eyebrow mt-4" style={{ color: "var(--color-success)" }}>{t("lesson.completed")}</p>
+        <h2 className="mt-1 text-text-primary">{lesson.title}</h2>
+        <div className="mx-auto mt-5 grid max-w-sm grid-cols-2 gap-3">
+          <div className="rounded-xl border border-border bg-surface px-4 py-3">
+            <div className="text-xl font-extrabold tabular-nums text-primary">{correctCount}/{exercises.length}</div>
+            <div className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.1em] text-text-muted">{t("lesson.score")}</div>
           </div>
-          <div className="text-center">
-            <div className="text-3xl sm:text-4xl font-black text-warning flex items-center gap-2 justify-center">
-              <Zap className="w-6 h-6 sm:w-8 sm:h-8" />
-              {xpEarned}
-            </div>
-            <div className="text-xs font-bold uppercase tracking-widest text-text-muted">{t("lesson.xp_earned")}</div>
+          <div className="rounded-xl border border-border bg-surface px-4 py-3">
+            <div className="flex items-center justify-center gap-1 text-xl font-extrabold tabular-nums text-warning"><Zap size={16} />{xpEarned}</div>
+            <div className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.1em] text-text-muted">{t("lesson.xp_earned")}</div>
           </div>
         </div>
-        <p className="text-sm text-text-muted">{t("lesson.progress_saved")}</p>
+        <p className="mt-4 text-[13px] text-text-muted">{t("lesson.progress_saved")}</p>
       </div>
     );
   }
 
   if (showResults) {
     return (
-      <div className="max-w-2xl mx-auto p-4 sm:p-6">
-        <h2 className="text-2xl sm:text-3xl font-black text-text-primary mb-6 sm:mb-8 tracking-tight">{t("lesson.results")}</h2>
-        <div className="space-y-4">
+      <div className="mx-auto max-w-2xl p-4 sm:p-6">
+        <p className="eyebrow">{t("lesson.exercise_of", { current: exercises.length, total: exercises.length })}</p>
+        <h2 className="mt-1 text-text-primary">{t("lesson.results")}</h2>
+        <div className="mt-5 space-y-3">
           {exercises.map((exercise, index) => {
             const userAnswer = userAnswers[exercise.id];
             const status = getAnswerStatus(exercise.id, userAnswer);
@@ -110,30 +108,30 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
             return (
               <div
                 key={exercise.id}
-                className={`p-4 sm:p-5 rounded-xl border-2 transition-all ${
+                className={`rounded-xl border p-4 sm:p-5 ${
                   status === "correct"
-                    ? "border-status-success/30 bg-status-success/10 shadow-sm"
-                    : "border-status-error/30 bg-status-error/10 shadow-sm"
+                    ? "border-success/30 bg-success/5"
+                    : "border-error/30 bg-error/5"
                 }`}
               >
                 <div className="flex items-start gap-3">
                   {status === "correct" ? (
-                    <CheckCircle className="w-5 h-5 text-status-success mt-0.5 shrink-0" />
+                    <CheckCircle size={18} className="mt-0.5 shrink-0 text-success" />
                   ) : (
-                    <XCircle className="w-5 h-5 text-status-error mt-0.5 shrink-0" />
+                    <XCircle size={18} className="mt-0.5 shrink-0 text-error" />
                   )}
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-text-primary mb-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-2 text-sm font-bold text-text-primary">
                       {index + 1}. {exercise.question}
                     </div>
-                    <div className="text-sm text-text-secondary mb-2">
-                      {t("lesson.your_answer")}<span className="font-medium">{userAnswer || t("lesson.no_answer")}</span>
+                    <div className="mb-1.5 text-sm text-text-secondary">
+                      {t("lesson.your_answer")}<span className="font-medium text-text-primary">{userAnswer || t("lesson.no_answer")}</span>
                     </div>
                     <div className="text-sm text-text-secondary">
                       {t("lesson.correct_answer")}<span className="font-bold text-text-primary">{exercise.correctAnswer}</span>
                     </div>
                     {exercise.explanation && (
-                      <div className="mt-3 text-sm text-text-secondary bg-surface p-3 rounded-lg border border-border italic">
+                      <div className="mt-3 rounded-lg border border-border bg-surface p-3 text-sm italic text-text-secondary">
                         {exercise.explanation}
                       </div>
                     )}
@@ -144,9 +142,10 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
           })}
         </div>
         <button
+          type="button"
           onClick={handleComplete}
           disabled={isSubmitting || saved}
-          className="mt-8 w-full px-6 py-4 bg-primary text-white rounded-xl font-black transition-all hover:bg-primary-active shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn-primary mt-6 w-full !py-3.5"
         >
           {isSubmitting ? t("common.saving") : saved ? t("common.saved") : t("lesson.complete_lesson")}
         </button>
@@ -156,57 +155,60 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
 
   if (!currentExercise) {
     return (
-      <div className="max-w-2xl mx-auto p-6 text-center">
-        <h2 className="text-xl font-black text-text-primary mb-4">{t("lesson.no_exercises")}</h2>
-        <p className="text-text-secondary mb-6">{t("lesson.no_exercises_desc")}</p>
-        <button
-          onClick={() => handleComplete()}
-          disabled={isSubmitting || saved}
-          className="px-8 py-3 bg-primary text-white rounded-xl font-black transition-all hover:bg-primary-active disabled:opacity-50"
-        >
-          {isSubmitting ? t("common.saving") : saved ? t("common.saved") : t("lesson.mark_complete")}
-        </button>
+      <div className="mx-auto max-w-2xl p-4 sm:p-6">
+        <EmptyState
+          title={t("lesson.no_exercises")}
+          copy={t("lesson.no_exercises_desc")}
+          action={
+            <button
+              type="button"
+              onClick={() => handleComplete()}
+              disabled={isSubmitting || saved}
+              className="btn-primary"
+            >
+              {isSubmitting ? t("common.saving") : saved ? t("common.saved") : t("lesson.mark_complete")}
+            </button>
+          }
+        />
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-4 sm:p-6">
-      <div className="mb-8">
-        <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-text-muted mb-2">
+    <div className="mx-auto max-w-2xl p-4 sm:p-6">
+      <div className="mb-6">
+        <div className="mb-2 flex justify-between text-[11px] font-bold uppercase tracking-[0.1em] text-text-muted">
           <span>{t("lesson.exercise_of", { current: currentExerciseIndex + 1, total: exercises.length })}</span>
-          <span>{Math.round(progress)}%</span>
+          <span className="tabular-nums">{Math.round(progress)}%</span>
         </div>
-        <div className="w-full h-2 bg-background rounded-full overflow-hidden border border-border">
-          <div
-            className="h-full bg-primary transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
+        <div className="progress-track">
+          <div className="progress-fill" style={{ width: `${progress}%` }} />
         </div>
       </div>
 
-      <div className="mb-8 space-y-4">
-        <div className="p-6 bg-surface border border-border rounded-2xl shadow-sm">
-          <h2 className="text-xl sm:text-2xl font-black text-text-primary mb-2 tracking-tight">{lesson.title}</h2>
-          {lesson.summary && <p className="text-text-secondary leading-relaxed">{lesson.summary}</p>}
+      <div className="mb-6 space-y-4">
+        <div className="card card-pad">
+          <p className="eyebrow">{t("lesson.exercise_of", { current: currentExerciseIndex + 1, total: exercises.length })}</p>
+          <h2 className="mt-1 text-text-primary">{lesson.title}</h2>
+          {lesson.summary && <p className="mt-2 text-[15px] leading-relaxed text-text-secondary">{lesson.summary}</p>}
         </div>
 
         {lesson.explanation && (
-          <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
-            <h3 className="font-black text-text-primary mb-3 flex items-center gap-2 uppercase tracking-widest text-xs">
-              <Zap className="w-4 h-4 text-primary" />
+          <div className="card card-pad">
+            <h3 className="mb-2.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-text-muted">
+              <Zap size={14} className="text-primary" />
               {t("lesson.core_concept")}
             </h3>
-            <div className="text-text-secondary leading-relaxed whitespace-pre-wrap">
+            <div className="whitespace-pre-wrap text-[15px] leading-relaxed text-text-secondary">
               {lesson.explanation}
             </div>
           </div>
         )}
 
         {lesson.examples && lesson.examples.length > 0 && (
-          <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
-            <h3 className="font-black text-text-primary mb-3 uppercase tracking-widest text-xs">{t("lesson.examples")}</h3>
-            <ul className="list-disc pl-5 space-y-2 text-text-secondary">
+          <div className="card card-pad">
+            <h3 className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-text-muted">{t("lesson.examples")}</h3>
+            <ul className="list-disc space-y-1.5 pl-5 text-[15px] text-text-secondary">
               {lesson.examples.map((example, index) => (
                 <li key={index} className="pl-1">{example}</li>
               ))}
@@ -215,7 +217,7 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
         )}
       </div>
 
-      <div className="mb-8 p-6 bg-surface border border-border rounded-2xl shadow-sm">
+      <div className="card card-pad mb-6">
         <ExerciseRenderer
           key={currentExercise.id}
           exercise={currentExercise}
@@ -224,21 +226,23 @@ export function LessonPlayer({ lesson, onComplete, onExerciseSubmit }) {
         />
       </div>
 
-      <div className="flex justify-between gap-4">
+      <div className="flex justify-between gap-3">
         <button
+          type="button"
           onClick={() => setCurrentExerciseIndex((prev) => Math.max(0, prev - 1))}
           disabled={currentExerciseIndex === 0}
-          className="px-6 py-3 bg-surface text-text-primary rounded-xl font-bold transition-all hover:bg-card disabled:opacity-50 disabled:cursor-not-allowed border border-border"
+          className="btn-ghost"
         >
           {t("common.back")}
         </button>
         <button
+          type="button"
           onClick={handleNext}
           disabled={!userAnswers[currentExercise.id]}
-          className="px-6 py-3 bg-primary text-white rounded-xl font-black transition-all hover:bg-primary-active disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-primary/20"
+          className="btn-primary"
         >
           {currentExerciseIndex === exercises.length - 1 ? t("common.finish") : t("common.next")}
-          <ArrowRight className="w-4 h-4" />
+          <ArrowRight size={16} />
         </button>
       </div>
     </div>
@@ -348,9 +352,7 @@ function TypeAnswer({ exercise, userAnswer, onAnswer }) {
 
 function MatchPairs({ exercise, userAnswer: _userAnswer, onAnswer }) {
   const { t } = useTranslation();
-  console.log("[LessonPlayer] props received by matching component", { exerciseId: exercise.id, question: exercise.question?.slice(0,60), pairs: exercise.pairs, pairsLen: (exercise.pairs||[]).length, type: exercise.type });
   const pairs = exercise.pairs || [];
-  if (pairs.length===0) console.warn("[LessonPlayer] MATCHING BLANK – pairs empty, will render only instructions", { exercise });
   // True randomization: independently shuffle left/right via Fisher-Yates each mount – never rely on index equality
   const shuffledPairs = useMemo(() => shuffleArray(pairs), [exercise.id]);
   // We keep original pairing for grading via ids, but presentation order is shuffled
@@ -389,11 +391,8 @@ function MatchPairs({ exercise, userAnswer: _userAnswer, onAnswer }) {
   if (pairs.length === 0) {
     return (
       <div>
-        <h3 className="text-lg font-bold text-text-primary mb-4">{exercise.question}</h3>
-        <div className="p-4 rounded-xl border border-status-error/20 bg-status-error/10">
-          <p className="text-sm font-bold text-status-error">Matching data missing – please regenerate this lesson. If this persists, check that Gemini returned pairs.</p>
-          {exercise.options?.length ? <p className="text-xs text-text-muted mt-2">Fallback options: {exercise.options.join(", ")}</p> : null}
-        </div>
+        <h3 className="mb-4 text-lg font-bold text-text-primary">{exercise.question}</h3>
+        <p className="alert alert-warning" role="alert">This activity couldn't load properly. Please try regenerating the lesson.</p>
       </div>
     );
   }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { EmptyState } from "../components/EmptyState.jsx";
 import { LessonPlayer } from "../components/LessonPlayer.jsx";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -16,6 +17,12 @@ export function ForgeLessonPage() {
   const [lesson, setLesson] = useState(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("");
+  const [statusTone, setStatusTone] = useState("success");
+
+  function showStatus(message, tone = "success") {
+    setStatus(message);
+    setStatusTone(tone);
+  }
 
   useEffect(() => {
     if (!lessonId || !user?.uid) return;
@@ -35,7 +42,7 @@ export function ForgeLessonPage() {
           }
         }
       } catch {
-        setStatus(t('forge_lesson.failed_load'));
+        showStatus(t('forge_lesson.failed_load'), "error");
       } finally {
         setLoading(false);
       }
@@ -55,12 +62,12 @@ export function ForgeLessonPage() {
         accuracy,
       });
       if (!result.success && result.reason === "already-completed") {
-        setStatus(t('forge_lesson.already_completed'));
+        showStatus(t('forge_lesson.already_completed'), "info");
       } else if (result.success) {
-        setStatus(t('forge_lesson.completed', { xp: result.totalXP, energy: result.energyAward, perfect: perfect ? t('forge_lesson.perfect_suffix') : '' }));
+        showStatus(t('forge_lesson.completed', { xp: result.totalXP, energy: result.energyAward, perfect: perfect ? t('forge_lesson.perfect_suffix') : '' }), "success");
       }
     } catch (error) {
-      setStatus(error.message);
+      showStatus(error.message || t('forge_lesson.failed_load'), "error");
     }
   }, [user?.uid, profile, lesson, t]);
 
@@ -74,10 +81,14 @@ export function ForgeLessonPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh] p-6">
-        <div className="flex flex-col items-center gap-3">
-          <div className="loading-spinner-lg animate-spin-slow rounded-full border-primary/20 border-t-primary" role="status" aria-label="Loading" style={{ willChange: "transform" }} />
-          <p className="text-sm font-bold uppercase tracking-widest text-text-muted">Loading lesson…</p>
+      <div className="mx-auto grid max-w-4xl gap-4 p-4 sm:p-6" role="status" aria-label={t("common.loading")}>
+        <div className="skeleton h-8 w-2/3" />
+        <div className="skeleton h-4 w-full" />
+        <div className="skeleton h-4 w-11/12" />
+        <div className="card mt-2 grid gap-3 p-5">
+          <div className="skeleton h-5 w-1/3" />
+          <div className="skeleton h-11 w-full !rounded-xl" />
+          <div className="skeleton h-11 w-full !rounded-xl" />
         </div>
       </div>
     );
@@ -85,30 +96,29 @@ export function ForgeLessonPage() {
 
   if (!lesson) {
     return (
-      <div className="max-w-4xl mx-auto p-4 sm:p-6 text-center">
-        <p className="text-lg font-bold text-text-primary mb-4">{t("errors.not_found")}</p>
-        <button
-          onClick={handleBack}
-          className="px-6 py-3 bg-primary text-white rounded-xl font-black"
-        >
-          {t("common.back")}
-        </button>
+      <div className="mx-auto max-w-4xl p-4 sm:p-6">
+        <EmptyState
+          title={t("forge.lesson_not_found")}
+          copy={t("forge.no_lessons")}
+          action={<button type="button" onClick={handleBack} className="btn-primary">{t("common.back")}</button>}
+        />
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4 sm:p-6">
+    <div className="mx-auto max-w-4xl p-4 sm:p-6">
       <button
+        type="button"
         onClick={handleBack}
-        className="mb-4 text-sm font-bold text-text-secondary hover:text-text-primary flex items-center gap-2 transition-colors"
+        className="mb-4 flex items-center gap-2 text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary"
       >
-        {t("forge.back_to_curriculum")}
+        <span aria-hidden="true">&larr;</span> {t("forge.back_to_curriculum")}
       </button>
       {status && (
-        <div className="mb-4 p-3 rounded-xl text-sm font-bold text-center border border-status-success/30 bg-status-success/10 text-status-success">
+        <p className={`alert mb-4 text-center ${statusTone === "error" ? "alert-error" : statusTone === "info" ? "alert-info" : "alert-success"}`} role="status">
           {status}
-        </div>
+        </p>
       )}
       <LessonPlayer lesson={lesson} onComplete={handleCompleteLesson} />
     </div>

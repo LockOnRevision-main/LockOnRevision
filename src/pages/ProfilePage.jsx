@@ -308,17 +308,17 @@ export function ProfilePage() {
         <div className="lg:col-span-2 space-y-8">
           {/* Top Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <StatsCard 
-              label={t("Leaderboard Level")} 
-              value={level} 
-              icon={Trophy} 
-              color="purple" 
+            <StatsCard
+              label={t("leaderboard.level")}
+              value={level}
+              icon={Trophy}
+              color="purple"
             />
-            <StatsCard 
-              label={t("Rank")} 
-              value={rank} 
-              icon={Award} 
-              color="orange" 
+            <StatsCard
+              label={t("leaderboard.rank")}
+              value={rank}
+              icon={Award}
+              color="orange"
             />
             <StatsCard 
               label={t("dashboard.streak")} 
@@ -595,18 +595,17 @@ export function ProfilePage() {
             </div>
           </div>
 
-          {/* Settings – Stats for Nerds (Coming Soon) */}
-          <div className="p-6 rounded-3xl border border-border bg-surface shadow-sm">
-            <h3 className="text-lg font-black mb-4 flex items-center gap-2 text-text-primary">
-              <Settings size={20} className="text-primary" />
+          {/* Settings – advanced insights (coming soon) */}
+          <div className="card card-pad">
+            <h3 className="mb-3 flex items-center gap-2 text-text-primary">
+              <Settings size={18} className="text-primary" />
               Settings
             </h3>
-            <label className="flex items-center gap-3 rounded-xl border border-border bg-background p-3 opacity-60">
-              <input type="checkbox" disabled className="h-4 w-4 rounded border-border" />
-              <span className="text-sm font-bold text-text-primary">Enable "Stats for Nerds" (Coming Soon)</span>
-              <span className="ml-auto rounded-full bg-warning/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-warning">Soon</span>
-            </label>
-            <p className="mt-2 text-xs text-text-muted">When available: upload status, AI generation time and processing details.</p>
+            <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-3">
+              <span className="text-sm font-semibold text-text-primary">Advanced insights</span>
+              <span className="badge ml-auto">Coming soon</span>
+            </div>
+            <p className="mt-2 text-xs text-text-muted">Detailed study analytics will appear here when available.</p>
           </div>
 
           {/* Account Information */}

@@ -199,14 +199,12 @@ export function TimetableUploadCard({ timetableId }) {
   };
 
   return (
-    <section className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="rounded-xl bg-primary/10 p-2.5 text-primary">
-          <FileUp size={20} />
-        </div>
-        <div>
-          <h2 className="text-lg font-black tracking-tight text-text-primary">{t("timetable.upload_title") || "Timetable Setup"}</h2>
-          <p className="text-xs text-text-secondary">{t("timetable.upload_subtitle") || "Upload documents to help AI build and continuously optimise your study plan."}</p>
+    <section className="card card-pad">
+      <div className="mb-2 flex items-center gap-3">
+        <span className="icon-tile"><FileUp size={19} /></span>
+        <div className="min-w-0">
+          <h2 className="font-bold tracking-tight text-text-primary">{t("timetable.upload_title") || "Timetable Setup"}</h2>
+          <p className="mt-0.5 text-[13px] text-text-secondary">{t("timetable.upload_subtitle") || "Upload documents to help AI build and continuously optimise your study plan."}</p>
         </div>
       </div>
 
@@ -273,11 +271,11 @@ export function TimetableUploadCard({ timetableId }) {
                       <p className="truncate text-sm font-bold text-text-primary">{doc.name}</p>
                     )}
                     <p className="text-[11px] text-text-muted">
-                      {(doc.size/1024).toFixed(1)} KB • {doc.processingStatus==="success" ? <span className="text-status-success font-bold inline-flex items-center gap-1"><Check size={10}/> {t("timetable.extracted_ok")||"extracted"}</span> : doc.processingStatus==="failed" ? <span className="text-status-error font-bold">{doc.processingError || "extraction failed"}</span> : doc.processingStatus==="pending" ? t("timetable.pending")||"pending" : doc.processingStatus}
+                      {(doc.size/1024).toFixed(1)} KB • {doc.processingStatus==="success" ? <span className="inline-flex items-center gap-1 font-bold text-success"><Check size={10}/> {t("timetable.extracted_ok")||"extracted"}</span> : doc.processingStatus==="failed" ? <span className="font-bold text-error">Needs attention</span> : doc.processingStatus==="pending" ? t("timetable.pending")||"pending" : doc.processingStatus}
                       {doc.extraction?.assessments?.length ? ` • ${doc.extraction.assessments.length} assessments` : ""}
                     </p>
-                    {doc.processingStatus==="failed" && doc.processingError ? (
-                      <p className="mt-1 text-[11px] text-status-error">Failed: {doc.processingError} – please retry with a clearer scan or replace the document.</p>
+                    {doc.processingStatus==="failed" ? (
+                      <p className="mt-1 text-[11px] text-error">We couldn't read this file. Please retry with a clearer scan or replace it.</p>
                     ) : null}
                   </div>
                   <div className="flex items-center gap-1">

@@ -104,11 +104,11 @@ export function LoginPage() {
 
   return (
     <>
-    <main className="grid min-h-screen place-items-center bg-gradient-to-br from-background via-surface to-secondary px-4 text-text-primary">
-      <section className="w-full max-w-md rounded-3xl border border-border bg-surface p-8 shadow-2xl shadow-primary/20 backdrop-blur">
+    <main className="grid min-h-screen place-items-center bg-background px-4 py-10 text-text-primary">
+      <section className="card w-full max-w-md p-6 sm:p-8" style={{ boxShadow: "var(--shadow-elevated)" }}>
         <div className="mb-6 flex flex-col items-center">
-          <Logo variant="horizontal" theme="light" className="mb-4 scale-90" />
-          <h1 className="mt-2 text-3xl font-black tracking-tight text-text-primary">
+          <Logo variant="horizontal" theme="light" className="mb-4 h-9 w-auto" />
+          <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-text-primary">
             {mode === "register" ? t("auth.create_account") : mode === "reset" ? t("auth.reset_password") : t("auth.welcome_back")}
           </h1>
           <p className="mt-2 text-sm text-text-secondary text-center">
@@ -223,7 +223,7 @@ export function LoginPage() {
 
           <button
             disabled={busy || (mode === "reset" && resetSent)}
-            className="rounded-xl bg-primary px-4 py-3 font-black text-white disabled:bg-surface transition-all hover:bg-primary-active active:scale-95"
+            className="btn-primary w-full"
           >
             {busy ? t("common.loading") : mode === "register" ? t("auth.create_account") : mode === "reset" ? t("auth.send_reset") : t("nav.login")}
           </button>
@@ -241,7 +241,7 @@ export function LoginPage() {
               type="button"
               onClick={handleGoogle}
               disabled={googleBusy || !isFirebaseConfigured}
-              className="w-full flex items-center justify-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 font-black text-text-primary hover:bg-background transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-ghost w-full"
               title={!isFirebaseConfigured ? "Configure Firebase to enable Google Sign-In" : "Continue with Google"}
             >
               <GoogleIcon />

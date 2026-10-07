@@ -19,24 +19,24 @@ export function Footer() {
   ];
 
   return (
-    <footer className="bg-secondary text-white">
-      <div className="mx-auto max-w-7xl px-6 py-12 lg:py-16">
-        <div className="grid gap-10 md:grid-cols-3">
+    <footer className="border-t border-border bg-surface text-text-primary">
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-12">
+        <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-3">
           <div>
-            <Logo theme="dark" className="h-10 w-auto" />
-            <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/70">
+            <Logo theme="light" className="h-9 w-auto" />
+            <p className="mt-3 max-w-xs text-sm leading-relaxed text-text-secondary">
               {t("footer.description")}
             </p>
           </div>
 
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-white/50">{t("footer.quick_links")}</h3>
-            <ul className="mt-4 space-y-3">
+            <h3 className="text-[11px] font-bold uppercase tracking-[0.12em] text-text-muted">{t("footer.quick_links")}</h3>
+            <ul className="mt-3 space-y-2">
               {quickLinks.map((link) => (
                 <li key={link.to}>
                   <Link
                     to={link.to}
-                    className="text-sm font-semibold text-white/70 transition-colors hover:text-white"
+                    className="text-sm font-semibold text-text-secondary transition-colors hover:text-primary"
                   >
                     {link.label}
                   </Link>
@@ -46,8 +46,8 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-white/50">{t("footer.connect")}</h3>
-            <div className="mt-4 flex gap-4">
+            <h3 className="text-[11px] font-bold uppercase tracking-[0.12em] text-text-muted">{t("footer.connect")}</h3>
+            <div className="mt-3 flex gap-2">
               {socialLinks.map((social) => (
                 <a
                   key={social.label}
@@ -55,16 +55,16 @@ export function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={social.label}
-                  className="grid h-10 w-10 place-items-center rounded-xl bg-white/10 text-white/70 transition-all hover:bg-white/20 hover:text-white"
+                  className="btn-ghost !min-h-[44px] !min-w-[44px] !px-0"
                 >
-                  <social.icon size={18} />
+                  <social.icon size={17} />
                 </a>
               ))}
             </div>
           </div>
         </div>
 
-        <div className="mt-10 border-t border-white/10 pt-6 text-center text-sm text-white/50">
+        <div className="mt-8 border-t border-border pt-5 text-center text-[13px] text-text-muted">
           {t("footer.copyright", { year })}
         </div>
       </div>

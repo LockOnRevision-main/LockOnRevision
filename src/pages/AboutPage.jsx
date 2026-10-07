@@ -193,7 +193,7 @@ export function AboutPage() {
             <GraduationCap size={16} />
             {t("about.badge")}
           </p>
-          <h1 className="mt-6 text-4xl font-black tracking-tight leading-[1.1] text-text-primary sm:text-5xl md:text-6xl">
+          <h1 className="mx-auto mt-6 max-w-3xl text-3xl font-extrabold leading-[1.15] tracking-tight text-text-primary sm:text-4xl">
             {t("about.hero_title")}
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-text-secondary sm:text-lg">
