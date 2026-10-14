@@ -52,7 +52,8 @@ describe("Stage 0.2: every sensitive write is audited", () => {
     it(`${f} writes + audits`, () => {
       const src = read(f);
       assert.ok(hasWrite(src), `${f} expected to write (or file missing?)`);
-      assert.ok(/audit\s*\(/.test(src), `${f} MUST call audit()`);
+      // Stage 0.2 (shared writer) + Stage 0.3 (atomic via ref/data):
+      assert.ok(/audit(Ref|Data)?\s*\(/.test(src), `${f} MUST use shared audit writer`);
       assert.ok(
         src.includes('from "./_lib/schoolServer.js"'),
         `${f} MUST use the shared audit writer (no parallel logic)`,
@@ -74,6 +75,44 @@ describe("Stage 0.2: every sensitive write is audited", () => {
     }
   });
 
+describe("Stage 0.3: audits commit atomically with the change", () => {
+  for (const f of SENSITIVE_ROUTES) {
+    it(`${f}: audit inside tx/batch, never standalone`, () => {
+      const src = read(f);
+      // No standalone post-write audit: a crash must not leave a change
+      // without its record (or the reverse).
+      assert.ok(!/await audit\(db/.test(src), `${f}: no standalone audit() call`);
+      assert.ok(src.includes("auditData("), `${f}: builds audit entries`);
+      assert.ok(
+        src.includes("tx.set(") || src.includes("batch.set("),
+        `${f}: audit committed via tx.set/batch.set`,
+      );
+    });
+  }
+
+  it("retry safety: tx-internal audit refs are pre-created or deterministic", () => {
+    // auditRef() outside the tx function, or deterministic doc ids inside —
+    // never auditRef() inside the tx body (retries would duplicate).
+    for (const f of ["api/create-pin.js", "api/redeem-pin.js", "api/review-request.js", "api/accept-invitation.js"]) {
+      const src = read(f);
+      const bodies = src.split("runTransaction(async (tx)");
+      assert.ok(bodies.length >= 2, `${f}: has transaction`);
+      for (const body of bodies.slice(1)) {
+        const fnBody = body.slice(0, body.indexOf("});") + 3);
+        assert.ok(!fnBody.includes("auditRef(db)"), `${f}: no fresh auditRef inside tx body`);
+      }
+    }
+  });
+
+  it("documented exception: multi-batch scripts audit after (with ids)", () => {
+    // migrate-academy / backfill span many batches; atomicity across all is
+    // impossible — they record createdIds in one trailing audit entry.
+    for (const f of ["scripts/migrate-academy.mjs", "scripts/backfill-users-public.mjs"]) {
+      const src = read(f);
+      assert.ok(src.includes("adminAuditLogs") && src.includes("createdIds"), `${f}: trailing audit with ids`);
+    }
+  });
+});
   it("pin rotation revocations are audited, not silent", () => {
     const src = read("api/create-pin.js");
     assert.ok(src.includes("pin.revoke"), "rotation revocation audited");

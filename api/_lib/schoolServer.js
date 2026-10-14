@@ -123,6 +123,21 @@ export async function audit(db, entry) {
   });
 }
 
+/**
+ * Stage 0.3: atomic audit. Creates the audit doc ref ONCE (outside the
+ * transaction function) so transaction retries reuse the same id and can
+ * never duplicate the entry. Use inside runTransaction via tx.set, or in a
+ * WriteBatch via batch.set — the audit entry commits atomically WITH the
+ * data change, so a crash cannot leave one without the other.
+ */
+export function auditRef(db) {
+  return db.collection("adminAuditLogs").doc();
+}
+
+export function auditData(entry) {
+  return { createdAt: new Date().toISOString(), ...entry };
+}
+
 export function membershipId(uid, schoolId) {
   const s = (x) => String(x).replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 128);
   return `${s(uid)}_${s(schoolId)}`;

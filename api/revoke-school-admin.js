@@ -6,7 +6,7 @@
  * membership status flip denies on the NEXT request (rules read the doc),
  * plus refresh-token revocation best-effort. Audited.
  */
-import { getAdminDb, cors, authedUser, checkRate, isPlatformAdmin, audit, membershipId } from "./_lib/schoolServer.js";
+import { getAdminDb, cors, authedUser, checkRate, isPlatformAdmin, auditRef, auditData, membershipId } from "./_lib/schoolServer.js";
 
 export default async function handler(req, res) {
   cors(res);
@@ -45,15 +45,19 @@ export default async function handler(req, res) {
     }
 
     const now = new Date().toISOString();
-    await ref.update({ status: "removed", removedAt: now, removedBy: user.uid });
+    // Stage 0.3: status flip + audit commit atomically (token revocation
+    // stays best-effort outside the batch — Auth, not Firestore).
+    const batch = db.batch();
+    batch.update(ref, { status: "removed", removedAt: now, removedBy: user.uid });
+    batch.set(auditRef(db), auditData({
+      actorUid: user.uid, action: "staff.revoke", targetUid: uid,
+      schoolId, scope: `role:${(snap.data() || {}).role}`,
+    }));
+    await batch.commit();
     try {
       const { getAuth } = await import("firebase-admin/auth");
       await getAuth().revokeRefreshTokens(uid);
     } catch { /* best-effort token revocation; rule denial still applies */ }
-    await audit(db, {
-      actorUid: user.uid, action: "staff.revoke", targetUid: uid,
-      schoolId, scope: `role:${(snap.data() || {}).role}`,
-    });
     return res.status(200).json({ ok: true });
   } catch (e) {
     return res.status(e.status || 500).json({ error: e.status ? e.message : "Revocation failed." });

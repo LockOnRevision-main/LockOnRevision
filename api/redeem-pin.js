@@ -76,6 +76,7 @@ export default async function handler(req, res) {
     }
 
     if (policy === "IMMEDIATE") {
+      const memAudit = auditRef(db); // outside tx: retry-safe, no duplicates
       await db.runTransaction(async (tx) => {
         const fresh = await tx.get(memRef);
         if (fresh.exists && (fresh.data() || {}).status === "active") return; // concurrent win
@@ -86,12 +87,12 @@ export default async function handler(req, res) {
           updatedAt: now, removedAt: null, removedBy: null,
         }, { merge: true });
         tx.update(db.collection("joiningPins").doc(pinSnap.id), { useCount: (pin.useCount || 0) + 1 });
+        tx.set(memAudit, auditData({
+          actorUid: user.uid, action: "membership.create", targetUid: user.uid,
+          schoolId: pin.schoolId, scope: pin.classroomId ? `classroom:${pin.classroomId}` : "school",
+        }));
       });
       await clearPinFailures(db, user.uid);
-      await audit(db, {
-        actorUid: user.uid, action: "membership.create", targetUid: user.uid,
-        schoolId: pin.schoolId, scope: pin.classroomId ? `classroom:${pin.classroomId}` : "school",
-      });
       return res.status(200).json({ ok: true, joined: true, schoolId: pin.schoolId, classroomId: pin.classroomId || null });
     }
 
@@ -104,6 +105,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, pending: true, alreadyRequested: true });
     }
     // PIN revoked between policy read and now? Re-check liveness in tx below via read.
+    const reqAudit = auditRef(db); // outside tx: retry-safe
     await db.runTransaction(async (tx) => {
       const livePin = await tx.get(db.collection("joiningPins").doc(pinSnap.id));
       const ld = livePin.data() || {};
@@ -116,15 +118,15 @@ export default async function handler(req, res) {
         uid: user.uid, schoolId: pin.schoolId, classroomId: pin.classroomId || null,
         status: "pending", pinId: pinSnap.id, createdAt: now, decidedBy: null, decidedAt: null,
       }, { merge: true });
+      tx.set(reqAudit, auditData({
+        actorUid: user.uid, action: "join-request.create", targetUid: user.uid,
+        schoolId: pin.schoolId, scope: pin.classroomId ? `classroom:${pin.classroomId}` : "school",
+      }));
     }).catch((e) => {
       if (e.message === "STALE_PIN") throw e;
       throw e;
     });
     await clearPinFailures(db, user.uid);
-    await audit(db, {
-      actorUid: user.uid, action: "join-request.create", targetUid: user.uid,
-      schoolId: pin.schoolId, scope: pin.classroomId ? `classroom:${pin.classroomId}` : "school",
-    });
     return res.status(200).json({ ok: true, pending: true });
   } catch (e) {
     if (e.message === "STALE_PIN") {

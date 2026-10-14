@@ -3,7 +3,7 @@
  * Body: { pinId, schoolId }
  * Revoked PINs never redeem. Audited. Idempotent.
  */
-import { getAdminDb, cors, authedUser, checkRate, requirePermission, audit } from "./_lib/schoolServer.js";
+import { getAdminDb, cors, authedUser, checkRate, requirePermission, auditRef, auditData } from "./_lib/schoolServer.js";
 
 export default async function handler(req, res) {
   cors(res);
@@ -27,8 +27,11 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: "PIN not found." });
     }
     const now = new Date().toISOString();
-    await ref.update({ status: "revoked", revokedAt: now, revokedBy: user.uid }).catch(() => {});
-    await audit(db, { actorUid: user.uid, action: "pin.revoke", targetUid: null, schoolId, scope: `pin:${pinId}` });
+    // Stage 0.3: revocation + audit commit atomically.
+    const batch = db.batch();
+    batch.update(ref, { status: "revoked", revokedAt: now, revokedBy: user.uid });
+    batch.set(auditRef(db), auditData({ actorUid: user.uid, action: "pin.revoke", targetUid: null, schoolId, scope: `pin:${pinId}` }));
+    await batch.commit();
     return res.status(200).json({ ok: true });
   } catch (e) {
     return res.status(e.status || 500).json({ error: e.status ? e.message : "Revocation failed." });

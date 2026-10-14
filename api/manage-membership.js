@@ -11,7 +11,7 @@
  * All actions audited. Never touches Academy memberships via this route
  * unless schoolId==='academy' with proper admin (same safety applies).
  */
-import { getAdminDb, cors, authedUser, checkRate, requirePermission, audit, membershipId } from "./_lib/schoolServer.js";
+import { getAdminDb, cors, authedUser, checkRate, requirePermission, auditRef, auditData, membershipId } from "./_lib/schoolServer.js";
 
 export default async function handler(req, res) {
   cors(res);
@@ -45,18 +45,24 @@ export default async function handler(req, res) {
     const now = new Date().toISOString();
 
     if (action === "remove-school") {
-      await ref.update({ status: "removed", removedAt: now, removedBy: user.uid, updatedAt: now });
+      // Stage 0.3: status flip + audit atomically (token revocation stays
+      // best-effort outside — Auth, not Firestore).
+      const batch = db.batch();
+      batch.update(ref, { status: "removed", removedAt: now, removedBy: user.uid, updatedAt: now });
+      batch.set(auditRef(db), auditData({ actorUid: user.uid, action: "membership.revoke", targetUid: uid, schoolId, scope: "school" }));
+      await batch.commit();
       try {
         const { getAuth } = await import("firebase-admin/auth");
         await getAuth().revokeRefreshTokens(uid);
       } catch { /* best-effort token revocation; rule denial still applies */ }
-      await audit(db, { actorUid: user.uid, action: "membership.revoke", targetUid: uid, schoolId, scope: "school" });
       return res.status(200).json({ ok: true, action });
     }
 
     if (action === "remove-classroom") {
-      await ref.update({ classroomId: null, updatedAt: now });
-      await audit(db, { actorUid: user.uid, action: "membership.update", targetUid: uid, schoolId, scope: "classroom:cleared" });
+      const batch = db.batch();
+      batch.update(ref, { classroomId: null, updatedAt: now });
+      batch.set(auditRef(db), auditData({ actorUid: user.uid, action: "membership.update", targetUid: uid, schoolId, scope: "classroom:cleared" }));
+      await batch.commit();
       return res.status(200).json({ ok: true, action });
     }
 
@@ -72,11 +78,13 @@ export default async function handler(req, res) {
     // classrooms outside their own scope.
     const staff2 = await requirePermission(db, req, res, schoolId, "membership.assign", classroomId);
     if (!staff2) return;
-    await ref.update({ classroomId, updatedAt: now });
-    await audit(db, {
+    const batch = db.batch();
+    batch.update(ref, { classroomId, updatedAt: now });
+    batch.set(auditRef(db), auditData({
       actorUid: user.uid, action: "membership.update", targetUid: uid,
       schoolId, scope: `classroom:${classroomId}`,
-    });
+    }));
+    await batch.commit();
     return res.status(200).json({ ok: true, action, classroomId });
   } catch (e) {
     return res.status(e.status || 500).json({ error: e.status ? e.message : "Update failed." });

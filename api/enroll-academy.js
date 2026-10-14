@@ -9,7 +9,7 @@
  */
 import { verifyAuth } from "./_lib/auth.js";
 import { rateLimit, rateLimitKey } from "./_lib/validation.js";
-import { audit } from "./_lib/schoolServer.js";
+import { auditRef, auditData } from "./_lib/schoolServer.js";
 
 const ACADEMY_ID = "academy";
 const mid = (uid) => `${String(uid).replace(/[^A-Za-z0-9_-]/g, "_")}_${ACADEMY_ID}`;
@@ -59,16 +59,22 @@ export default async function handler(req, res) {
       await ensurePublicProjection(db, user.uid);
       return res.status(200).json({ ok: true, already: true });
     }
-    await ref.set({
+    // Stage 0.3: membership + projection + audit commit atomically.
+    const userSnap = await db.collection("users").doc(user.uid).get();
+    const batch = db.batch();
+    batch.set(ref, {
       uid: user.uid, schoolId: ACADEMY_ID, role: "student", classroomId: null,
       status: "active", createdAt: now,
       updatedAt: now, removedAt: null, removedBy: null,
     }, { merge: true });
-    await ensurePublicProjection(db, user.uid);
-    await audit(db, {
+    if (userSnap.exists) {
+      batch.set(db.collection("users_public").doc(user.uid), projectPublicDoc(userSnap.data() || {}), { merge: true });
+    }
+    batch.set(auditRef(db), auditData({
       actorUid: user.uid, action: "membership.self-enrol", targetUid: user.uid,
       schoolId: ACADEMY_ID, scope: "school",
-    });
+    }));
+    await batch.commit();
     return res.status(200).json({ ok: true, already: false });
   } catch (e) {
     const status = e.status || 500;
@@ -79,27 +85,30 @@ export default async function handler(req, res) {
 /**
  * Server-side users_public upsert from the authoritative users doc.
  * Only leaderboard-safe fields; never email, isAdmin, role, or internals.
- * Best-effort: failures are logged, never fail the enrolment.
+ * Pure projection builder (no writes) so callers can batch it atomically.
  */
+function projectPublicDoc(d) {
+  return {
+    name: typeof d.name === "string" ? d.name.slice(0, 120) : "",
+    username: typeof d.username === "string" ? d.username.slice(0, 80) : "",
+    displayName: typeof d.name === "string" ? d.name.slice(0, 120) : "",
+    avatarUrl: typeof d.avatarUrl === "string" ? d.avatarUrl.slice(0, 500) : "",
+    avatarIcon: typeof d.avatarIcon === "string" ? d.avatarIcon.slice(0, 80) : "",
+    xp: typeof d.xp === "number" ? d.xp : 0,
+    energy: typeof d.energy === "number" ? d.energy : 0,
+    totalScore: typeof d.totalScore === "number" ? d.totalScore : 0,
+    grade: typeof d.grade === "string" ? d.grade.slice(0, 40) : "",
+    curriculum: typeof d.curriculum === "string" ? d.curriculum.slice(0, 80) : "",
+    searchName: typeof d.name === "string" ? d.name.trim().toLowerCase().slice(0, 120) : "",
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 async function ensurePublicProjection(db, uid) {
   try {
     const snap = await db.collection("users").doc(uid).get();
     if (!snap.exists) return;
-    const d = snap.data() || {};
-    await db.collection("users_public").doc(uid).set({
-      name: typeof d.name === "string" ? d.name.slice(0, 120) : "",
-      username: typeof d.username === "string" ? d.username.slice(0, 80) : "",
-      displayName: typeof d.name === "string" ? d.name.slice(0, 120) : "",
-      avatarUrl: typeof d.avatarUrl === "string" ? d.avatarUrl.slice(0, 500) : "",
-      avatarIcon: typeof d.avatarIcon === "string" ? d.avatarIcon.slice(0, 80) : "",
-      xp: typeof d.xp === "number" ? d.xp : 0,
-      energy: typeof d.energy === "number" ? d.energy : 0,
-      totalScore: typeof d.totalScore === "number" ? d.totalScore : 0,
-      grade: typeof d.grade === "string" ? d.grade.slice(0, 40) : "",
-      curriculum: typeof d.curriculum === "string" ? d.curriculum.slice(0, 80) : "",
-      searchName: typeof d.name === "string" ? d.name.trim().toLowerCase().slice(0, 120) : "",
-      updatedAt: new Date().toISOString(),
-    }, { merge: true });
+    await db.collection("users_public").doc(uid).set(projectPublicDoc(snap.data() || {}), { merge: true });
   } catch {
     // Best-effort only.
   }

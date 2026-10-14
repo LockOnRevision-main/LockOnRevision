@@ -6,7 +6,7 @@
  * New school_admin is scoped strictly to the new school (single membership
  * doc). Audited. Rate-limited.
  */
-import { getAdminDb, cors, authedUser, checkRate, isPlatformAdmin, audit, membershipId } from "./_lib/schoolServer.js";
+import { getAdminDb, cors, authedUser, checkRate, isPlatformAdmin, auditRef, auditData, membershipId } from "./_lib/schoolServer.js";
 
 function slug(s) {
   return String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "school";
@@ -43,22 +43,25 @@ export default async function handler(req, res) {
     if ((await schoolRef.get()).exists) return res.status(409).json({ error: "School already exists." });
 
     const now = new Date().toISOString();
-    await schoolRef.create({
+    // Stage 0.3: school + membership + ledger + both audits in ONE batch.
+    const batch = db.batch();
+    batch.create(schoolRef, {
       name: name.trim(), type: "external", country: country || null,
       joinPolicy: "APPROVAL_REQUIRED", // safe default
       createdAt: now, updatedAt: now, createdByUid: user.uid,
     });
     const mid = membershipId(adminUid, id);
-    await db.collection("memberships").doc(mid).set({
+    batch.set(db.collection("memberships").doc(mid), {
       uid: adminUid, schoolId: id, role: "school_admin", classroomId: null,
       status: "active", createdAt: now, updatedAt: now, removedAt: null, removedBy: null,
     });
-    await db.collection("staffAssignments").doc(`${mid}_school_admin`).set({
+    batch.set(db.collection("staffAssignments").doc(`${mid}_school_admin`), {
       uid: adminUid, schoolId: id, classroomId: null, role: "school_admin",
       status: "active", createdAt: now, updatedAt: now,
     });
-    await audit(db, { actorUid: user.uid, action: "school.provision", targetUid: adminUid, schoolId: id, scope: "platform" });
-    await audit(db, { actorUid: user.uid, action: "staff.assign", targetUid: adminUid, schoolId: id, scope: "role:school_admin" });
+    batch.set(auditRef(db), auditData({ actorUid: user.uid, action: "school.provision", targetUid: adminUid, schoolId: id, scope: "platform" }));
+    batch.set(auditRef(db), auditData({ actorUid: user.uid, action: "staff.assign", targetUid: adminUid, schoolId: id, scope: "role:school_admin" }));
+    await batch.commit();
     return res.status(200).json({ ok: true, schoolId: id });
   } catch (e) {
     return res.status(e.status || 500).json({ error: e.status ? e.message : "Provisioning failed." });

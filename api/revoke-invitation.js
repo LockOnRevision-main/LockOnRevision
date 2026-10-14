@@ -2,7 +2,7 @@
  * POST /api/revoke-invitation — platform-only revocation.
  * Body: { invitationId }. Idempotent. Audited. Revoked tokens never accept.
  */
-import { getAdminDb, cors, authedUser, checkRate, isPlatformAdmin, audit } from "./_lib/schoolServer.js";
+import { getAdminDb, cors, authedUser, checkRate, isPlatformAdmin, auditRef, auditData } from "./_lib/schoolServer.js";
 
 export default async function handler(req, res) {
   cors(res);
@@ -26,11 +26,14 @@ export default async function handler(req, res) {
     const snap = await ref.get();
     if (!snap.exists) return res.status(404).json({ error: "Invitation not found." });
     const now = new Date().toISOString();
-    await ref.update({ status: "revoked", revokedAt: now, revokedBy: user.uid }).catch(() => {});
-    await audit(db, {
+    // Stage 0.3: revocation + audit commit atomically.
+    const batch = db.batch();
+    batch.update(ref, { status: "revoked", revokedAt: now, revokedBy: user.uid });
+    batch.set(auditRef(db), auditData({
       actorUid: user.uid, action: "invite.revoke", targetUid: null,
       schoolId: (snap.data() || {}).schoolId || null, scope: `invitation:${invitationId}`,
-    });
+    }));
+    await batch.commit();
     return res.status(200).json({ ok: true });
   } catch (e) {
     return res.status(e.status || 500).json({ error: e.status ? e.message : "Revocation failed." });

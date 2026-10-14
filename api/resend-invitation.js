@@ -6,7 +6,7 @@
  */
 import { generateInviteToken, hashInviteToken, inviteDocIdFromHash, inviteExpiryISO } from "./_lib/invites.js";
 import { sendInviteEmail, invitationAcceptUrl } from "./_lib/email.js";
-import { getAdminDb, cors, authedUser, checkRate, isPlatformAdmin, audit } from "./_lib/schoolServer.js";
+import { getAdminDb, cors, authedUser, checkRate, isPlatformAdmin, auditRef, auditData } from "./_lib/schoolServer.js";
 
 export default async function handler(req, res) {
   cors(res);
@@ -47,14 +47,19 @@ export default async function handler(req, res) {
     if (!newId) return res.status(500).json({ error: "Could not reissue. Retry." });
 
     const now = new Date().toISOString();
-    await oldRef.update({ status: "revoked", revokedAt: now, revokedBy: user.uid });
-    await db.collection("adminInvitations").doc(newId).create({
+    // Stage 0.3: revoke-old + create-new + both audits commit atomically.
+    const batch = db.batch();
+    batch.update(oldRef, { status: "revoked", revokedAt: now, revokedBy: user.uid });
+    batch.create(db.collection("adminInvitations").doc(newId), {
       schoolId: od.schoolId, emailLower: od.emailLower, role: od.role || "school_admin",
       tokenHash: hash, status: "pending", expiresAt: inviteExpiryISO(),
       createdBy: user.uid, createdAt: now, resendCount: (od.resendCount || 0) + 1,
       usedAt: null, usedBy: null, revokedAt: null, revokedBy: null,
       resends: invitationId,
     });
+    batch.set(auditRef(db), auditData({ actorUid: user.uid, action: "invite.revoke", targetUid: null, schoolId: od.schoolId, scope: `invitation:${invitationId}` }));
+    batch.set(auditRef(db), auditData({ actorUid: user.uid, action: "invite.create", targetUid: null, schoolId: od.schoolId, scope: `invitation:${newId}` }));
+    await batch.commit();
 
     const school = await db.collection("schools").doc(od.schoolId).get();
     const acceptUrl = invitationAcceptUrl(token);
@@ -62,8 +67,6 @@ export default async function handler(req, res) {
     if (acceptUrl) {
       emailed = await sendInviteEmail({ to: od.emailLower, schoolName: (school.data() || {}).name || od.schoolId, acceptUrl });
     }
-    await audit(db, { actorUid: user.uid, action: "invite.revoke", targetUid: null, schoolId: od.schoolId, scope: `invitation:${invitationId}` });
-    await audit(db, { actorUid: user.uid, action: "invite.create", targetUid: null, schoolId: od.schoolId, scope: `invitation:${newId}` });
     return res.status(200).json({ ok: true, invitationId: newId, token, acceptUrl, emailed: emailed.sent });
   } catch (e) {
     return res.status(e.status || 500).json({ error: e.status ? e.message : "Resend failed." });

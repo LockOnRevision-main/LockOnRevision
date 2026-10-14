@@ -10,7 +10,7 @@
  */
 import { generateInviteToken, hashInviteToken, inviteDocIdFromHash, inviteExpiryISO, normaliseEmail, validEmail } from "./_lib/invites.js";
 import { sendInviteEmail, invitationAcceptUrl } from "./_lib/email.js";
-import { getAdminDb, cors, authedUser, checkRate, isPlatformAdmin, audit } from "./_lib/schoolServer.js";
+import { getAdminDb, cors, authedUser, checkRate, isPlatformAdmin, auditRef, auditData } from "./_lib/schoolServer.js";
 
 export default async function handler(req, res) {
   cors(res);
@@ -51,22 +51,26 @@ export default async function handler(req, res) {
     if (!invId) return res.status(500).json({ error: "Could not create invitation. Retry." });
 
     const now = new Date().toISOString();
-    await db.collection("adminInvitations").doc(invId).create({
+    // Stage 0.3: invitation + audit commit atomically (email stays
+    // best-effort outside — external provider, not Firestore).
+    const batch = db.batch();
+    batch.create(db.collection("adminInvitations").doc(invId), {
       schoolId, emailLower, role: "school_admin",
       tokenHash: hash, status: "pending", expiresAt: inviteExpiryISO(),
       createdBy: user.uid, createdAt: now, resendCount: 0,
       usedAt: null, usedBy: null, revokedAt: null, revokedBy: null,
     });
+    batch.set(auditRef(db), auditData({
+      actorUid: user.uid, action: "invite.create", targetUid: null,
+      schoolId, scope: `invitation:${invId}`,
+    }));
+    await batch.commit();
 
     const acceptUrl = invitationAcceptUrl(token);
     let emailed = { sent: false, reason: "email-not-configured" };
     if (acceptUrl) {
       emailed = await sendInviteEmail({ to: emailLower, schoolName: (school.data() || {}).name || schoolId, acceptUrl });
     }
-    await audit(db, {
-      actorUid: user.uid, action: "invite.create", targetUid: null,
-      schoolId, scope: `invitation:${invId}`,
-    });
     // Plaintext ONCE. No email/token in logs.
     return res.status(200).json({
       ok: true, invitationId: invId, token, acceptUrl,

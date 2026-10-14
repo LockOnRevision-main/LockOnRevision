@@ -4,7 +4,7 @@
  * Only that school's school_admin (or platform admin). Audited.
  * Default for new schools: APPROVAL_REQUIRED (safer).
  */
-import { getAdminDb, cors, authedUser, checkRate, requirePermission, audit } from "./_lib/schoolServer.js";
+import { getAdminDb, cors, authedUser, checkRate, requirePermission, auditRef, auditData } from "./_lib/schoolServer.js";
 
 export const JOIN_POLICIES = ["IMMEDIATE", "APPROVAL_REQUIRED"];
 export const DEFAULT_JOIN_POLICY = "APPROVAL_REQUIRED";
@@ -25,13 +25,16 @@ export default async function handler(req, res) {
     const db = await getAdminDb();
     const staff = await requirePermission(db, req, res, schoolId, "policy.manage");
     if (!staff) return;
-    await db.collection("schools").doc(schoolId).update({
+    // Stage 0.3: policy change + audit commit atomically.
+    const batch = db.batch();
+    batch.update(db.collection("schools").doc(schoolId), {
       joinPolicy, updatedAt: new Date().toISOString(),
     });
-    await audit(db, {
+    batch.set(auditRef(db), auditData({
       actorUid: user.uid, action: "school.policy-change", targetUid: null,
       schoolId, scope: `joinPolicy:${joinPolicy}`,
-    });
+    }));
+    await batch.commit();
     return res.status(200).json({ ok: true, joinPolicy });
   } catch (e) {
     return res.status(e.status || 500).json({ error: e.status ? e.message : "Policy update failed." });

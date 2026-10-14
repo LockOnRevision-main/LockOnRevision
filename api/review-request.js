@@ -5,7 +5,7 @@
  * everywhere). Approval creates the membership atomically with the status
  * change. Valid transitions: pending -> approved|rejected only.
  */
-import { getAdminDb, cors, authedUser, checkRate, requirePermission, audit, membershipId } from "./_lib/schoolServer.js";
+import { getAdminDb, cors, authedUser, checkRate, requirePermission, auditRef, auditData, membershipId } from "./_lib/schoolServer.js";
 
 export default async function handler(req, res) {
   cors(res);
@@ -36,6 +36,13 @@ export default async function handler(req, res) {
     }
 
     const now = new Date().toISOString();
+    // Stage 0.3: audit entry commits atomically with the change (same tx /
+    // same batch). Audit ref created outside the tx: retry-safe.
+    const reviewAudit = auditRef(db);
+    const reviewEntry = {
+      actorUid: user.uid, action: `join-request.${decision}`, targetUid: jr.uid,
+      schoolId: jr.schoolId, scope: jr.classroomId ? `classroom:${jr.classroomId}` : "school",
+    };
     if (decision === "approved") {
       await db.runTransaction(async (tx) => {
         const cur = await tx.get(reqRef);
@@ -51,15 +58,15 @@ export default async function handler(req, res) {
           status: "active", createdAt: mem.exists ? (mem.data() || {}).createdAt || now : now,
           updatedAt: now, removedAt: null, removedBy: null,
         }, { merge: true });
+        tx.set(reviewAudit, auditData(reviewEntry));
       });
     } else {
-      await reqRef.update({ status: "rejected", decidedBy: user.uid, decidedAt: now });
+      const batch = db.batch();
+      batch.update(reqRef, { status: "rejected", decidedBy: user.uid, decidedAt: now });
+      batch.set(reviewAudit, auditData(reviewEntry));
+      await batch.commit();
     }
 
-    await audit(db, {
-      actorUid: user.uid, action: `join-request.${decision}`, targetUid: jr.uid,
-      schoolId: jr.schoolId, scope: jr.classroomId ? `classroom:${jr.classroomId}` : "school",
-    });
     return res.status(200).json({ ok: true, decision });
   } catch (e) {
     return res.status(e.status || 500).json({ error: e.status ? e.message : "Review failed." });

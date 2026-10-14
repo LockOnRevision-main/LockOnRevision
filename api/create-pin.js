@@ -7,7 +7,7 @@
  * Returns plaintext PIN ONCE; it is never stored or re-readable.
  */
 import { generatePinCode, hashPin, pinDocIdFromHash, pinExpiryISO, PIN_DEFAULT_TTL_MS } from "./_lib/pins.js";
-import { getAdminDb, cors, authedUser, checkRate, requirePermission, audit } from "./_lib/schoolServer.js";
+import { getAdminDb, cors, authedUser, checkRate, requirePermission, auditRef, auditData } from "./_lib/schoolServer.js";
 
 export default async function handler(req, res) {
   cors(res);
@@ -38,10 +38,11 @@ export default async function handler(req, res) {
 
     // Stage 0.3: rotation + creation in ONE transaction — two concurrent
     // create-pin calls for the same scope can never leave two live PINs.
+    // Audit refs are created OUTSIDE the tx function (retry-safe: retries
+    // reuse the same audit doc ids, so no duplicate entries).
     let pinCode = null;
     let pinId = null;
     let pinExpiresAt = null;
-    let rotatedIds = [];
     // Collision retry: tx.create fails if the hash id exists; outer loop
     // regenerates (astronomically unlikely).
     for (let attempt = 0; attempt < 5; attempt++) {
@@ -54,16 +55,23 @@ export default async function handler(req, res) {
       }
       const candidateId = pinDocIdFromHash(hash);
       const now = new Date().toISOString();
+      const createAudit = auditRef(db);
       try {
         const rotated = await db.runTransaction(async (tx) => {
           let q = db.collection("joiningPins").where("schoolId", "==", schoolId).where("status", "==", "active");
           q = classroomId ? q.where("classroomId", "==", classroomId) : q.where("classroomId", "==", null);
           const prev = await tx.get(q);
-          const ids = [];
           prev.forEach((d) => {
             if (d.id === candidateId) return; // same-hash rewrite guard
             tx.update(d.ref, { status: "revoked", revokedAt: now, revokedBy: user.uid });
-            ids.push(d.id);
+            // Deterministic audit id: retries reuse it, never duplicates.
+            tx.set(
+              db.collection("adminAuditLogs").doc(`pinrev_${d.id}_${candidateId}`),
+              auditData({
+                actorUid: user.uid, action: "pin.revoke", targetUid: null,
+                schoolId, scope: `pin:${d.id}`,
+              }),
+            );
           });
           const expiresAt = pinExpiryISO(ttlMs);
           tx.create(db.collection("joiningPins").doc(candidateId), {
@@ -72,12 +80,15 @@ export default async function handler(req, res) {
             createdBy: user.uid, createdAt: now, useCount: 0,
             revokedAt: null, revokedBy: null,
           });
-          return { ids, expiresAt };
+          tx.set(createAudit, auditData({
+            actorUid: user.uid, action: "pin.create", targetUid: null,
+            schoolId, scope: classroomId ? `classroom:${classroomId}` : "school",
+          }));
+          return { expiresAt };
         });
         pinCode = code;
         pinId = candidateId;
         pinExpiresAt = rotated.expiresAt;
-        rotatedIds = rotated.ids;
         break;
       } catch (e) {
         if (e && (e.code === 6 || /already exists/i.test(e.message || ""))) continue;
@@ -86,16 +97,6 @@ export default async function handler(req, res) {
     }
     if (!pinCode) return res.status(500).json({ error: "Could not generate a unique PIN. Retry." });
 
-    for (const rid of rotatedIds) {
-      await audit(db, {
-        actorUid: user.uid, action: "pin.revoke", targetUid: null,
-        schoolId, scope: `pin:${rid}`,
-      });
-    }
-    await audit(db, {
-      actorUid: user.uid, action: "pin.create", targetUid: null,
-      schoolId, scope: classroomId ? `classroom:${classroomId}` : "school",
-    });
     // Plaintext returned ONCE; never logged (no PIN in logs).
     return res.status(200).json({ ok: true, pin: pinCode, pinId, expiresAt: pinExpiresAt });
   } catch (e) {

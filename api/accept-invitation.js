@@ -15,7 +15,7 @@
  * (single-use holds under concurrency). Rate-limited (existing layers).
  */
 import { hashInviteToken, inviteDocIdFromHash, isInviteLive, inviteReject, checkInviteLockout, recordInviteFailure, clearInviteFailures, normaliseEmail } from "./_lib/invites.js";
-import { getAdminDb, cors, authedUser, checkRate, audit, membershipId } from "./_lib/schoolServer.js";
+import { getAdminDb, cors, authedUser, checkRate, auditRef, auditData, membershipId } from "./_lib/schoolServer.js";
 import { rateLimit, rateLimitKey } from "./_lib/validation.js";
 
 export default async function handler(req, res) {
@@ -64,6 +64,7 @@ export default async function handler(req, res) {
 
     const now = new Date().toISOString();
     const memId = membershipId(user.uid, inv.schoolId);
+    const acceptAudit = auditRef(db); // outside tx: retry-safe
     const outcome = await db.runTransaction(async (tx) => {
       const cur = await tx.get(db.collection("adminInvitations").doc(invId));
       const cd = cur.data() || {};
@@ -74,6 +75,10 @@ export default async function handler(req, res) {
       const mem = await tx.get(memRef);
       if (mem.exists && (mem.data() || {}).status === "active" && (mem.data() || {}).role === "school_admin") {
         tx.update(db.collection("adminInvitations").doc(invId), { status: "used", usedAt: now, usedBy: user.uid });
+        tx.set(acceptAudit, auditData({
+          actorUid: user.uid, action: "invite.accept", targetUid: user.uid,
+          schoolId: inv.schoolId, scope: `invitation:${invId}`,
+        }));
         return { already: true };
       }
       tx.update(db.collection("adminInvitations").doc(invId), { status: "used", usedAt: now, usedBy: user.uid });
@@ -86,6 +91,10 @@ export default async function handler(req, res) {
         uid: user.uid, schoolId: inv.schoolId, classroomId: null, role: "school_admin",
         status: "active", createdAt: now, updatedAt: now,
       }, { merge: true });
+      tx.set(acceptAudit, auditData({
+        actorUid: user.uid, action: "invite.accept", targetUid: user.uid,
+        schoolId: inv.schoolId, scope: `invitation:${invId}`,
+      }));
       return { already: false };
     }).catch((e) => {
       if (e.message === "STALE" || e.status === 409) return "STALE";
@@ -94,10 +103,6 @@ export default async function handler(req, res) {
     if (outcome === "STALE") return fail();
 
     await clearInviteFailures(db, user.uid);
-    await audit(db, {
-      actorUid: user.uid, action: "invite.accept", targetUid: user.uid,
-      schoolId: inv.schoolId, scope: `invitation:${invId}`,
-    });
     return res.status(200).json({ ok: true, schoolId: inv.schoolId, already: outcome.already });
   } catch (e) {
     return res.status(e.status || 500).json({ error: e.status ? e.message : "Acceptance failed." });
