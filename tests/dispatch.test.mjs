@@ -37,7 +37,7 @@ describe("Stage 0.5: function count within Hobby limit", () => {
       ["create-pin", "school"], ["revoke-pin", "school"], ["redeem-pin", "school"],
       ["set-join-policy", "school"], ["review-request", "school"], ["provision-school", "school"],
       ["revoke-school-admin", "school"], ["search-students", "school"], ["student-profile", "school"],
-      ["manage-membership", "school"], ["school-overview", "school"], ["enroll-academy", "school"],
+      ["manage-membership", "school"], ["manage-classroom", "school"], ["school-overview", "school"], ["enroll-academy", "school"],
       ["set-permissions", "school"], ["get-permissions", "school"], ["create-invitation", "school"],
       ["resend-invitation", "school"], ["revoke-invitation", "school"], ["accept-invitation", "school"],
       ["list-invitations", "school"],
@@ -46,7 +46,7 @@ describe("Stage 0.5: function count within Hobby limit", () => {
       ["generate-learning-content", "ai"], ["generate-question-hint", "ai"], ["explain-wrong-answer", "ai"],
       ["generate-timetable", "ai"], ["generate-daily-challenge", "ai"], ["delete-cloudinary-files", "ai"],
     ];
-    assert.equal(legacy.length, 31, "all 31 former routes covered");
+    assert.equal(legacy.length, 32, "all 32 former routes covered");
     for (const [name, disp] of legacy) {
       const rw = rewrites.find((r) => r.source === `/api/${name}`);
       assert.ok(rw, `rewrite for /api/${name}`);
@@ -59,7 +59,7 @@ describe("Stage 0.5: delegation preserves behaviour", () => {
   it("every action resolves to a handler function", async () => {
     const school = await import("../api/school.js");
     const ai = await import("../api/ai.js");
-    assert.equal(Object.keys(school.ACTIONS).length, 19);
+    assert.equal(Object.keys(school.ACTIONS).length, 20);
     assert.equal(Object.keys(ai.ACTIONS).length, 12);
     for (const [name, fn] of [...Object.entries(school.ACTIONS), ...Object.entries(ai.ACTIONS)]) {
       assert.equal(typeof fn, "function", `${name} delegates to a function`);

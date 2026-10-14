@@ -46,6 +46,10 @@
       "destination": "/api/school?action=manage-membership"
     },
     {
+      "source": "/api/manage-classroom",
+      "destination": "/api/school?action=manage-classroom"
+    },
+    {
       "source": "/api/school-overview",
       "destination": "/api/school?action=school-overview"
     },

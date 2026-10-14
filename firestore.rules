@@ -230,11 +230,14 @@ service cloud.firestore {
     }
 
     // ============ CLASSROOMS (exactly one school each) ============
+    // Prompt 48: hard deletes are server-denied (deactivation is soft via
+    // POST /api/manage-classroom, preserving memberships + learning data).
+    // Clients may still create/update within their school; delete = never.
     match /classrooms/{classroomId} {
       allow read: if isAdmin() || (signedIn() && isSchoolMember(resource.data.schoolId));
       allow create: if isAdmin() || (signedIn() && canTeachSchool(request.resource.data.schoolId));
       allow update: if isAdmin() || (signedIn() && canTeachSchool(resource.data.schoolId));
-      allow delete: if isAdmin() || (signedIn() && canManageSchool(resource.data.schoolId));
+      allow delete: if false;
     }
 
     // ============ MEMBERSHIPS (deterministic id: uid_schoolId) ============

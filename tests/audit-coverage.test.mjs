@@ -22,6 +22,7 @@ const SENSITIVE_ROUTES = [
   "server/handlers/provision-school.js",
   "server/handlers/revoke-school-admin.js",
   "server/handlers/manage-membership.js",
+  "server/handlers/manage-classroom.js",
   "server/handlers/enroll-academy.js",
   "server/handlers/create-invitation.js",
   "server/handlers/resend-invitation.js",
