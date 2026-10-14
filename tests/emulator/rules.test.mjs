@@ -102,6 +102,18 @@ describe("REAL RULES: user profiles (A2/A3)", () => {
     const { doc, updateDoc } = await import("firebase/firestore");
     await assertSucceeds(updateDoc(doc(authed("stu-a").firestore(), "users/stu-a"), { name: "Stu A2" }));
   });
+
+  it("fallback hole closed: owner subcollections work, cross-user denied", async () => {
+    const { doc, setDoc, getDoc } = await import("firebase/firestore");
+    // Owner writes to own subcollections (explicit blocks, incl. dailyChallenge):
+    await assertSucceeds(setDoc(doc(authed("stu-a").firestore(), "users/stu-a/subjects/s1"), { title: "Maths" }));
+    await assertSucceeds(setDoc(doc(authed("stu-a").firestore(), "users/stu-a/dailyChallengeHistory/h1"), { score: 5 }));
+    // Cross-user subcollection access denied:
+    await assertFails(getDoc(doc(authed("stu-a").firestore(), "users/stu-b/subjects/s1")));
+    await assertFails(setDoc(doc(authed("stu-a").firestore(), "users/stu-b/subjects/s1"), { title: "X" }));
+    // Unlisted future subcollections deny by default (fail-closed):
+    await assertFails(setDoc(doc(authed("stu-a").firestore(), "users/stu-a/futureCollection/d1"), { x: 1 }));
+  });
 });
 
 describe("REAL RULES: public projection", () => {

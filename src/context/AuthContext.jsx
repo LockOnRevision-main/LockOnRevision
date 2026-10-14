@@ -131,9 +131,10 @@ async function ensureUserDocument(user, name) {
     if (!data.email) patch.email = user.email;
     if (!data.username) patch.username = user.email?.split('@')[0] || "learner";
 
-    if (data.role === "admin" && data.isAdmin !== true) {
-      patch.isAdmin = true;
-    }
+    // NOTE (Beta 2.0 Stage 0.2): no client-side isAdmin/role backfill here.
+    // Rules deny owner writes to protected fields; role=='admin' already
+    // grants everything (isAdmin() + canAccessAdmin check role too), and
+    // scripts/admin-bootstrap.mjs sets both fields via the Admin SDK.
 
     if (data.name === PLACEHOLDER_NAME && data.onboardingCompleted === undefined) {
       patch.onboardingCompleted = false;

@@ -51,17 +51,30 @@ service cloud.firestore {
 
     // Protected fields that only trusted server code (Admin SDK / rules-bypass)
     // or platform admins may change. Normal users can never grant these.
-    function protectedChanged() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasAny([
-        'email',
-        'createdAt',
-        'isAdmin',
-        'role',
-        'schoolRoles',
-        'permissions',
-        'permissionSets',
-        'adminRewards'
-      ]);
+    // NOTE (Beta 2.0 Stage 0.2): previously enforced via
+    // request.resource.data.diff(resource.data).affectedKeys().hasAny(...).
+    // The REAL emulator proved that construct does NOT deny a scalar value
+    // change (role user->admin succeeded). Direct per-field checks below
+    // replace it. Dot-access on a MISSING key throws in this rules runtime
+    // (proven: "Property X is undefined on object"), so every access is
+    // guarded by `in` via unchanged(). Never use diff() or unguarded
+    // dot-access for privilege-bearing fields.
+    function unchanged(key) {
+      return (!(key in request.resource.data) && !(key in resource.data))
+        || ((key in request.resource.data) && (key in resource.data)
+          && request.resource.data[key] == resource.data[key]);
+    }
+
+    function protectedUnchanged() {
+      return unchanged('createdAt')
+        && unchanged('isAdmin')
+        && unchanged('role')
+        && unchanged('schoolRoles')
+        && unchanged('permissions')
+        && unchanged('permissionSets')
+        && unchanged('adminRewards')
+        && (unchanged('email')
+          || (!( 'email' in resource.data) && ('email' in request.resource.data)));
     }
 
     // ============ USERS (Stage A2 + A3) ============
@@ -79,21 +92,25 @@ service cloud.firestore {
         && !('schoolRoles' in request.resource.data)
         && !('permissions' in request.resource.data)
         && !('permissionSets' in request.resource.data);
-      // A2: role escalation closed — 'role' (+ other protected fields) can
-      // only change via platform-admin path. Parentheses pin precedence.
+      // A2: role escalation closed — protected fields are pinned by direct
+      // equality (see protectedUnchanged). Only the platform-admin path
+      // may change them. Parentheses pin precedence.
       allow update: if (
-        (ownsUserDoc(userId) && !protectedChanged())
+        (ownsUserDoc(userId) && protectedUnchanged())
         || isAdmin()
       );
       allow delete: if false;
 
-      // Generic fallback for any subcollection under users/{userId} – ensures new collections (timetableDocuments etc.) work
-      match /{document=**} {
-        allow read: if ownsUserDoc(userId) || isAdmin();
-        allow write: if ownsUserDoc(userId) || isAdmin();
-      }
+      // NOTE (Beta 2.0 Stage 0.2): there is deliberately NO generic
+      // `match /{document=**}` fallback here. A multi-segment wildcard
+      // matches ZERO segments too, so such a fallback also matches
+      // users/{userId} ITSELF and its owner-write would silently re-open
+      // role escalation (proven by the real emulator: role:admin updates
+      // were allowed until the fallback was removed). New subcollections
+      // are DENIED until an explicit owner-only block is added below
+      // (fail-closed). Every subcollection used by the app is listed.
 
-      // Explicit per-collection writes (kept for clarity, covered by fallback above)
+      // Explicit per-collection rules (owner or platform admin only)
       match /subjects/{docId} {
         allow read: if ownsUserDoc(userId) || isAdmin();
         allow write: if ownsUserDoc(userId) || isAdmin();
@@ -168,6 +185,16 @@ service cloud.firestore {
         allow read: if ownsUserDoc(userId) || isAdmin();
         allow write: if ownsUserDoc(userId) || isAdmin();
       }
+
+      match /dailyChallenge/{docId} {
+        allow read: if ownsUserDoc(userId) || isAdmin();
+        allow write: if ownsUserDoc(userId) || isAdmin();
+      }
+
+      match /dailyChallengeHistory/{docId} {
+        allow read: if ownsUserDoc(userId) || isAdmin();
+        allow write: if ownsUserDoc(userId) || isAdmin();
+      }
     }
 
     // ============ USERS_PUBLIC (Stage A3 public projection) ============
@@ -215,12 +242,11 @@ service cloud.firestore {
     // Stage 2: permission overrides (permissionSet/accessScopes) are
     // SERVER-ONLY — no client path may grant them, closing the escalation
     // hole where a school_admin could self-grant via a direct write.
-    function permissionFieldsChanged() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasAny([
-        'permissionSet',
-        'accessScopes',
-        'permissionSets'
-      ]);
+    // Same `in`-guarded style as unchanged() (dot-access on missing throws).
+    function permissionOverridesUnchanged() {
+      return unchanged('permissionSet')
+        && unchanged('accessScopes')
+        && unchanged('permissionSets');
     }
 
     match /memberships/{membershipId} {
@@ -239,7 +265,7 @@ service cloud.firestore {
             && !('permissionSets' in request.resource.data));
       allow update: if isAdmin()
         || (signedIn() && canManageSchool(resource.data.schoolId)
-            && !permissionFieldsChanged());
+            && permissionOverridesUnchanged());
       allow delete: if false;
     }
 

@@ -60,6 +60,20 @@ describe("Stage 0.2: every sensitive write is audited", () => {
     });
   }
 
+  it("no generic recursive-wildcard fallback under users (zero-segment hole)", () => {
+    // Strip // comments (the explanatory note names the pattern) then assert
+    // no live recursive-wildcard match remains: ** matches zero segments,
+    // so a generic fallback would also match the user doc itself.
+    const rules = read("firestore.rules").replace(/\/\/.*$/gm, "");
+    assert.ok(!rules.includes("**"), "fallback removed");
+    for (const col of ["subjects", "units", "subUnits", "lessons", "questions",
+      "answers", "exerciseAnswers", "files", "forgeSources", "timetables",
+      "timetableDocuments", "timetableMetadata", "timetableMetadataHistory",
+      "mastery", "sessions", "dailyChallenge", "dailyChallengeHistory"]) {
+      assert.ok(rules.includes(`match /${col}/{docId}`), `explicit block for ${col}`);
+    }
+  });
+
   it("pin rotation revocations are audited, not silent", () => {
     const src = read("api/create-pin.js");
     assert.ok(src.includes("pin.revoke"), "rotation revocation audited");
