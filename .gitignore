@@ -3,3 +3,8 @@
 node_modules/
 dist/
 .env*
+# Stage 0.6 hygiene: never track logs, debug output, or local backups.
+*.log
+*-out.txt
+backups/
+firestore-debug.log
