@@ -106,6 +106,19 @@ describe("Stage 1: lifecycle + binding + atomicity (route contracts)", () => {
     assert.ok(src.includes("email-not-configured"), "copy-link fallback when unconfigured");
   });
 
+  it("Resend credentials optional: copy-link path works with no keys set", async () => {
+    const OLD = { ...process.env };
+    try {
+      delete process.env.RESEND_API_KEY;
+      delete process.env.INVITE_FROM_EMAIL;
+      const { sendInviteEmail } = await import("../server/lib/email.js");
+      const r = await sendInviteEmail({ to: "a@example.com", schoolName: "S", acceptUrl: "https://x/y" });
+      assert.deepEqual(r, { sent: false, reason: "email-not-configured" });
+    } finally {
+      process.env = OLD;
+    }
+  });
+
   it("invitation collections stay server-only in rules", () => {
     const rules = read("firestore.rules");
     for (const col of ["match /adminInvitations/", "match /inviteAttempts/"]) {
