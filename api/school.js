@@ -1,6 +1,6 @@
 /**
  * Beta 2.0 Part 2 — Stage 0.5: school-domain dispatcher.
- * Hobby plan allows 12 Vercel Functions per deployment; 32 single-file
+ * Hobby plan allows 12 Vercel Functions per deployment; 33 single-file
  * routes exceeded it. This ONE function delegates to the handler modules
  * under server/handlers/ (imported, never copied), so authentication,
  * permission, rate-limit and audit behaviour is preserved by construction.
@@ -18,6 +18,7 @@ import searchStudents from "../server/handlers/search-students.js";
 import studentProfile from "../server/handlers/student-profile.js";
 import manageMembership from "../server/handlers/manage-membership.js";
 import manageClassroom from "../server/handlers/manage-classroom.js";
+import assignStaff from "../server/handlers/assign-staff.js";
 import schoolOverview from "../server/handlers/school-overview.js";
 import enrollAcademy from "../server/handlers/enroll-academy.js";
 import setPermissions from "../server/handlers/set-permissions.js";
@@ -40,6 +41,7 @@ export const ACTIONS = {
   "student-profile": studentProfile,
   "manage-membership": manageMembership,
   "manage-classroom": manageClassroom,
+  "assign-staff": assignStaff,
   "school-overview": schoolOverview,
   "enroll-academy": enrollAcademy,
   "set-permissions": setPermissions,

@@ -46,6 +46,13 @@ export function SchoolAdminPanel({ t }) {
   const [permGrants, setPermGrants] = useState([]);
   const [permDenies, setPermDenies] = useState([]);
   const [permScopes, setPermScopes] = useState("all");
+  const [clsName, setClsName] = useState("");
+  const [clsYear, setClsYear] = useState("");
+  const [clsBusy, setClsBusy] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [editYear, setEditYear] = useState("");
+  const [confirmArchiveId, setConfirmArchiveId] = useState(null);
 
   async function loadOverview(id) {
     setLoading(true);
@@ -115,8 +122,77 @@ export function SchoolAdminPanel({ t }) {
     }
   }
 
-  async function search() {
+  // Prompt 50: classroom lifecycle via the real server endpoint
+  // (POST /api/manage-classroom). Permission + school boundary are
+  // enforced server-side; schoolId here is only a scope hint.
+  async function createClassroom() {
+    if (clsBusy) return;
+    const name = clsName.trim();
+    if (!name) { setError("Enter a classroom name."); return; }
+    setClsBusy("create");
     setError("");
+    setNotice("");
+    try {
+      await callRoute("/api/manage-classroom", {
+        action: "create", schoolId: schoolId.trim(), name,
+        yearGroup: clsYear.trim() || null,
+      });
+      setNotice(`Classroom “${name}” created.`);
+      setClsName("");
+      setClsYear("");
+      await loadOverview(schoolId.trim());
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setClsBusy(null);
+    }
+  }
+
+  async function saveClassroomEdit(id) {
+    if (clsBusy) return;
+    const name = editName.trim();
+    if (!name) { setError("Enter a classroom name."); return; }
+    setClsBusy(`edit:${id}`);
+    setError("");
+    setNotice("");
+    try {
+      await callRoute("/api/manage-classroom", {
+        action: "update", classroomId: id, name,
+        yearGroup: editYear.trim() || null,
+      });
+      setNotice("Classroom updated.");
+      setEditingId(null);
+      await loadOverview(schoolId.trim());
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setClsBusy(null);
+    }
+  }
+
+  async function archiveClassroom(id) {
+    if (clsBusy) return;
+    if (confirmArchiveId !== id) {
+      // Two-step confirm: archiving keeps memberships + learning history.
+      setConfirmArchiveId(id);
+      return;
+    }
+    setClsBusy(`archive:${id}`);
+    setError("");
+    setNotice("");
+    try {
+      const r = await callRoute("/api/manage-classroom", { action: "deactivate", classroomId: id });
+      setNotice(r.already ? "Classroom was already archived." : "Classroom archived. Memberships and learning history kept.");
+      setConfirmArchiveId(null);
+      await loadOverview(schoolId.trim());
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setClsBusy(null);
+    }
+  }
+
+  async function search() {    setError("");
     setNotice("");
     try {
       const data = await callRoute("/api/search-students", {
@@ -270,6 +346,68 @@ export function SchoolAdminPanel({ t }) {
             <div className="mt-2 flex flex-wrap gap-2">
               <button type="button" className="btn-secondary" onClick={() => setPolicy("APPROVAL_REQUIRED")}>Require approval</button>
               <button type="button" className="btn-secondary" onClick={() => setPolicy("IMMEDIATE")}>Immediate join</button>
+            </div>
+          </article>
+
+          <article className="card card-pad">
+            <h3>Classrooms ({(overview.classrooms || []).filter((c) => (c.status || "active") === "active").length} active)</h3>
+            <p className="text-sm text-text-secondary">Archiving keeps student memberships and learning history. Classrooms are never permanently deleted here.</p>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+              <input value={clsName} onChange={(e) => setClsName(e.target.value)} placeholder="New classroom name (e.g. 7A)" aria-label="Classroom name" maxLength={120} className="field min-w-0 flex-1" />
+              <input value={clsYear} onChange={(e) => setClsYear(e.target.value)} placeholder="Year group (optional)" aria-label="Year group" maxLength={40} className="field min-w-0 flex-1 sm:max-w-44" />
+              <button type="button" className="btn-secondary shrink-0" disabled={!!clsBusy} onClick={createClassroom}>
+                {clsBusy === "create" ? "Creating…" : "Create"}
+              </button>
+            </div>
+            <div className="mt-3">
+              {(overview.classrooms || []).length ? (overview.classrooms || []).map((c) => {
+                const archived = (c.status || "active") !== "active";
+                const isEditing = editingId === c.id;
+                return (
+                  <div key={c.id} className="border-b border-border/50 py-2 text-sm last:border-b-0">
+                    {isEditing && !archived ? (
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <input value={editName} onChange={(e) => setEditName(e.target.value)} aria-label="Edit classroom name" maxLength={120} className="field min-w-0 flex-1" />
+                        <input value={editYear} onChange={(e) => setEditYear(e.target.value)} aria-label="Edit year group" maxLength={40} className="field min-w-0 flex-1 sm:max-w-44" />
+                        <span className="flex gap-2">
+                          <button type="button" className="btn-secondary" disabled={!!clsBusy} onClick={() => saveClassroomEdit(c.id)}>
+                            {clsBusy === `edit:${c.id}` ? "Saving…" : "Save"}
+                          </button>
+                          <button type="button" className="btn-secondary" disabled={!!clsBusy} onClick={() => setEditingId(null)}>Cancel</button>
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span>
+                          <strong>{c.name || "Unnamed"}</strong>
+                          <span className="text-text-secondary"> · {c.yearGroup || "no year group"}</span>
+                          {archived ? <span className="text-text-secondary"> · archived</span> : null}
+                        </span>
+                        {!archived ? (
+                          <span className="flex gap-2">
+                            <button
+                              type="button"
+                              className="btn-secondary"
+                              disabled={!!clsBusy}
+                              onClick={() => { setEditingId(c.id); setEditName(c.name || ""); setEditYear(c.yearGroup || ""); setConfirmArchiveId(null); }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-secondary"
+                              disabled={!!clsBusy}
+                              onClick={() => archiveClassroom(c.id)}
+                            >
+                              {clsBusy === `archive:${c.id}` ? "Archiving…" : confirmArchiveId === c.id ? "Confirm archive" : "Archive"}
+                            </button>
+                          </span>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                );
+              }) : <EmptyState title="No classrooms" copy="Create one above." />}
             </div>
           </article>
 

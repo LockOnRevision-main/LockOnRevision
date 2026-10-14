@@ -50,6 +50,10 @@
       "destination": "/api/school?action=manage-classroom"
     },
     {
+      "source": "/api/assign-staff",
+      "destination": "/api/school?action=assign-staff"
+    },
+    {
       "source": "/api/school-overview",
       "destination": "/api/school?action=school-overview"
     },

@@ -126,7 +126,7 @@ describe("Stage 0.4: shared membership+ledger writer", () => {
 
   it("routes use the helper (no divergent writers)", async () => {
     const fs = await import("node:fs");
-    for (const f of ["server/handlers/provision-school.js", "server/handlers/accept-invitation.js", "server/handlers/revoke-school-admin.js", "server/handlers/set-permissions.js"]) {
+    for (const f of ["server/handlers/provision-school.js", "server/handlers/accept-invitation.js", "server/handlers/revoke-school-admin.js", "server/handlers/set-permissions.js", "server/handlers/assign-staff.js"]) {
       const src = fs.readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
       assert.ok(src.includes("writeStaffRecords"), `${f} uses shared helper`);
     }

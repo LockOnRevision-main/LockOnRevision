@@ -50,10 +50,24 @@ export default async function handler(req, res) {
       else staffCount += 1;
     });
 
+    // Prompt 50 (additive): classroom roster for the admin UI. Minimal
+    // fields only, capped — no new permission (same roster.view gate).
+    const clsSnap = await db.collection("classrooms")
+      .where("schoolId", "==", schoolId).limit(100).get();
+    const classrooms = clsSnap.docs.map((d) => {
+      const c = d.data() || {};
+      return {
+        id: d.id,
+        name: c.name || "",
+        yearGroup: c.yearGroup || null,
+        status: c.status || "active",
+      };
+    });
+
     return res.status(200).json({
       ok: true,
       school: { id: schoolId, name: sd.name || "", joinPolicy: sd.joinPolicy || "APPROVAL_REQUIRED" },
-      pins, pendingRequests, counts: { students, staff: staffCount },
+      pins, pendingRequests, counts: { students, staff: staffCount }, classrooms,
     });
   } catch (e) {
     return res.status(e.status || 500).json({ error: e.status ? e.message : "Overview failed." });
