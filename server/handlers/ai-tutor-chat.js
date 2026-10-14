@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { GoogleGenAI } from '@google/genai';
 import { createLogger, withTimeout, retry } from '../lib/forge-integrity.js';
 import { requireAuth } from '../lib/auth.js';
+import { rateLimit, rateLimitKey } from '../lib/validation.js';
 
 const log = createLogger('ai-tutor-chat');
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
@@ -64,6 +65,55 @@ function isConfigured() {
   return !!googleAI;
 }
 
+/**
+ * Prompt 49: deterministic abuse caps for the open chat loop.
+ * Every authenticated user (any student) can reach this route, and each
+ * call spends Gemini quota — so unbounded `messages` arrays are a direct
+ * cost-abuse path. Caps are enforced BEFORE any model call and are
+ * independent of rate limiting (which is per-instance best-effort).
+ */
+export const CHAT_LIMITS = {
+  maxMessages: 50,
+  maxCharsPerMessage: 4000,
+  maxTotalChars: 20000,
+};
+
+const CHAT_ROLES = ["user", "assistant", "system"];
+
+export function validateChatInput(body) {
+  const messages = body?.messages;
+  if (!messages || !Array.isArray(messages)) {
+    throw Object.assign(new Error("Missing required field: messages"), { status: 400 });
+  }
+  if (messages.length === 0 || messages.length > CHAT_LIMITS.maxMessages) {
+    throw Object.assign(
+      new Error(`Invalid messages: must contain 1-${CHAT_LIMITS.maxMessages} entries`),
+      { status: 400 },
+    );
+  }
+  let total = 0;
+  for (const m of messages) {
+    if (!m || typeof m !== "object") throw Object.assign(new Error("Invalid message entry"), { status: 400 });
+    if (typeof m.role !== "string" || !CHAT_ROLES.includes(m.role)) {
+      throw Object.assign(new Error("Invalid message role"), { status: 400 });
+    }
+    if (typeof m.content !== "string" || m.content.length === 0 || m.content.length > CHAT_LIMITS.maxCharsPerMessage) {
+      throw Object.assign(
+        new Error(`Invalid message content: must be 1-${CHAT_LIMITS.maxCharsPerMessage} characters`),
+        { status: 400 },
+      );
+    }
+    total += m.content.length;
+  }
+  if (total > CHAT_LIMITS.maxTotalChars) {
+    throw Object.assign(
+      new Error(`Conversation too large: capped at ${CHAT_LIMITS.maxTotalChars} characters total`),
+      { status: 413 },
+    );
+  }
+  return messages;
+}
+
 async function callGemini(prompt) {
   if (!googleAI) throw new Error(initError || 'Gemini not initialized');
   log.info("Using Gemini model", { model: modelName });
@@ -108,11 +158,20 @@ export async function handler(req, res) {
   }
 
   try {
-    const { messages, context, preferredLanguage } = req.body;
+    // Per-instance friction on top of the deterministic caps below.
+    // LIMITATION (documented): serverless instances do not share memory,
+    // so this is best-effort per-instance protection, not a strict global
+    // limit. The CHAT_LIMITS caps above are the hard guarantee.
+    const rl = rateLimit(rateLimitKey(req, "ai-tutor-chat"), { max: 30, windowMs: 60_000 });
+    if (!rl.allowed) return res.status(429).json({ error: "Too many requests. Try again later." });
 
-    if (!messages || !Array.isArray(messages)) {
-      return res.status(400).json({ error: 'Missing required field: messages' });
+    let messages;
+    try {
+      messages = validateChatInput(req.body);
+    } catch (e) {
+      return res.status(e.status || 400).json({ error: e.message });
     }
+    const { context, preferredLanguage } = req.body;
 
     const conversation = messages.map((m) => `${m.role === 'user' ? 'Student' : 'Assistant'}: ${m.content}`).join('\n');
 

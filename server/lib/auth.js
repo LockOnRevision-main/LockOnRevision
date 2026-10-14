@@ -121,8 +121,9 @@ export async function verifyIdToken(token) {
 
 export async function verifyAuth(req) {
   const authHeader = req.headers.authorization || req.headers.Authorization;
-  // Temporary debug log for timetable auth investigation – shows if client sent Bearer
-  console.log(JSON.stringify({ service: 'auth', hasAuthHeader: !!authHeader, authHeaderPreview: authHeader ? authHeader.slice(0, 30) + '...' : null, path: req.url }));
+  // Security: never log token material. Presence-only boolean is enough
+  // to diagnose missing-header vs invalid-token failures (Prompt 49).
+  console.log(JSON.stringify({ service: 'auth', hasAuthHeader: !!authHeader, path: req.url }));
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     if (isDevBypassAllowed()) {
