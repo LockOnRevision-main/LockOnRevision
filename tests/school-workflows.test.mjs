@@ -12,7 +12,7 @@ const read = (p) => fs.readFileSync(path.join(root, p), "utf8");
 
 describe("Stage 4: external school admin provisioning", () => {
   it("platform-only, verified UID, scoped membership, audited", () => {
-    const src = read("api/provision-school.js");
+    const src = read("server/handlers/provision-school.js");
     assert.ok(src.includes("isPlatformAdmin"), "platform-only gate");
     assert.ok(src.includes("403") && src.includes("Platform admin required"), "explicit denial");
     assert.ok(src.includes("getUser(adminUid)"), "existing verified user check");
@@ -36,7 +36,7 @@ describe("Stage 4: external school admin provisioning", () => {
   });
 
   it("revocation: last-admin guard + prompt effect + audit", () => {
-    const src = read("api/revoke-school-admin.js");
+    const src = read("server/handlers/revoke-school-admin.js");
     assert.ok(src.includes("acknowledgeEmpty"), "last-admin guard");
     assert.ok(src.includes("status: \"removed\""), "status flip (prompt rule effect)");
     assert.ok(src.includes("revokeRefreshTokens"), "token invalidation");
@@ -46,7 +46,7 @@ describe("Stage 4: external school admin provisioning", () => {
 
 describe("Stage 5: scoped search / profile / membership", () => {
   it("search constrained to caller scope, min fields, no email", () => {
-    const src = read("api/search-students.js");
+    const src = read("server/handlers/search-students.js");
     assert.ok(src.includes("requirePermission") && src.includes('"roster.view"'), "scoped perm gate");
     assert.ok(src.includes('where("schoolId", "==", schoolId)'), "school-constrained query");
     assert.ok(!/p\.email|d\.email|m\.email|["']email["']\s*:/.test(src), "no email field returned");
@@ -62,7 +62,7 @@ describe("Stage 5: scoped search / profile / membership", () => {
   });
 
   it("profile view: single-school only, no email, reads unaudited (justified)", () => {
-    const src = read("api/student-profile.js");
+    const src = read("server/handlers/student-profile.js");
     assert.ok(src.includes("requirePermission") && src.includes('"profile.view"'), "scoped perm gate");
     assert.ok(src.includes("requested school ONLY"), "single-school scoping");
     assert.ok(!/p\.email|d\.email|["']email["']\s*:/.test(src), "no email field returned");
@@ -70,7 +70,7 @@ describe("Stage 5: scoped search / profile / membership", () => {
   });
 
   it("removal revokes without deleting learning data", () => {
-    const src = read("api/manage-membership.js");
+    const src = read("server/handlers/manage-membership.js");
     assert.ok(src.includes("status: \"removed\""), "status + timestamp");
     assert.ok(src.includes("removedAt"), "removal timestamp");
     assert.ok(!src.includes(".delete()"), "never deletes");
@@ -81,19 +81,19 @@ describe("Stage 5: scoped search / profile / membership", () => {
   });
 
   it("every new route: auth + rate limit + no student/staff bypass", () => {
-    for (const f of ["api/create-pin.js", "api/revoke-pin.js", "api/redeem-pin.js",
-      "api/review-request.js", "api/set-join-policy.js", "api/provision-school.js",
-      "api/revoke-school-admin.js", "api/search-students.js", "api/student-profile.js",
-      "api/manage-membership.js"]) {
+    for (const f of ["server/handlers/create-pin.js", "server/handlers/revoke-pin.js", "server/handlers/redeem-pin.js",
+      "server/handlers/review-request.js", "server/handlers/set-join-policy.js", "server/handlers/provision-school.js",
+      "server/handlers/revoke-school-admin.js", "server/handlers/search-students.js", "server/handlers/student-profile.js",
+      "server/handlers/manage-membership.js"]) {
       const src = read(f);
       assert.ok(src.includes("authedUser") || src.includes("verifyAuth"), `${f}: verified token`);
       assert.ok(src.includes("401") || src.includes("authedUser"), `${f}: anon rejected`);
       assert.ok(src.includes("checkRate") || src.includes("rateLimit"), `${f}: rate-limited`);
     }
     // Staff routes additionally gate scope (Stage 2: per-permission):
-    for (const [f, perm] of [["api/create-pin.js", '"pin.generate"'], ["api/review-request.js", '"request.review"'],
-      ["api/search-students.js", '"roster.view"'], ["api/student-profile.js", '"profile.view"'],
-      ["api/manage-membership.js", '"membership.assign"']]) {
+    for (const [f, perm] of [["server/handlers/create-pin.js", '"pin.generate"'], ["server/handlers/review-request.js", '"request.review"'],
+      ["server/handlers/search-students.js", '"roster.view"'], ["server/handlers/student-profile.js", '"profile.view"'],
+      ["server/handlers/manage-membership.js", '"membership.assign"']]) {
       const src = read(f);
       assert.ok(src.includes("requirePermission") && src.includes(perm), `${f}: scoped (${perm})`);
     }
@@ -126,7 +126,7 @@ describe("Stage 1: backfill + leaderboard safety", () => {
   });
 
   it("new registrations get server-side projection", () => {
-    const src = read("api/enroll-academy.js");
+    const src = read("server/handlers/enroll-academy.js");
     assert.ok(src.includes("ensurePublicProjection"), "server-side upsert");
     assert.ok(src.includes("membership.self-enrol"), "enrolment audited (Prompt-45 fix)");
   });

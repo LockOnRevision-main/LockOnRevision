@@ -1,0 +1,41 @@
+/**
+ * POST /api/revoke-invitation — platform-only revocation.
+ * Body: { invitationId }. Idempotent. Audited. Revoked tokens never accept.
+ */
+import { getAdminDb, cors, authedUser, checkRate, isPlatformAdmin, auditRef, auditData } from "../lib/schoolServer.js";
+
+export default async function handler(req, res) {
+  cors(res);
+  if (req.method === "OPTIONS") return res.status(204).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  const user = await authedUser(req, res);
+  if (!user) return;
+  if (!checkRate(req, res, "revoke-invitation", 20)) return;
+
+  const { invitationId } = req.body || {};
+  if (typeof invitationId !== "string" || !invitationId.trim()) {
+    return res.status(400).json({ error: "Invalid invitationId." });
+  }
+
+  try {
+    const db = await getAdminDb();
+    if (!(await isPlatformAdmin(db, user.uid))) {
+      return res.status(403).json({ error: "Platform admin required." });
+    }
+    const ref = db.collection("adminInvitations").doc(invitationId);
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ error: "Invitation not found." });
+    const now = new Date().toISOString();
+    // Stage 0.3: revocation + audit commit atomically.
+    const batch = db.batch();
+    batch.update(ref, { status: "revoked", revokedAt: now, revokedBy: user.uid });
+    batch.set(auditRef(db), auditData({
+      actorUid: user.uid, action: "invite.revoke", targetUid: null,
+      schoolId: (snap.data() || {}).schoolId || null, scope: `invitation:${invitationId}`,
+    }));
+    await batch.commit();
+    return res.status(200).json({ ok: true });
+  } catch (e) {
+    return res.status(e.status || 500).json({ error: e.status ? e.message : "Revocation failed." });
+  }
+}

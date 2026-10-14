@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   writeStaffRecords, findStaffDrift, staffLedgerId, membershipId,
-} from "../api/_lib/schoolServer.js";
+} from "../server/lib/schoolServer.js";
 
 /**
  * Stage 0.4: membership (source of truth) + staffAssignments ledger stay
@@ -126,7 +126,7 @@ describe("Stage 0.4: shared membership+ledger writer", () => {
 
   it("routes use the helper (no divergent writers)", async () => {
     const fs = await import("node:fs");
-    for (const f of ["api/provision-school.js", "api/accept-invitation.js", "api/revoke-school-admin.js", "api/set-permissions.js"]) {
+    for (const f of ["server/handlers/provision-school.js", "server/handlers/accept-invitation.js", "server/handlers/revoke-school-admin.js", "server/handlers/set-permissions.js"]) {
       const src = fs.readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
       assert.ok(src.includes("writeStaffRecords"), `${f} uses shared helper`);
     }

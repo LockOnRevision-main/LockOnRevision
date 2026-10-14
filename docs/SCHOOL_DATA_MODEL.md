@@ -73,7 +73,7 @@ Naming follows the repo's camelCase collections (`users`, `users_public`).
 ## Granular permissions (Beta 2.0 Part 1 — Stage 2, IMPLEMENTED)
 
 - Single source: `shared/permissionsCatalogue.js` (v1, 19 permissions).
-  Backend (`api/_lib/schoolServer.js`) and UI (`src/utils/schoolPermissions.js`)
+  Backend (`server/lib/schoolServer.js`) and UI (`src/utils/schoolPermissions.js`)
   derive from it; legacy dotted names map via `LEGACY_PERMISSION_MAP`.
 - Overrides live on `memberships/{uid_school}`:
   `permissionSet: { grants: [], denies: [] }`,

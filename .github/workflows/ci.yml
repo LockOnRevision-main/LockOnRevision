@@ -15,7 +15,7 @@ jobs:
           node-version: 20
       - run: npm ci --ignore-scripts
       - run: npm test
-      - run: npx eslint api/_lib/ api/create-pin.js api/revoke-pin.js api/redeem-pin.js api/review-request.js api/set-join-policy.js api/provision-school.js api/revoke-school-admin.js api/search-students.js api/student-profile.js api/manage-membership.js api/school-overview.js api/enroll-academy.js api/create-invitation.js api/resend-invitation.js api/revoke-invitation.js api/accept-invitation.js api/list-invitations.js api/set-permissions.js api/get-permissions.js shared/ tests/ scripts/ src/utils/schoolPermissions.js src/components/SchoolAdminPanel.jsx --max-warnings 20
+      - run: npx eslint api/school.js api/ai.js server/ shared/ tests/ scripts/ src/utils/schoolPermissions.js src/components/SchoolAdminPanel.jsx --max-warnings 20
       - run: npm run build
 
   emulator-tests:

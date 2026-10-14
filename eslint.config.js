@@ -60,11 +60,17 @@ export default [
     },
   },
   {
-    files: ["api/**/*.js", "functions/**/*.js", "*.js"],
+    files: ["api/**/*.js", "server/**/*.js", "functions/**/*.js", "*.js"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
-      globals: nodeGlobals,
+      globals: {
+        ...nodeGlobals,
+        setTimeout: "readonly",
+        setImmediate: "readonly",
+        clearImmediate: "readonly",
+        URL: "readonly",
+      },
     },
     rules: {
       "no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],

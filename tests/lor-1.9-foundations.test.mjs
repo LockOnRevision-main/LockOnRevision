@@ -10,7 +10,7 @@ const read = (p) => fs.readFileSync(path.join(root, p), "utf8");
 
 // ---- Stage A1: production rejects dev identity (fail-closed) ----
 describe("auth dev bypass fails closed", async () => {
-  const mod = await import("../api/_lib/auth.js");
+  const mod = await import("../server/lib/auth.js");
   assert.equal(typeof mod.isDevBypassAllowed, "function", "isDevBypassAllowed exported");
 
   const OLD = { ...process.env };
@@ -95,7 +95,7 @@ describe("scoped RBAC", () => {
     assert.deepEqual(permissionsForRole("teacher"), [...permissionsForRole("teacher")], "returns copy");
   });
   it("central authorization helper exists", () => {
-    const src = read("api/_lib/authorization.js");
+    const src = read("server/lib/authorization.js");
     assert.ok(src.includes("requirePlatformAdmin"), "platform helper");
     assert.ok(src.includes("requireSchoolRole"), "school helper");
     assert.ok(src.includes("revokeRefreshTokens"), "revocation path");
@@ -104,7 +104,7 @@ describe("scoped RBAC", () => {
 
 // ---- Stage D: validation ----
 describe("server validation", async () => {
-  const v = await import("../api/_lib/validation.js");
+  const v = await import("../server/lib/validation.js");
   it("rejects bad school/membership input", () => {
     assert.throws(() => v.validateSchoolInput({}), /name/);
     assert.throws(() => v.validateMembershipInput({ uid: "u", schoolId: "s", role: "superadmin" }), /role/);
@@ -128,7 +128,7 @@ describe("migration safety", () => {
     assert.ok(m.includes("adminAuditLogs"), "audit record");
   });
   it("enroll-academy is self-only student + rate-limited", () => {
-    const e = read("api/enroll-academy.js");
+    const e = read("server/handlers/enroll-academy.js");
     assert.ok(e.includes("role: \"student\"") || e.includes('role: "student"'), "student only");
     assert.ok(e.includes("rateLimit"), "rate limited");
     assert.ok(e.includes("verifyAuth"), "verified token");

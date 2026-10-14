@@ -34,7 +34,7 @@ describe("Stage 2: closed versioned catalogue", () => {
   it("single source: backend, UI and legacy map derive from it", async () => {
     const ui = await import("../src/utils/schoolPermissions.js");
     assert.deepEqual(ui.ROLE_DEFAULTS, ROLE_DEFAULTS, "UI derives, no drift");
-    const legacy = await import("../api/_lib/authorization.js");
+    const legacy = await import("../server/lib/authorization.js");
     assert.deepEqual(legacy.ROLE_PERMISSIONS, ROLE_DEFAULTS, "backend derives, no drift");
     for (const dotted of ["school.read", "membership.revoke", "student.read", "analytics.read"]) {
       assert.ok(legacy.LEGACY_PERMISSION_MAP[dotted], `legacy ${dotted} mapped`);
@@ -117,16 +117,16 @@ describe("Stage 2: every route covered by the catalogue", () => {
   // Route → catalogue permissions it must check. Fails if a route stops
   // checking (or a permission is renamed without updating callers).
   const COVERAGE = {
-    "api/create-pin.js": ["pin.generate"],
-    "api/revoke-pin.js": ["pin.revoke"],
-    "api/review-request.js": ["request.review"],
-    "api/set-join-policy.js": ["policy.manage"],
-    "api/search-students.js": ["roster.view"],
-    "api/student-profile.js": ["profile.view"],
-    "api/manage-membership.js": ["membership.assign", "membership.revoke"],
-    "api/school-overview.js": ["roster.view"],
-    "api/set-permissions.js": ["permission.manage"],
-    "api/get-permissions.js": [],
+    "server/handlers/create-pin.js": ["pin.generate"],
+    "server/handlers/revoke-pin.js": ["pin.revoke"],
+    "server/handlers/review-request.js": ["request.review"],
+    "server/handlers/set-join-policy.js": ["policy.manage"],
+    "server/handlers/search-students.js": ["roster.view"],
+    "server/handlers/student-profile.js": ["profile.view"],
+    "server/handlers/manage-membership.js": ["membership.assign", "membership.revoke"],
+    "server/handlers/school-overview.js": ["roster.view"],
+    "server/handlers/set-permissions.js": ["permission.manage"],
+    "server/handlers/get-permissions.js": [],
   };
 
   for (const [file, perms] of Object.entries(COVERAGE)) {
@@ -141,9 +141,9 @@ describe("Stage 2: every route covered by the catalogue", () => {
   }
 
   it("platform-only routes stay platform-gated (invite.manage reserved)", () => {
-    for (const f of ["api/provision-school.js", "api/revoke-school-admin.js",
-      "api/create-invitation.js", "api/resend-invitation.js",
-      "api/revoke-invitation.js", "api/list-invitations.js"]) {
+    for (const f of ["server/handlers/provision-school.js", "server/handlers/revoke-school-admin.js",
+      "server/handlers/create-invitation.js", "server/handlers/resend-invitation.js",
+      "server/handlers/revoke-invitation.js", "server/handlers/list-invitations.js"]) {
       assert.ok(read(f).includes("isPlatformAdmin"), `${f}: platform gate`);
     }
     assert.ok(PERMISSION_NAMES.includes("invite.manage"), "catalogue ready for Part 2");
@@ -152,7 +152,7 @@ describe("Stage 2: every route covered by the catalogue", () => {
 
 describe("Stage 2: escalation prevention in set-permissions", () => {
   it("route contract: editor gate, holding check, scope containment, audit", () => {
-    const src = read("api/set-permissions.js");
+    const src = read("server/handlers/set-permissions.js");
     assert.ok(src.includes("permission.manage"), "editor needs the meta permission");
     assert.ok(src.includes("EDITOR_ROLES"), "teacher/student can never edit");
     assert.ok(src.includes("You do not hold permission"), "no granting what you lack");

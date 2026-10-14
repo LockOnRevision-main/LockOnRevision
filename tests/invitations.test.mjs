@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import {
   generateInviteToken, hashInviteToken, inviteDocIdFromHash,
   isInviteLive, inviteReject, normaliseEmail, validEmail,
-} from "../api/_lib/invites.js";
+} from "../server/lib/invites.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p) => fs.readFileSync(path.join(root, p), "utf8");
@@ -65,7 +65,7 @@ describe("Stage 1: token design", () => {
 
 describe("Stage 1: lifecycle + binding + atomicity (route contracts)", () => {
   it("create: platform-only, fixed role, audited, copy-link fallback", () => {
-    const src = read("api/create-invitation.js");
+    const src = read("server/handlers/create-invitation.js");
     assert.ok(src.includes("Platform admin required"), "platform-only");
     assert.ok(src.includes('role: "school_admin"'), "fixed role binding");
     assert.ok(src.includes("invite.create"), "audited");
@@ -74,14 +74,14 @@ describe("Stage 1: lifecycle + binding + atomicity (route contracts)", () => {
   });
 
   it("resend invalidates old token, audits both", () => {
-    const src = read("api/resend-invitation.js");
+    const src = read("server/handlers/resend-invitation.js");
     assert.ok(src.includes('status: "revoked"'), "old token revoked");
     assert.ok(src.includes("invite.revoke") && src.includes("invite.create"), "both audited");
     assert.ok(src.includes("already used"), "used invites cannot resend");
   });
 
   it("accept: verified-email binding, single-use transaction, uniform failures", () => {
-    const src = read("api/accept-invitation.js");
+    const src = read("server/handlers/accept-invitation.js");
     assert.ok(src.includes("email_verified"), "verified-email check");
     assert.ok(src.includes("emailLower"), "invited-address binding");
     assert.ok(src.includes("runTransaction"), "atomic mark-used + membership");
@@ -92,7 +92,7 @@ describe("Stage 1: lifecycle + binding + atomicity (route contracts)", () => {
   });
 
   it("school admins cannot invite (safer default)", () => {
-    for (const f of ["api/create-invitation.js", "api/resend-invitation.js", "api/revoke-invitation.js", "api/list-invitations.js"]) {
+    for (const f of ["server/handlers/create-invitation.js", "server/handlers/resend-invitation.js", "server/handlers/revoke-invitation.js", "server/handlers/list-invitations.js"]) {
       const src = read(f);
       assert.ok(src.includes("isPlatformAdmin"), `${f}: platform gate`);
       assert.ok(!src.includes("requireSchoolStaff"), `${f}: no school-staff path`);
@@ -100,7 +100,7 @@ describe("Stage 1: lifecycle + binding + atomicity (route contracts)", () => {
   });
 
   it("email delivery: Resend free tier, fail-soft, secrets in env only", () => {
-    const src = read("api/_lib/email.js");
+    const src = read("server/lib/email.js");
     assert.ok(src.includes("api.resend.com/emails"), "Resend REST");
     assert.ok(src.includes("RESEND_API_KEY") && src.includes("INVITE_FROM_EMAIL"), "env-only creds");
     assert.ok(src.includes("email-not-configured"), "copy-link fallback when unconfigured");

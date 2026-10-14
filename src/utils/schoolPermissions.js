@@ -1,7 +1,7 @@
 /**
  * Beta 2.0 Part 1 — Stage 2: frontend permission mirror.
  * DERIVES from shared/permissionsCatalogue.js (single source) — backend
- * (`api/_lib/schoolServer.js`) enforces from the same file, so UI gating
+ * (`server/lib/schoolServer.js`) enforces from the same file, so UI gating
  * and enforcement cannot drift. UI gating is convenience only.
  */
 export {

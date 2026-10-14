@@ -14,28 +14,28 @@ const read = (p) => fs.readFileSync(path.join(root, p), "utf8");
  * explicitly and must contain NO writes.
  */
 const SENSITIVE_ROUTES = [
-  "api/create-pin.js",
-  "api/revoke-pin.js",
-  "api/redeem-pin.js",
-  "api/set-join-policy.js",
-  "api/review-request.js",
-  "api/provision-school.js",
-  "api/revoke-school-admin.js",
-  "api/manage-membership.js",
-  "api/enroll-academy.js",
-  "api/create-invitation.js",
-  "api/resend-invitation.js",
-  "api/revoke-invitation.js",
-  "api/accept-invitation.js",
-  "api/set-permissions.js",
+  "server/handlers/create-pin.js",
+  "server/handlers/revoke-pin.js",
+  "server/handlers/redeem-pin.js",
+  "server/handlers/set-join-policy.js",
+  "server/handlers/review-request.js",
+  "server/handlers/provision-school.js",
+  "server/handlers/revoke-school-admin.js",
+  "server/handlers/manage-membership.js",
+  "server/handlers/enroll-academy.js",
+  "server/handlers/create-invitation.js",
+  "server/handlers/resend-invitation.js",
+  "server/handlers/revoke-invitation.js",
+  "server/handlers/accept-invitation.js",
+  "server/handlers/set-permissions.js",
 ];
 
 const READ_ONLY_ROUTES = [
-  "api/search-students.js",
-  "api/student-profile.js",
-  "api/school-overview.js",
-  "api/list-invitations.js",
-  "api/get-permissions.js",
+  "server/handlers/search-students.js",
+  "server/handlers/student-profile.js",
+  "server/handlers/school-overview.js",
+  "server/handlers/list-invitations.js",
+  "server/handlers/get-permissions.js",
 ];
 
 const WRITE_SIGNALS = [
@@ -55,7 +55,7 @@ describe("Stage 0.2: every sensitive write is audited", () => {
       // Stage 0.2 (shared writer) + Stage 0.3 (atomic via ref/data):
       assert.ok(/audit(Ref|Data)?\s*\(/.test(src), `${f} MUST use shared audit writer`);
       assert.ok(
-        src.includes('from "./_lib/schoolServer.js"'),
+        src.includes('from "./_lib/schoolServer.js"') || src.includes('from "../lib/schoolServer.js"'),
         `${f} MUST use the shared audit writer (no parallel logic)`,
       );
     });
@@ -93,7 +93,7 @@ describe("Stage 0.3: audits commit atomically with the change", () => {
   it("retry safety: tx-internal audit refs are pre-created or deterministic", () => {
     // auditRef() outside the tx function, or deterministic doc ids inside —
     // never auditRef() inside the tx body (retries would duplicate).
-    for (const f of ["api/create-pin.js", "api/redeem-pin.js", "api/review-request.js", "api/accept-invitation.js"]) {
+    for (const f of ["server/handlers/create-pin.js", "server/handlers/redeem-pin.js", "server/handlers/review-request.js", "server/handlers/accept-invitation.js"]) {
       const src = read(f);
       const bodies = src.split("runTransaction(async (tx)");
       assert.ok(bodies.length >= 2, `${f}: has transaction`);
@@ -114,7 +114,7 @@ describe("Stage 0.3: audits commit atomically with the change", () => {
   });
 });
   it("pin rotation revocations are audited, not silent", () => {
-    const src = read("api/create-pin.js");
+    const src = read("server/handlers/create-pin.js");
     assert.ok(src.includes("pin.revoke"), "rotation revocation audited");
   });
 

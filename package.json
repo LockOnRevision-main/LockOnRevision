@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5173",
-    "dev:api": "node api/_dev-server.js",
+    "dev:api": "node scripts/dev-server.mjs",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
-    "test": "node --test tests/migration.test.mjs tests/lor-1.9-foundations.test.mjs tests/school-isolation.test.mjs tests/pin-flow.test.mjs tests/pin-rotation.test.mjs tests/join-policy.test.mjs tests/school-workflows.test.mjs tests/audit-coverage.test.mjs tests/invitations.test.mjs tests/permissions.test.mjs tests/staff-ledger.test.mjs",
-    "test:foundations": "node --test tests/lor-1.9-foundations.test.mjs tests/migration.test.mjs tests/school-isolation.test.mjs tests/pin-flow.test.mjs tests/pin-rotation.test.mjs tests/join-policy.test.mjs tests/school-workflows.test.mjs tests/audit-coverage.test.mjs tests/invitations.test.mjs tests/permissions.test.mjs tests/staff-ledger.test.mjs",
+    "test": "node --test tests/migration.test.mjs tests/lor-1.9-foundations.test.mjs tests/school-isolation.test.mjs tests/pin-flow.test.mjs tests/pin-rotation.test.mjs tests/join-policy.test.mjs tests/school-workflows.test.mjs tests/audit-coverage.test.mjs tests/invitations.test.mjs tests/permissions.test.mjs tests/staff-ledger.test.mjs tests/dispatch.test.mjs",
+    "test:foundations": "node --test tests/lor-1.9-foundations.test.mjs tests/migration.test.mjs tests/school-isolation.test.mjs tests/pin-flow.test.mjs tests/pin-rotation.test.mjs tests/join-policy.test.mjs tests/school-workflows.test.mjs tests/audit-coverage.test.mjs tests/invitations.test.mjs tests/permissions.test.mjs tests/staff-ledger.test.mjs tests/dispatch.test.mjs",
     "test:emulator": "node --test tests/emulator/rules.test.mjs tests/emulator/storage.test.mjs tests/emulator/concurrency.test.mjs"
   },
   "dependencies": {

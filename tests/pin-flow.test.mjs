@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   PIN_ALPHABET, PIN_LENGTH, PIN_ENTROPY_BITS, generatePinCode,
   validatePinFormat, isPinLive, pinReject,
-} from "../api/_lib/pins.js";
+} from "../server/lib/pins.js";
 
 describe("Stage 2: PIN generation entropy and format", () => {
   it("~40-bit entropy from 31-char alphabet x 8", () => {
@@ -35,7 +35,7 @@ describe("Stage 2: PIN generation entropy and format", () => {
 
 describe("Stage 0.4: PIN_PEPPER fails closed", () => {
   it("hashPin throws without a sufficient pepper", async () => {
-    const pins = await import("../api/_lib/pins.js");
+    const pins = await import("../server/lib/pins.js");
     const OLD = { ...process.env };
     try {
       delete process.env.PIN_PEPPER;
@@ -51,7 +51,7 @@ describe("Stage 0.4: PIN_PEPPER fails closed", () => {
 
   it("routes fail closed (500, no oracle) when pepper unset", async () => {
     const fs = await import("node:fs");
-    for (const f of ["api/create-pin.js", "api/redeem-pin.js"]) {
+    for (const f of ["server/handlers/create-pin.js", "server/handlers/redeem-pin.js"]) {
       const src = fs.readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
       // Either message is a fail-closed 500; neither reveals pepper state.
       assert.ok(
@@ -84,17 +84,17 @@ describe("Stage 2: lifecycle + uniform responses", () => {
 
   it("storage is hash-only: pins.js never persists plaintext", async () => {
     const fs = await import("node:fs");
-    const src = fs.readFileSync(new URL("../api/_lib/pins.js", import.meta.url), "utf8");
+    const src = fs.readFileSync(new URL("../server/lib/pins.js", import.meta.url), "utf8");
     assert.ok(src.includes("createHmac"), "keyed hash");
     assert.ok(src.includes("PIN_PEPPER"), "server-held pepper");
   });
 
   it("deterministic hash ids give uniqueness + O(1) lookup", async () => {
     const fs = await import("node:fs");
-    const createSrc = fs.readFileSync(new URL("../api/create-pin.js", import.meta.url), "utf8");
+    const createSrc = fs.readFileSync(new URL("../server/handlers/create-pin.js", import.meta.url), "utf8");
     assert.ok(createSrc.includes("pinDocIdFromHash"), "deterministic id");
     assert.ok(createSrc.includes("classroomId") && createSrc.includes("schoolId"), "scope binding");
-    const redeemSrc = fs.readFileSync(new URL("../api/redeem-pin.js", import.meta.url), "utf8");
+    const redeemSrc = fs.readFileSync(new URL("../server/handlers/redeem-pin.js", import.meta.url), "utf8");
     assert.ok(redeemSrc.includes("pinReject()"), "uniform failures");
     assert.ok(redeemSrc.includes("academy"), "Academy excluded from PIN flow");
     assert.ok(redeemSrc.includes("checkPinLockout") && redeemSrc.includes("recordPinFailure"), "lockout");

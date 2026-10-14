@@ -21,10 +21,10 @@ function nextStatus(current, decision) {
 
 describe("Stage 3: policy defaults and redemption outcomes", () => {
   it("default policy is APPROVAL_REQUIRED (safer)", () => {
-    const src = read("api/set-join-policy.js");
+    const src = read("server/handlers/set-join-policy.js");
     assert.ok(src.includes("APPROVAL_REQUIRED"), "policy exists");
     assert.ok(src.includes("DEFAULT_JOIN_POLICY = \"APPROVAL_REQUIRED\""), "safe default");
-    const redeem = read("api/redeem-pin.js");
+    const redeem = read("server/handlers/redeem-pin.js");
     // Unset policy falls back to approval-required:
     assert.ok(redeem.includes('"APPROVAL_REQUIRED"'), "fallback default");
   });
@@ -38,14 +38,14 @@ describe("Stage 3: policy defaults and redemption outcomes", () => {
   });
 
   it("review route enforces scope + atomicity", () => {
-    const src = read("api/review-request.js");
+    const src = read("server/handlers/review-request.js");
     assert.ok(src.includes("requirePermission") && src.includes('"request.review"'), "scoped perm auth");
     assert.ok(src.includes("runTransaction"), "atomic approve+membership");
     assert.ok(src.includes("already decided"), "no re-processing");
   });
 
   it("edge cases handled in redeem flow", () => {
-    const src = read("api/redeem-pin.js");
+    const src = read("server/handlers/redeem-pin.js");
     assert.ok(src.includes("already: true"), "already-member short-circuit");
     assert.ok(src.includes("removedAt: null"), "removed users can rejoin");
     assert.ok(src.includes("STALE_PIN"), "PIN revoked mid-flow handled");
@@ -54,7 +54,7 @@ describe("Stage 3: policy defaults and redemption outcomes", () => {
   });
 
   it("policy change restricted + audited", () => {
-    const src = read("api/set-join-policy.js");
+    const src = read("server/handlers/set-join-policy.js");
     assert.ok(src.includes('"policy.manage"'), "policy.manage gate (default: school_admin + platform)");
     assert.ok(src.includes("school.policy-change"), "audited");
   });
