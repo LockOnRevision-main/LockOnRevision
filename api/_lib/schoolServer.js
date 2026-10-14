@@ -142,3 +142,84 @@ export function membershipId(uid, schoolId) {
   const s = (x) => String(x).replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 128);
   return `${s(uid)}_${s(schoolId)}`;
 }
+
+export function staffLedgerId(uid, schoolId, role) {
+  return `${membershipId(uid, schoolId)}_${role}`;
+}
+
+/**
+ * Stage 0.4: single helper that updates the membership (source of truth
+ * for role/status/overrides/scopes) AND the staffAssignments ledger
+ * together. `writer` is a Transaction or WriteBatch (both expose
+ * set/update) so callers stay atomic. Ledger rows are append-managed:
+ * the active row for (uid,school) is set, prior active rows for other
+ * roles are superseded — never deleted (history preserved).
+ */
+export async function writeStaffRecords(db, writer, {
+  uid, schoolId, role, status, classroomId = null,
+  permissionSet = null, accessScopes = null, removedBy = null, now = null,
+}) {
+  const ts = now || new Date().toISOString();
+  const memPatch = { uid, schoolId, role, status, classroomId, updatedAt: ts };
+  if (permissionSet !== null) memPatch.permissionSet = permissionSet;
+  if (accessScopes !== null) memPatch.accessScopes = accessScopes;
+  if (status === "removed") {
+    memPatch.removedAt = ts;
+    if (removedBy) memPatch.removedBy = removedBy;
+  } else {
+    memPatch.removedAt = null;
+    memPatch.removedBy = null;
+  }
+  writer.set(db.collection("memberships").doc(membershipId(uid, schoolId)), memPatch, { merge: true });
+
+  // Ledger: deactivate other-role active rows, upsert this role's row.
+  const ledger = await db.collection("staffAssignments")
+    .where("uid", "==", uid).where("schoolId", "==", schoolId)
+    .where("status", "==", "active").get();
+  ledger.forEach((d) => {
+    const r = d.data() || {};
+    if (r.role !== role || status !== "active") {
+      writer.update(d.ref, {
+        status: status === "active" ? "superseded" : "removed",
+        updatedAt: ts,
+      });
+    }
+  });
+  if (status === "active") {
+    writer.set(db.collection("staffAssignments").doc(staffLedgerId(uid, schoolId, role)), {
+      uid, schoolId, classroomId, role, status: "active",
+      createdAt: ts, updatedAt: ts,
+    }, { merge: true });
+  }
+}
+
+/**
+ * Drift detector: every active STAFF membership must have exactly one
+ * active ledger row with the same role, and vice versa. Returns an array
+ * of { uid, schoolId, kind } — empty means consistent. Read-only.
+ */
+export async function findStaffDrift(db, schoolId = null) {
+  const drift = [];
+  let mq = db.collection("memberships").where("status", "==", "active");
+  if (schoolId) mq = mq.where("schoolId", "==", schoolId);
+  const members = await mq.get();
+  const staffRoles = new Set(["school_admin", "coordinator", "teacher"]);
+  for (const m of members.docs) {
+    const d = m.data() || {};
+    if (!staffRoles.has(d.role)) continue;
+    const ledger = await db.collection("staffAssignments")
+      .where("uid", "==", d.uid).where("schoolId", "==", d.schoolId)
+      .where("status", "==", "active").get();
+    const matching = ledger.docs.filter((x) => (x.data() || {}).role === d.role);
+    if (matching.length !== 1) {
+      drift.push({ uid: d.uid, schoolId: d.schoolId, kind: matching.length === 0 ? "ledger-missing" : "ledger-duplicate", role: d.role });
+    }
+    const md = m.data() || {};
+    for (const x of matching) {
+      if (((x.data() || {}).classroomId || null) !== (md.classroomId || null)) {
+        drift.push({ uid: d.uid, schoolId: d.schoolId, kind: "classroom-mismatch", role: d.role });
+      }
+    }
+  }
+  return drift;
+}

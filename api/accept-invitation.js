@@ -15,7 +15,7 @@
  * (single-use holds under concurrency). Rate-limited (existing layers).
  */
 import { hashInviteToken, inviteDocIdFromHash, isInviteLive, inviteReject, checkInviteLockout, recordInviteFailure, clearInviteFailures, normaliseEmail } from "./_lib/invites.js";
-import { getAdminDb, cors, authedUser, checkRate, auditRef, auditData, membershipId } from "./_lib/schoolServer.js";
+import { getAdminDb, cors, authedUser, checkRate, auditRef, auditData, membershipId, writeStaffRecords } from "./_lib/schoolServer.js";
 import { rateLimit, rateLimitKey } from "./_lib/validation.js";
 
 export default async function handler(req, res) {
@@ -82,15 +82,11 @@ export default async function handler(req, res) {
         return { already: true };
       }
       tx.update(db.collection("adminInvitations").doc(invId), { status: "used", usedAt: now, usedBy: user.uid });
-      tx.set(memRef, {
-        uid: user.uid, schoolId: inv.schoolId, role: "school_admin", classroomId: null,
-        status: "active", createdAt: mem.exists ? (mem.data() || {}).createdAt || now : now,
-        updatedAt: now, removedAt: null, removedBy: null,
-      }, { merge: true });
-      tx.set(db.collection("staffAssignments").doc(`${memId}_school_admin`), {
-        uid: user.uid, schoolId: inv.schoolId, classroomId: null, role: "school_admin",
-        status: "active", createdAt: now, updatedAt: now,
-      }, { merge: true });
+      // Stage 0.4: membership + ledger via the shared helper (same tx).
+      await writeStaffRecords(db, tx, {
+        uid: user.uid, schoolId: inv.schoolId, role: "school_admin",
+        status: "active", classroomId: null, now,
+      });
       tx.set(acceptAudit, auditData({
         actorUid: user.uid, action: "invite.accept", targetUid: user.uid,
         schoolId: inv.schoolId, scope: `invitation:${invId}`,

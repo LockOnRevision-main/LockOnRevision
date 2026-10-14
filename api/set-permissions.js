@@ -19,7 +19,7 @@
  * (server-side evaluation, no claims).
  */
 import { validateOverrides, normaliseScopes, effectivePermissions } from "../../shared/permissionsCatalogue.js";
-import { getAdminDb, cors, authedUser, checkRate, resolveStaff, isPlatformAdmin, auditRef, auditData, membershipId } from "./_lib/schoolServer.js";
+import { getAdminDb, cors, authedUser, checkRate, resolveStaff, isPlatformAdmin, auditRef, auditData, membershipId, writeStaffRecords } from "./_lib/schoolServer.js";
 import { mayAct } from "../../shared/permissionsCatalogue.js";
 
 const EDITOR_ROLES = ["school_admin"];
@@ -96,9 +96,16 @@ export default async function handler(req, res) {
       permissionSet: { grants: overrides.grants, denies: overrides.denies },
       accessScopes: scopes.scope === "all" ? "all" : scopes.classroomIds,
     };
-    // Stage 0.3: override change + before/after audit commit atomically.
+    // Stage 0.3+0.4: override change + ledger mirror + before/after audit
+    // commit atomically via the shared helper.
     const batch = db.batch();
-    batch.update(ref, { ...after, updatedAt: new Date().toISOString() });
+    await writeStaffRecords(db, batch, {
+      uid, schoolId, role: target.role, status: "active",
+      classroomId: target.classroomId ?? null,
+      permissionSet: { grants: overrides.grants, denies: overrides.denies },
+      accessScopes: scopes.scope === "all" ? "all" : scopes.classroomIds,
+      now: new Date().toISOString(),
+    });
     batch.set(auditRef(db), auditData({
       actorUid: user.uid, action: "permission.change", targetUid: uid,
       schoolId, scope: `role:${target.role}`,

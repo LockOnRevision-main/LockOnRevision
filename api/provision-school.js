@@ -6,7 +6,7 @@
  * New school_admin is scoped strictly to the new school (single membership
  * doc). Audited. Rate-limited.
  */
-import { getAdminDb, cors, authedUser, checkRate, isPlatformAdmin, auditRef, auditData, membershipId } from "./_lib/schoolServer.js";
+import { getAdminDb, cors, authedUser, checkRate, isPlatformAdmin, auditRef, auditData, writeStaffRecords } from "./_lib/schoolServer.js";
 
 function slug(s) {
   return String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "school";
@@ -50,14 +50,10 @@ export default async function handler(req, res) {
       joinPolicy: "APPROVAL_REQUIRED", // safe default
       createdAt: now, updatedAt: now, createdByUid: user.uid,
     });
-    const mid = membershipId(adminUid, id);
-    batch.set(db.collection("memberships").doc(mid), {
-      uid: adminUid, schoolId: id, role: "school_admin", classroomId: null,
-      status: "active", createdAt: now, updatedAt: now, removedAt: null, removedBy: null,
-    });
-    batch.set(db.collection("staffAssignments").doc(`${mid}_school_admin`), {
-      uid: adminUid, schoolId: id, classroomId: null, role: "school_admin",
-      status: "active", createdAt: now, updatedAt: now,
+    // Stage 0.4: membership + ledger via the shared helper (same batch).
+    await writeStaffRecords(db, batch, {
+      uid: adminUid, schoolId: id, role: "school_admin", status: "active",
+      classroomId: null, now,
     });
     batch.set(auditRef(db), auditData({ actorUid: user.uid, action: "school.provision", targetUid: adminUid, schoolId: id, scope: "platform" }));
     batch.set(auditRef(db), auditData({ actorUid: user.uid, action: "staff.assign", targetUid: adminUid, schoolId: id, scope: "role:school_admin" }));

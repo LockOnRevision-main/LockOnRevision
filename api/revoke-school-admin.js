@@ -6,7 +6,7 @@
  * membership status flip denies on the NEXT request (rules read the doc),
  * plus refresh-token revocation best-effort. Audited.
  */
-import { getAdminDb, cors, authedUser, checkRate, isPlatformAdmin, auditRef, auditData, membershipId } from "./_lib/schoolServer.js";
+import { getAdminDb, cors, authedUser, checkRate, isPlatformAdmin, auditRef, auditData, membershipId, writeStaffRecords } from "./_lib/schoolServer.js";
 
 export default async function handler(req, res) {
   cors(res);
@@ -45,10 +45,14 @@ export default async function handler(req, res) {
     }
 
     const now = new Date().toISOString();
-    // Stage 0.3: status flip + audit commit atomically (token revocation
-    // stays best-effort outside the batch — Auth, not Firestore).
+    // Stage 0.3+0.4: status flip + ledger deactivation + audit atomically
+    // (token revocation stays best-effort outside — Auth, not Firestore).
     const batch = db.batch();
-    batch.update(ref, { status: "removed", removedAt: now, removedBy: user.uid });
+    await writeStaffRecords(db, batch, {
+      uid, schoolId, role: (snap.data() || {}).role, status: "removed",
+      classroomId: (snap.data() || {}).classroomId || null,
+      removedBy: user.uid, now,
+    });
     batch.set(auditRef(db), auditData({
       actorUid: user.uid, action: "staff.revoke", targetUid: uid,
       schoolId, scope: `role:${(snap.data() || {}).role}`,
