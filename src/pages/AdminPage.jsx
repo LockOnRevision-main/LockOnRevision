@@ -5,6 +5,7 @@ import { Navigate } from "react-router-dom";
 import { httpsCallable } from "firebase/functions";
 import { StatCard } from "../components/StatCard.jsx";
 import { EmptyState } from "../components/EmptyState.jsx";
+import { SchoolAdminPanel } from "../components/SchoolAdminPanel.jsx";
 import { TrendBars } from "../components/TrendBars.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { functions } from "../config/firebase.js";
@@ -423,6 +424,7 @@ export function AdminPage() {
       <div role="tablist" aria-label={t("admin.title")} className="flex gap-2">
         {[
           { id: "manage", label: t("admin.manage_tab") },
+          { id: "schools", label: t("admin.schools_tab", "Schools") },
           { id: "analytics", label: t("admin.analytics_tab") },
         ].map((tab) => (
           <button
@@ -442,6 +444,8 @@ export function AdminPage() {
 
       {view === "analytics" ? (
         <AdminAnalyticsPanel t={t} selectedUserId={selectedUserId} />
+      ) : view === "schools" ? (
+        <SchoolAdminPanel t={t} />
       ) : (
       <>
       <section className="grid gap-4 sm:grid-cols-3">

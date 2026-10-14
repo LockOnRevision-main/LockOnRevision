@@ -15,28 +15,76 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return signedIn() && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-             (userDoc(request.auth.uid).isAdmin == true || 
+      return signedIn() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             (userDoc(request.auth.uid).isAdmin == true ||
               userDoc(request.auth.uid).role == 'admin');
     }
 
+    // ---- Beta 1.9 Stage C/D: school-scoped helpers (membership-doc enforcement) ----
+    function membershipData(schoolId) {
+      return get(/databases/$(database)/documents/memberships/$(request.auth.uid + '_' + schoolId)).data;
+    }
+
+    function isSchoolMember(schoolId) {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/memberships/$(request.auth.uid + '_' + schoolId)) &&
+        membershipData(schoolId).status == 'active';
+    }
+
+    function schoolRole(schoolId) {
+      return isSchoolMember(schoolId) ? membershipData(schoolId).role : '';
+    }
+
+    function isSchoolStaff(schoolId) {
+      return isSchoolMember(schoolId) &&
+        (schoolRole(schoolId) in ['school_admin', 'coordinator', 'teacher']);
+    }
+
+    function canManageSchool(schoolId) {
+      return isAdmin() || (isSchoolMember(schoolId) && schoolRole(schoolId) == 'school_admin');
+    }
+
+    function canTeachSchool(schoolId) {
+      return isAdmin() || (isSchoolMember(schoolId) && (schoolRole(schoolId) in ['school_admin', 'coordinator']));
+    }
+
+    // Protected fields that only trusted server code (Admin SDK / rules-bypass)
+    // or platform admins may change. Normal users can never grant these.
+    function protectedChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'email',
+        'createdAt',
+        'isAdmin',
+        'role',
+        'schoolRoles',
+        'permissions',
+        'permissionSets',
+        'adminRewards'
+      ]);
+    }
+
+    // ============ USERS (Stage A2 + A3) ============
+    // A3: reads restricted to owner + platform admin. The old
+    // `allow read: if signedIn()` exposed every profile to every user.
+    // Public leaderboard data lives in `users_public` (below).
     match /users/{userId} {
-      allow read: if signedIn();
+      allow read: if ownsUserDoc(userId) || isAdmin();
       allow create: if ownsUserDoc(userId)
         && request.resource.data.xp == 0
         && request.resource.data.energy == 0
         && request.resource.data.totalScore == 0
         && request.resource.data.isAdmin != true
-        && request.resource.data.role == 'user';
-      allow update: if ownsUserDoc(userId)
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-          'email',
-          'createdAt',
-          'isAdmin',
-          'adminRewards'
-        ])
-        || isAdmin();
+        && request.resource.data.role == 'user'
+        && !('schoolRoles' in request.resource.data)
+        && !('permissions' in request.resource.data)
+        && !('permissionSets' in request.resource.data);
+      // A2: role escalation closed — 'role' (+ other protected fields) can
+      // only change via platform-admin path. Parentheses pin precedence.
+      allow update: if (
+        (ownsUserDoc(userId) && !protectedChanged())
+        || isAdmin()
+      );
       allow delete: if false;
 
       // Generic fallback for any subcollection under users/{userId} – ensures new collections (timetableDocuments etc.) work
@@ -120,6 +168,122 @@ service cloud.firestore {
         allow read: if ownsUserDoc(userId) || isAdmin();
         allow write: if ownsUserDoc(userId) || isAdmin();
       }
+    }
+
+    // ============ USERS_PUBLIC (Stage A3 public projection) ============
+    // Minimal leaderboard-safe fields only. Never contains email, role,
+    // isAdmin, or school internals. Owner-maintained; admins may correct.
+    match /users_public/{userId} {
+      allow read: if signedIn();
+      allow create: if ownsUserDoc(userId)
+        && request.resource.data.keys().hasOnly([
+          'name', 'username', 'displayName', 'avatarUrl', 'avatarIcon',
+          'xp', 'energy', 'totalScore', 'grade', 'curriculum', 'searchName', 'updatedAt'
+        ])
+        && !('email' in request.resource.data)
+        && !('isAdmin' in request.resource.data)
+        && !('role' in request.resource.data);
+      allow update: if (
+        (ownsUserDoc(userId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'name', 'username', 'displayName', 'avatarUrl', 'avatarIcon',
+            'xp', 'energy', 'totalScore', 'grade', 'curriculum', 'searchName', 'updatedAt'
+          ]))
+        || isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ============ SCHOOLS (Stage D) ============
+    match /schools/{schoolId} {
+      allow read: if isAdmin() || isSchoolMember(schoolId);
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (isSchoolMember(schoolId) && schoolRole(schoolId) == 'school_admin');
+      allow delete: if false;
+    }
+
+    // ============ CLASSROOMS (exactly one school each) ============
+    match /classrooms/{classroomId} {
+      allow read: if isAdmin() || (signedIn() && isSchoolMember(resource.data.schoolId));
+      allow create: if isAdmin() || (signedIn() && canTeachSchool(request.resource.data.schoolId));
+      allow update: if isAdmin() || (signedIn() && canTeachSchool(resource.data.schoolId));
+      allow delete: if isAdmin() || (signedIn() && canManageSchool(resource.data.schoolId));
+    }
+
+    // ============ MEMBERSHIPS (deterministic id: uid_schoolId) ============
+    // Removal revokes access via status='removed' — profiles/learning kept.
+    // Stage 2: permission overrides (permissionSet/accessScopes) are
+    // SERVER-ONLY — no client path may grant them, closing the escalation
+    // hole where a school_admin could self-grant via a direct write.
+    function permissionFieldsChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'permissionSet',
+        'accessScopes',
+        'permissionSets'
+      ]);
+    }
+
+    match /memberships/{membershipId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.uid == request.auth.uid)
+        || (signedIn() && isSchoolStaff(resource.data.schoolId));
+      allow create: if isAdmin()
+        || (signedIn() && canManageSchool(request.resource.data.schoolId)
+            && !('permissionSet' in request.resource.data)
+            && !('accessScopes' in request.resource.data)
+            && !('permissionSets' in request.resource.data))
+        || (signedIn() && canTeachSchool(request.resource.data.schoolId)
+            && request.resource.data.role == 'student'
+            && !('permissionSet' in request.resource.data)
+            && !('accessScopes' in request.resource.data)
+            && !('permissionSets' in request.resource.data));
+      allow update: if isAdmin()
+        || (signedIn() && canManageSchool(resource.data.schoolId)
+            && !permissionFieldsChanged());
+      allow delete: if false;
+    }
+
+    // ============ STAFF ASSIGNMENTS (scoped school_admin/coordinator/teacher) ============
+    match /staffAssignments/{assignmentId} {
+      allow read: if isAdmin() || (signedIn() && isSchoolStaff(resource.data.schoolId));
+      allow create: if isAdmin() || (signedIn() && canManageSchool(request.resource.data.schoolId));
+      allow update: if isAdmin() || (signedIn() && canManageSchool(resource.data.schoolId));
+      allow delete: if false;
+    }
+
+    // ============ ADMIN AUDIT LOGS (append-only, server-written) ============
+    match /adminAuditLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ============ JOINING PINS / REQUESTS / INVITES (Prompt 45) ============
+    // Server-only via Admin SDK (verified-token routes in /api). Clients can
+    // never read hashes or write these docs — plaintext PINs are returned
+    // once by create-pin and never re-readable. Default deny for clients.
+    match /joiningPins/{pinId} {
+      allow read: if false;
+      allow write: if false;
+    }
+    match /joinRequests/{requestId} {
+      allow read: if false;
+      allow write: if false;
+    }
+    match /adminInvitations/{invitationId} {
+      allow read: if false;
+      allow write: if false;
+    }
+    // PIN attempt counters: server-only lockout state. Clients never touch.
+    match /pinAttempts/{uid} {
+      allow read: if false;
+      allow write: if false;
+    }
+    // Invitation attempt counters: server-only lockout state.
+    match /inviteAttempts/{uid} {
+      allow read: if false;
+      allow write: if false;
     }
   }
 }

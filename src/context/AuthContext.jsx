@@ -70,6 +70,34 @@ function createUserProfile(user, name) {
   };
 }
 
+async function syncPublicProjection(user, data) {
+  // Beta 1.9 Stage A3: maintain users_public (leaderboard-safe fields only).
+  // Never includes email, isAdmin, role, or school internals.
+  try {
+    const pubRef = doc(db, "users_public", user.uid);
+    await setDoc(
+      pubRef,
+      {
+        name: data.name || "",
+        username: data.username || "",
+        displayName: data.name || "",
+        avatarUrl: data.avatarUrl || "",
+        avatarIcon: data.avatarIcon || "",
+        xp: typeof data.xp === "number" ? data.xp : 0,
+        energy: typeof data.energy === "number" ? data.energy : 0,
+        totalScore: typeof data.totalScore === "number" ? data.totalScore : 0,
+        grade: data.grade || "",
+        curriculum: data.curriculum || "",
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
+  } catch (error) {
+    // Non-fatal: private profile still works; leaderboard entry may lag.
+    console.warn("[AuthContext] users_public sync failed", { code: error?.code });
+  }
+}
+
 async function ensureUserDocument(user, name) {
   if (!db) return false;
 
@@ -80,7 +108,19 @@ async function ensureUserDocument(user, name) {
     const snapshot = await getDoc(userRef);
 
     if (!snapshot.exists()) {
-      await setDoc(userRef, createUserProfile(user, name));
+      const fresh = createUserProfile(user, name);
+      await setDoc(userRef, fresh);
+      await syncPublicProjection(user, fresh);
+      // Beta 1.9 Stage E: best-effort Academy self-enrolment via server route.
+      try {
+        const token = await user.getIdToken?.();
+        if (token) {
+          await fetch("/api/enroll-academy", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          }).catch(() => {});
+        }
+      } catch {}
       return true;
     }
 
@@ -133,6 +173,8 @@ async function ensureUserDocument(user, name) {
       patch.updatedAt = serverTimestamp();
       await setDoc(userRef, patch, { merge: true });
     }
+
+    await syncPublicProjection(user, { ...data, ...patch });
 
     return true;
   } catch (error) {

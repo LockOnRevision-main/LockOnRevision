@@ -39,11 +39,40 @@ function parseToken(token) {
     signingInput: `${parts[0]}.${parts[1]}`,
   };
 }
-console.log({
-  NODE_ENV: process.env.NODE_ENV,
-  VITE_FIREBASE_PROJECT_ID: process.env.VITE_FIREBASE_PROJECT_ID,
-  FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
-});
+console.log(JSON.stringify({
+  service: 'auth',
+  nodeEnv: process.env.NODE_ENV || '(unset)',
+  emulator: !!process.env.FIREBASE_AUTH_EMULATOR_HOST,
+  devBypassFlag: process.env.LOR_ENABLE_DEV_BYPASS || '(unset)',
+}));
+
+/**
+ * Beta 1.9 (Prompt 44, Stage A1): fail-closed development identity.
+ *
+ * The previous code returned a fake `local-dev-user` whenever
+ * `NODE_ENV !== 'production'` — including when NODE_ENV was simply
+ * unset/misconfigured. That fails OPEN and could authenticate requests
+ * in production.
+ *
+ * New behaviour (fail closed):
+ * - Production (`NODE_ENV === 'production'`) NEVER returns a dev identity.
+ * - Non-production returns a dev identity ONLY when an explicit,
+ *   non-production signal is present:
+ *     1. Firebase Auth emulator detected via FIREBASE_AUTH_EMULATOR_HOST, OR
+ *     2. Explicit opt-in flag LOR_ENABLE_DEV_BYPASS === '1'
+ * - A missing/empty Authorization header or an invalid token otherwise
+ *   throws, regardless of NODE_ENV.
+ */
+export function isDevBypassAllowed() {
+  if (process.env.NODE_ENV === 'production') return false;
+  if (process.env.FIREBASE_AUTH_EMULATOR_HOST) return true;
+  if (process.env.LOR_ENABLE_DEV_BYPASS === '1') return true;
+  return false;
+}
+
+function devIdentity() {
+  return { uid: 'local-dev-user', email: 'local@example.com', devBypass: true };
+}
 export async function verifyIdToken(token) {
   const projectId = process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
   if (!projectId) {
@@ -96,8 +125,8 @@ export async function verifyAuth(req) {
   console.log(JSON.stringify({ service: 'auth', hasAuthHeader: !!authHeader, authHeaderPreview: authHeader ? authHeader.slice(0, 30) + '...' : null, path: req.url }));
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    if (process.env.NODE_ENV !== 'production') {
-      return { uid: 'local-dev-user', email: 'local@example.com' };
+    if (isDevBypassAllowed()) {
+      return devIdentity();
     }
     throw new Error("Missing or insufficient Authorization header");
   }
@@ -107,15 +136,14 @@ export async function verifyAuth(req) {
   try {
     return await verifyIdToken(token);
   } catch (error) {
-    if (process.env.NODE_ENV !== 'production') {
-      return { uid: 'local-dev-user', email: 'local@example.com' };
+    if (isDevBypassAllowed()) {
+      return devIdentity();
     }
     throw error;
   }
 }
 
-export function requireAuth(handler) {
-  return async (req, res) => {
+export function requireAuth(handler) {  return async (req, res) => {
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "POST, OPTIONS",

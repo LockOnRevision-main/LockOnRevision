@@ -36,7 +36,31 @@ GEMINI_MODEL=gemini-1.5-flash
 FIREBASE_CLIENT_EMAIL=your_firebase_client_email
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 FIREBASE_PROJECT_ID=your_project_id
+PIN_PEPPER=your_random_32plus_char_secret
 ```
+
+> **PIN_PEPPER (Beta 1.9 school joining):** a long random server secret
+> (≥16 chars, 32+ recommended) used as the HMAC key for joining-PIN hashes.
+> Required for `create-pin`/`redeem-pin`; both fail closed (generic 500)
+> when it is missing or short. Generate once per environment, store only
+> in Vercel env vars, never commit it.
+>
+> **Rotation (never silent):** rotating the pepper instantly invalidates all
+> unredeemed PINs by design (hashes no longer match). Procedure: (1) announce
+> to school staff that active PINs will be replaced; (2) revoke active PINs
+> via the Admin Panel (Schools tab) or let short-lived ones expire;
+> (3) set the new `PIN_PEPPER` in Vercel and redeploy; (4) regenerate PINs
+> and distribute the new ones. Each step is audited (`pin.revoke`,
+> `pin.create`). The same procedure applies to `INVITE_PEPPER` (Beta 2.0
+> invitations).
+>
+> **Beta 2.0 invitations (optional email):**
+> `INVITE_PEPPER` (same rules as `PIN_PEPPER`, separate value), plus for
+> emailed invitations: `RESEND_API_KEY` (Resend free: 3,000/mo, 100/day),
+> `INVITE_FROM_EMAIL` (verified sender, e.g. `LOR Admin <admin@your.domain>`),
+> `PUBLIC_APP_URL` (canonical app origin for accept links, e.g.
+> `https://your.app`). Without email keys the flow still works via the
+> copy-link fallback the platform administrator transmits manually.
 
 **⚠️ Required:** The AI Assistant and all AI features require `GEMINI_API_KEY` to be set. Without it, the AI Assistant will show a friendly message indicating it's not configured, and Forge generation will use fallback local content generation. The `FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY` values are required for Firebase Admin SDK authentication in serverless API routes — obtain them from your Firebase project's Service Account settings.
 
