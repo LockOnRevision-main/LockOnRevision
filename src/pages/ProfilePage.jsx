@@ -58,6 +58,7 @@ export function ProfilePage() {
   const [googleBusy, setGoogleBusy] = useState(false);
   const [googleMsg, setGoogleMsg] = useState("");
   const [googleError, setGoogleError] = useState("");
+  const [linkCopied, setLinkCopied] = useState(false);
 
   // Live data subscriptions
   const [subjects, setSubjects] = useState([]);
@@ -169,7 +170,6 @@ export function ProfilePage() {
     }
   }
 
-  const [linkCopied, setLinkCopied] = useState(false);
   const shareProfile = () => {
     const url = `${window.location.origin}/profile`;
     try {

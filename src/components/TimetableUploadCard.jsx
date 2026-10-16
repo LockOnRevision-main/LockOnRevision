@@ -177,9 +177,8 @@ export function TimetableUploadCard({ timetableId }) {
       loader.setProgress(40);
       setStatus("Generating timetable…");
       loader.setStage(3);
-      let result;
       try {
-        result = await reprocessTimetableDocuments(user.uid, timetableId);
+        await reprocessTimetableDocuments(user.uid, timetableId);
       } catch (e) {
         console.error("[TimetableUploadCard] Reprocess Stage Extraction failed", { code: e?.code });
         throw new Error(`Extraction failed: ${e.message}`);

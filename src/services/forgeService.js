@@ -20,7 +20,6 @@ function sortByOrder(items) {
 }
 
 function normalizeGeneratedStructure(generated) {
-  if (generated?.subject) {
   const subject = generated?.subject;
   if (!subject) {
     throw new Error("Generated response is missing subject field");

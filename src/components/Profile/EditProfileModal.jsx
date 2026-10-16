@@ -97,7 +97,7 @@ export function EditProfileModal({ profile, onClose, onSave }) {
         });
         setFormData({ ...formData, avatarUrl: dataUrl, avatarIcon: '', hasCustomAvatar: true });
       }
-    } catch (error) {
+    } catch {
       setSaveError(t('settings.upload_failed'));
     } finally {
       setUploadingAvatar(false);
