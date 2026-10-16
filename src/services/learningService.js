@@ -149,7 +149,7 @@ export function subscribeUserCollection(uid, name, callback, constraints = [], o
   }
   return onSnapshot(query(collection(db, "users", uid, name), ...constraints), (snapshot) => {
     callback(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
-  }, (err) => { console.error(`[learningService] subscribeUserCollection ${name} failed`, err?.code); onError?.(err); });
+  }, (err) => { console.error("[learningService] subscribe failed", err?.code); onError?.(err); });
 }
 
 export function subscribeSubjects(uid, callback) {
@@ -232,7 +232,7 @@ export async function uploadNoteFile(uid, file, onProgress) {
 
 export async function processUploadedFile(uid, fileId) {
   if (!isFirebaseConfigured) {
-    throw new Error("Gemini API is not available in local mode. Configure Firebase to use AI generation.");
+    throw new Error("AI generation is temporarily unavailable. Please try again later.");
   }
 
   const fileSnap = await getDoc(doc(db, "users", uid, "files", fileId));
@@ -260,7 +260,7 @@ export async function processUploadedFile(uid, fileId) {
 
 export async function processRawNotes(uid, text) {
   if (!isFirebaseConfigured) {
-    throw new Error("Gemini API is not available in local mode. Configure Firebase to use AI generation.");
+    throw new Error("AI generation is temporarily unavailable. Please try again later.");
   }
   return buildFirebaseGeminiCourse(uid, text);
 }
@@ -289,14 +289,14 @@ export async function getUserLearningContext(uid) {
       lessons: lessonsSnap.docs.map(d => ({ id: d.id, ...d.data() })),
     };
   } catch (error) {
-    console.error("Error fetching learning context:", error);
+    console.error("[learningService] fetching learning context failed", { code: error?.code });
     return null;
   }
 }
 
 export async function getHint(questionId) {
   if (!isFirebaseConfigured) {
-    throw new Error("Gemini API is not available in local mode. Configure Firebase to use AI generation.");
+    throw new Error("AI generation is temporarily unavailable. Please try again later.");
   }
 
   const response = await apiFetch('/api/generate-question-hint', {
@@ -315,7 +315,7 @@ export async function getHint(questionId) {
 
 export async function explainWrongAnswer(questionId, selectedAnswer) {
   if (!isFirebaseConfigured) {
-    throw new Error("Gemini API is not available in local mode. Configure Firebase to use AI generation.");
+    throw new Error("AI generation is temporarily unavailable. Please try again later.");
   }
 
   const response = await apiFetch('/api/explain-wrong-answer', {

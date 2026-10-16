@@ -39,14 +39,6 @@ export async function uploadToCloudinary(file, options = {}) {
 
       const data = await response.json();
 
-      console.log('[cloudinary-upload]', JSON.stringify({
-        status: response.status,
-        secure_url: data.secure_url,
-        public_id: data.public_id,
-        resource_type: data.resource_type,
-        type: data.type,
-      }));
-
       if (!response.ok) {
         throw new Error(data.error?.message || `Cloudinary upload failed with status ${response.status}`);
       }
@@ -62,10 +54,10 @@ export async function uploadToCloudinary(file, options = {}) {
       lastError = error;
       if (attempt < MAX_RETRIES - 1) {
         const delayMs = Math.pow(2, attempt) * 1000;
-        console.warn(`Cloudinary upload attempt ${attempt + 1} failed:`, error.message, `- retrying after ${delayMs}ms`);
+        console.warn("[cloudinary] upload attempt failed, retrying", { code: error?.code });
         await new Promise((resolve) => setTimeout(resolve, delayMs));
       } else {
-        console.error(`Cloudinary upload failed after ${MAX_RETRIES} attempts:`, error.message);
+        console.error("[cloudinary] upload failed", { code: error?.code });
       }
     }
   }

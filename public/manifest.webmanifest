@@ -1,0 +1,16 @@
+{
+  "name": "LockOnRevision",
+  "short_name": "LockOnRevision",
+  "description": "LockOnRevision turns study consistency into a visible scoring system. Earn XP, Energy, and climb the leaderboard.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#004B7A",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

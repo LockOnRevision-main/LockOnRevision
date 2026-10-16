@@ -348,7 +348,7 @@ export async function ensureDailyChallenge(uid, profile) {
     }
     generated = await res.json();
   } catch (e) {
-    console.warn("[dailyChallenge] generate failed, using fallback", e.message);
+    console.warn("[dailyChallenge] generate failed, using fallback", { code: e?.code });
     generated = fallbackChallenge({ templateId, difficulty, focusSubject, today });
   }
 

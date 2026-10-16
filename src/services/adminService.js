@@ -78,15 +78,12 @@ async function verifyAdminServer() {
   if (!db) throw new Error("We couldn't load your data. Please try again.");
   const uid = auth?.currentUser?.uid;
   if (!uid) throw new Error("Please sign in again.");
-  console.log("[admin] fallback Firestore admin check", { uid });
   const snap = await getDoc(doc(db, "users", uid));
   if (!snap.exists()) {
-    console.warn("[admin] fallback - user doc not found", { uid });
     throw new Error("We couldn't find your profile. Please try again.");
   }
   const data = snap.data();
   const isAdmin = data.isAdmin === true || data.role === "admin";
-  console.log("[admin] fallback verification result", { uid, isAdmin, isAdminField: data.isAdmin, role: data.role });
   return isAdmin;
 }
 

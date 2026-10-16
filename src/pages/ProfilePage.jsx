@@ -145,7 +145,7 @@ export function ProfilePage() {
       setSaveStatus("saved");
       saveTimeoutRef.current = window.setTimeout(() => setSaveStatus(""), 2000);
     } catch (error) {
-      console.error("Error saving profile:", error);
+      console.error("[ProfilePage] saving profile failed", { code: error?.code });
       setSaveStatus("error");
       saveTimeoutRef.current = window.setTimeout(() => setSaveStatus(""), 3000);
       throw error;
@@ -169,10 +169,14 @@ export function ProfilePage() {
     }
   }
 
+  const [linkCopied, setLinkCopied] = useState(false);
   const shareProfile = () => {
     const url = `${window.location.origin}/profile`;
-    navigator.clipboard.writeText(url);
-    window.alert(t("profile.link_copied"));
+    try {
+      navigator.clipboard?.writeText(url)?.catch?.(() => {});
+    } catch {}
+    setLinkCopied(true);
+    window.setTimeout(() => setLinkCopied(false), 2500);
   };
 
   const joinedDate = profile.createdAt?.toDate
@@ -272,9 +276,10 @@ export function ProfilePage() {
               <button 
                 onClick={shareProfile}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface text-text-primary font-bold border border-border hover:bg-background transition-colors shadow-sm"
+                aria-live="polite"
               >
                 <Share2 size={18} />
-                {t("profile.share")}
+                {linkCopied ? t("profile.link_copied") : t("profile.share")}
               </button>
             </div>
           </div>

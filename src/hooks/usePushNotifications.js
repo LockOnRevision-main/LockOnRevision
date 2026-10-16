@@ -14,11 +14,7 @@ export function usePushNotifications() {
     enabled: false,
     supported: false,
     permission: "denied",
-    async subscribe() {
-      console.warn("[usePushNotifications] Not yet implemented.");
-    },
-    async unsubscribe() {
-      console.warn("[usePushNotifications] Not yet implemented.");
-    },
+    async subscribe() {},
+    async unsubscribe() {},
   };
 }

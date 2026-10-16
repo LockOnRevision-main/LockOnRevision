@@ -52,7 +52,7 @@ export function TimetablePage() {
       try {
         savePreferencesLocally(preferences);
       } catch (e) {
-        console.error("[TimetablePage] Stage Upload failed", e);
+        console.error("[TimetablePage] Stage Upload failed", { code: e?.code });
         throw new Error(`Upload stage failed: ${e.message}`);
       }
       loader.setProgress(45);
@@ -61,30 +61,29 @@ export function TimetablePage() {
       try {
         result = await generateTimetable(preferences);
       } catch (e) {
-        console.error("[TimetablePage] Stage Timetable generation failed", e);
+        console.error("[TimetablePage] Stage Timetable generation failed", { code: e?.code });
         throw new Error(`Timetable generation failed: ${e.message}`);
       }
       if (!result?.weeks) {
-        console.error("[TimetablePage] Stage Generation returned invalid structure", result);
+        console.error("[TimetablePage] Stage Generation returned invalid structure");
         throw new Error("Timetable generation returned invalid data");
       }
       loader.setStage(4);
       loader.setProgress(88);
       // Stage: Firestore write – upsert to avoid orphaned duplicates
       try {
-        const savedId = await upsertTimetable(user.uid, result);
-        console.log("[TimetablePage] Stage Firestore write succeeded", { savedId });
+        await upsertTimetable(user.uid, result);
         // Do not set local state manually – subscription will deliver canonical Firestore doc
         // This ensures dashboard and all subscribers update from source of truth
       } catch (e) {
-        console.error("[TimetablePage] Stage Firestore write failed", e);
+        console.error("[TimetablePage] Stage Firestore write failed", { code: e?.code });
         throw new Error(`Firestore write failed: ${e.message}`);
       }
       loader.setStage(5);
       loader.setProgress(98);
       setSaved(true);
     } catch (err) {
-      console.error("[TimetablePage] handleGenerate pipeline failed", { stage: loader.stage, error: err.message });
+      console.error("[TimetablePage] handleGenerate pipeline failed", { code: err?.code });
       setError(err.message || t("timetable_page.failed_generate"));
     } finally {
       setBusy(false);
