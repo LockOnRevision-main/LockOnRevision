@@ -150,27 +150,17 @@ async function callGeminiWithValidation(prompt, validateFn) {
 }
 
 async function verifyAuthenticated(request) {
-  // Logging: Authorization header present check (onCall provides auth via request.auth)
+  // Logging is presence-only: never log token material, token keys, or
+  // claim contents (P51 1.4). A boolean is enough to diagnose
+  // missing-header vs invalid-token failures.
   const hasAuth = !!request.auth;
-  const hasToken = !!request.auth?.token;
-  log.info("Authorization check", {
-    hasAuth,
-    hasToken,
-    uid: request.auth?.uid || null,
-    tokenKeys: hasToken ? Object.keys(request.auth.token) : [],
-  });
+  log.info("Authorization check", { hasAuth });
 
   if (!request.auth) {
     log.warn("User not authenticated", { hasAuth: false });
     throw new HttpsError("unauthenticated", "You must be authenticated to call this function.");
   }
-  log.info("User authenticated", { uid: request.auth.uid, email: request.auth.token?.email || null });
-  // Logging: Custom claims
-  log.info("Custom claims", {
-    uid: request.auth.uid,
-    claims: request.auth.token,
-    isAdminClaim: request.auth.token?.admin === true || request.auth.token?.role === "admin",
-  });
+  log.info("User authenticated", { uid: request.auth.uid });
   return request.auth.uid;
 }
 
@@ -184,19 +174,13 @@ async function verifyAdmin(request) {
     throw new HttpsError("permission-denied", "User profile not found.");
   }
   const data = userDoc.data();
-  // Check both Firestore fields and custom claims
+  // Check both Firestore fields and custom claims. Claim contents are never
+  // logged (P51 1.4) — only the boolean outcome below.
   const hasFirestoreAdmin = data.isAdmin === true || data.role === "admin";
   const hasClaimAdmin = request.auth?.token?.admin === true || request.auth?.token?.role === "admin";
   const isAdmin = hasFirestoreAdmin || hasClaimAdmin;
 
-  log.info("Admin verification result", {
-    uid,
-    hasFirestoreAdmin,
-    hasClaimAdmin,
-    isAdmin,
-    firestoreFields: { isAdmin: data.isAdmin, role: data.role },
-    claimFields: { admin: request.auth?.token?.admin, role: request.auth?.token?.role },
-  });
+  log.info("Admin verification result", { uid, isAdmin });
 
   if (!isAdmin) {
     log.warn("Admin verification failed - permission denied", { uid });
@@ -637,12 +621,7 @@ export const verifyAdminAccess = onCall(
     cors: true,
   },
   async (request) => {
-    log.info("verifyAdminAccess invoked", {
-      // For onCall, CORS preflight (OPTIONS) is handled by the Functions framework before this handler runs
-      hasAuth: !!request.auth,
-      hasData: !!request.data,
-      rawRequestKeys: Object.keys(request),
-    });
+    log.info("verifyAdminAccess invoked", { hasAuth: !!request.auth, hasData: !!request.data });
     await verifyAdmin(request);
     log.info("verifyAdminAccess completed successfully", { uid: request.auth?.uid });
     return { admin: true };
