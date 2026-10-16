@@ -5,6 +5,7 @@ import { URL } from 'url';
 import { pipeline } from 'stream/promises';
 import { createLogger, withTimeout, retry } from '../lib/forge-integrity.js';
 import { requireAuth } from '../lib/auth.js';
+import { checkAiGuard, geminiUnavailable, aiFailed } from '../lib/aiLimits.js';
 
 const log = createLogger('extract-timetable-docs');
 
@@ -88,19 +89,18 @@ function validateExtraction(data) {
 }
 
 export default requireAuth(async function handler(req, res) {
-  console.log(JSON.stringify({ stage: '[1] Request received', path: req.url, hasAuth: !!req.headers.authorization }));
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  // P51 1.3: request-size cap + authenticated-user rate limit BEFORE any
+  // download or model call (per-instance best-effort; caps are the hard
+  // guarantee). At most 10 files per request bound the Gemini bill.
+  if (!checkAiGuard(req, res, "extract-timetable-docs")) return;
   try {
-    console.log(JSON.stringify({ stage: '[2] Auth verified', uid: req.user?.uid }));
     const { files, preferredLanguage } = req.body;
     if (!Array.isArray(files) || files.length===0) return res.status(400).json({ error: 'Missing files array' });
-    log.info('Handler called', { fileCount: files.length, files: files.map(f=> ({name:f.name, hasUrl:!!f.url})) });
-    // Log Cloudinary values immediately after upload (as requested)
-    for (const f of files) {
-      console.log(JSON.stringify({ stage: '[3] Cloudinary URL received', secure_url: f.url, public_id: f.publicId, resource_type: f.resourceType, type: f.type }));
-    }
+    if (files.length > 10) return res.status(413).json({ error: 'Too many files. Send at most 10 per request.', code: 'ai_too_large' });
+    log.info('Handler called', { fileCount: files.length });
 
-    if (!isConfigured()) return res.status(503).json({ error: 'Gemini API is not configured. Set GEMINI_API_KEY.' });
+    if (!isConfigured()) return res.status(503).json(geminiUnavailable());
 
     const lang = preferredLanguage || 'en';
     const geminiFiles = [];
@@ -113,21 +113,18 @@ export default requireAuth(async function handler(req, res) {
         try {
           const fileName = file.name || `file_${Date.now()}`;
           const filePath = path.join('/tmp', `timetable_inline_${Date.now()}_${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`);
-          console.log(JSON.stringify({ stage: '[3b-alt] using inline bytes (bypass Cloudinary)', file: fileName, bytes: Math.round(file.contentBase64.length * 0.75) }));
           const buf = Buffer.from(file.contentBase64, 'base64');
           fs.writeFileSync(filePath, buf);
           tempFiles.push(filePath);
-          console.log(JSON.stringify({ stage: '[4] Gemini request starting', file: fileName }));
           const uploadResp = await googleAI.files.upload({
             file: filePath,
             config: { mimeType: file.type || 'application/octet-stream', displayName: fileName },
           });
-          log.info('File uploaded to Gemini via inline bytes', { name: fileName, uri: uploadResp.uri });
-          console.log(JSON.stringify({ stage: '[5] Gemini request completed', file: fileName, uri: uploadResp.uri }));
+          log.info('File uploaded to Gemini via inline bytes');
           geminiFiles.push({ fileUri: uploadResp.uri, mimeType: uploadResp.mimeType || file.type || 'application/octet-stream' });
           continue;
-        } catch (e) {
-          console.log(JSON.stringify({ stage: '[3b-alt-failed] inline bytes failed, falling back to URL', file: file.name, error: e.message }));
+        } catch {
+          log.warn('Inline bytes failed, falling back to URL');
         }
       }
       if (!file.url) {
@@ -135,33 +132,27 @@ export default requireAuth(async function handler(req, res) {
         log.warn('File without URL and without inline bytes, skipping', { name: file.name });
         continue;
       }
-      try { await validateUrl(file.url); } catch(e){ log.warn('URL validation failed', { name:file.name, error:e.message }); continue; }
+      try { await validateUrl(file.url); } catch { log.warn('URL validation failed, skipping file'); continue; }
       const fileName = path.basename(new URL(file.url).pathname.split('?')[0]) || file.name || `file_${Date.now()}`;
       const filePath = path.join('/tmp', `timetable_${Date.now()}_${fileName}`);
       const urlPassedToGemini = file.url;
-      console.log(JSON.stringify({ stage: '[3b] urlPassedToGemini', urlPassedToGemini, public_id: file.publicId, resource_type: file.resourceType }));
-      log.info('Downloading file', { name: file.name, url: urlPassedToGemini });
       // Cloudinary delivery – note: Basic Auth does NOT work on delivery URLs, so 401 here means
       // preset is authenticated/private or account is untrusted. Inline bytes above is the real fix.
       let response = await fetch(urlPassedToGemini);
       if (!response.ok) {
-        const errText = await response.text().catch(()=> '');
-        console.log(JSON.stringify({ stage: '[3c] Cloudinary fetch failed', url: urlPassedToGemini, status: response.status, body: errText.slice(0,500) }));
         if (response.status === 401) {
-          throw new Error(`Failed to download ${file.name}: 401 Unauthorized from Cloudinary delivery (body empty means private/authenticated asset or untrusted account). Secure_url: ${urlPassedToGemini}. Fix: retry upload to send inline bytes (automatic), or Cloudinary dashboard → upload preset type=upload access_mode=public + verify account email.`);
+          throw new Error('Cloudinary delivery refused the download (private/authenticated asset). Retry — the app automatically resends inline bytes.');
         } else {
-          throw new Error(`Failed to download ${file.name}: ${response.status} ${errText.slice(0,200)}`);
+          throw new Error(`Document download failed with status ${response.status}.`);
         }
       }
-      console.log(JSON.stringify({ stage: '[4] Gemini request starting', file: file.name }));
       await pipeline(response.body, fs.createWriteStream(filePath));
       tempFiles.push(filePath);
       const uploadResp = await googleAI.files.upload({
         file: filePath,
         config: { mimeType: file.type || 'application/octet-stream', displayName: fileName },
       });
-      log.info('File uploaded to Gemini', { name: file.name, uri: uploadResp.uri });
-      console.log(JSON.stringify({ stage: '[5] Gemini request completed', file: file.name, uri: uploadResp.uri }));
+      log.info('File uploaded to Gemini');
       geminiFiles.push({ fileUri: uploadResp.uri, mimeType: uploadResp.mimeType || file.type || 'application/octet-stream' });
     }
 
@@ -175,7 +166,6 @@ export default requireAuth(async function handler(req, res) {
         assessments: [],
       };
     } else {
-      console.log(JSON.stringify({ stage: '[4] Gemini request starting (batch)', fileCount: geminiFiles.length }));
       const prompt = `You are a document analysis AI, NOT a scheduler. Analyze the uploaded timetable documents (exam schedules, syllabi, unit planners, teacher notes, calendars, weightage sheets) and return ONLY structured JSON.
 
 IMPORTANT: Generate all text ONLY in language "${lang}". Stay strictly within the documents – do NOT invent study hours, daily schedule, revision order, spacing, or timetable layout. Those belong to the timetable engine, not you.
@@ -223,15 +213,12 @@ If you cannot confidently extract any subject or assessment (e.g., poor scan qua
 
 Documents to analyze: ${files.length} files.`;
       const result = await callGeminiWithFiles(geminiFiles, prompt);
-      console.log(JSON.stringify({ stage: '[5] Gemini request completed (batch)', files: geminiFiles.length }));
       extracted = validateExtraction(result);
-      console.log(JSON.stringify({ stage: '[6] Parsed response', subjects: extracted.subjects.length, assessments: extracted.assessments.length }));
-      log.info('Extraction validated', { subjects: extracted.subjects.length, assessments: extracted.assessments.length });
+      log.info('Extraction validated');
     }
 
     // Cleanup temp files
     for (const p of tempFiles) { try { if (fs.existsSync(p)) fs.unlinkSync(p); } catch { /* best-effort temp cleanup */ } }
-    console.log(JSON.stringify({ stage: '[7] Saved to Firestore (pending engine)' }));
 
     // Transform to engine-expected shape: syllabus + assessments
     const syllabus = extracted.subjects.map(s => ({
@@ -251,13 +238,23 @@ Documents to analyze: ${files.length} files.`;
 
   } catch (error) {
     log.error('Failed to extract timetable docs', error);
-    // Per-file error handling: explain which file failed and why
+    // Safe error: never echo provider messages, URLs, or fetch bodies.
+    // Per-file detail is reduced to a generic, actionable message.
     const msg = error.message || 'Failed to extract';
     const isPoorScan = /poor scan|insufficient text|unsupported format/i.test(msg);
-    const status = msg.includes('Gemini API is not configured') ? 503 : isPoorScan ? 422 : 500;
-    return res.status(status).json({
-      error: msg,
-      details: isPoorScan ? 'Poor scan quality, unsupported format, or insufficient text – please retry with a clearer image or replace the document.' : undefined,
+    if (/Gemini API is not configured/.test(msg)) {
+      return res.status(503).json({ ...geminiUnavailable(), subjects: [], assessments: [] });
+    }
+    if (isPoorScan) {
+      return res.status(422).json({
+        ...aiFailed('Could not extract subjects or assessments from these documents.'),
+        details: 'Poor scan quality, unsupported format, or insufficient text – please retry with a clearer image or replace the document.',
+        subjects: [],
+        assessments: [],
+      });
+    }
+    return res.status(500).json({
+      ...aiFailed('Failed to extract timetable documents. Please try again.'),
       subjects: [],
       assessments: [],
     });

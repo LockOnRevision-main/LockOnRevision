@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { createLogger, withTimeout, retry, validateForgeAssistantReply } from '../lib/forge-integrity.js';
 import { requireAuth } from '../lib/auth.js';
+import { AI_LIMITS, checkAiGuard, geminiUnavailable, aiFailed } from '../lib/aiLimits.js';
 
 const log = createLogger('ask-forge-assistant');
 
@@ -66,15 +67,28 @@ export default requireAuth(async function handler(req, res) {
   }
 
   try {
+    // P51 1.3: request-size cap + authenticated-user rate limit BEFORE any
+    // model call (per-instance best-effort; caps are the hard guarantee).
+    if (!checkAiGuard(req, res, "ask-forge-assistant")) return;
+
     const { messages, subjects, preferredLanguage } = req.body;
 
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: 'Missing required field: messages' });
     }
+    if (messages.length === 0 || messages.length > 50) {
+      return res.status(400).json({ error: 'Invalid messages: must contain 1-50 entries' });
+    }
+    const conversation = messages
+      .map((message) => `${message.role === 'user' ? 'Student' : 'Assistant'}: ${message.content}`)
+      .join('\n');
+    if (conversation.length > AI_LIMITS["ask-forge-assistant"].maxTextChars) {
+      return res.status(413).json({ error: 'Conversation is too large. Please shorten your input and try again.', code: 'ai_too_large' });
+    }
 
     if (!isConfigured()) {
       log.error('Gemini API not configured');
-      return res.status(503).json({ error: 'Gemini API is not configured. Set GEMINI_API_KEY.' });
+      return res.status(503).json(geminiUnavailable());
     }
 
     const structureSummary = subjects && subjects.length
@@ -85,10 +99,6 @@ export default requireAuth(async function handler(req, res) {
           })
           .join('\n\n')
       : 'No Forge subjects have been generated yet.';
-
-    const conversation = messages
-      .map((message) => `${message.role === 'user' ? 'Student' : 'Assistant'}: ${message.content}`)
-      .join('\n');
 
     const lang = preferredLanguage || "en";
     const prompt = `You are the LockOnRevision Forge Assistant. You have access to the student's structured learning path (Units, Sub-Units, and Lessons).
@@ -120,6 +130,6 @@ Return a JSON object: {"reply": "your markdown-formatted response here"}`;
     return res.status(200).json(result);
   } catch (error) {
     log.error('Failed to get forge assistant reply', error);
-    return res.status(500).json({ error: 'The assistant encountered an error. Please try again.' });
+    return res.status(500).json(aiFailed('The assistant encountered an error. Please try again.'));
   }
 });

@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { createLogger, withTimeout, retry } from '../lib/forge-integrity.js';
 import { requireAuth } from '../lib/auth.js';
+import { checkAiGuard, aiFailed } from '../lib/aiLimits.js';
 
 const log = createLogger('generate-timetable');
 
@@ -115,6 +116,12 @@ export default requireAuth(async function handler(req, res) {
   }
 
   try {
+    // P51 1.3: request-size cap + authenticated-user rate limit BEFORE any
+    // model call (per-instance best-effort; caps are the hard guarantee).
+    // Note: this route has an offline algorithmic fallback, so when Gemini
+    // is unconfigured it still answers without spending quota.
+    if (!checkAiGuard(req, res, "generate-timetable")) return;
+
     const preferences = req.body;
 
     if (!preferences.subjects || !preferences.subjects.length) {
@@ -151,7 +158,7 @@ export default requireAuth(async function handler(req, res) {
     return res.status(200).json(timetable);
   } catch (error) {
     log.error("Error in generate-timetable", error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json(aiFailed('Failed to generate timetable. Please try again.'));
   }
 });
 

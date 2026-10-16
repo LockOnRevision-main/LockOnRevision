@@ -6,6 +6,7 @@ import path from 'path';
 import { pipeline } from 'stream/promises';
 import { createLogger, withTimeout, retry, validateFileResponse } from '../lib/forge-integrity.js';
 import { requireAuth } from '../lib/auth.js';
+import { checkAiGuard, geminiUnavailable, aiFailed } from '../lib/aiLimits.js';
 
 const ALLOWED_HOSTS = new Set([
   'res.cloudinary.com',
@@ -62,12 +63,6 @@ async function validateUrl(urlString) {
 }
 
 function getCloudinaryConfig() {
-  console.log({
-    cwd: process.cwd(),
-    cloud: !!process.env.CLOUDINARY_CLOUD_NAME,
-    key: !!process.env.CLOUDINARY_API_KEY,
-    secret: !!process.env.CLOUDINARY_API_SECRET,
-  });
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.VITE_CLOUDINARY_CLOUD_NAME;
   const apiKey = process.env.CLOUDINARY_API_KEY || process.env.VITE_CLOUDINARY_API_KEY;
   const apiSecret = process.env.CLOUDINARY_API_SECRET || process.env.VITE_CLOUDINARY_API_SECRET;
@@ -204,6 +199,11 @@ export default requireAuth(async function handler(req, res) {
   }
 
   try {
+    // P51 1.3: request-size cap + authenticated-user rate limit BEFORE any
+    // download or model call (per-instance best-effort; caps are the hard
+    // guarantee). At most 10 files per request bound the Gemini bill.
+    if (!checkAiGuard(req, res, "process-uploaded-notes")) return;
+
     const { url, mimeType, files: requestedFiles, preferredLanguage } = req.body;
 
     log.info('Handler called', { hasUrlMime: !!url && !!mimeType, hasFilesArray: Array.isArray(requestedFiles) });
@@ -216,8 +216,11 @@ export default requireAuth(async function handler(req, res) {
     } else {
       return res.status(400).json({ error: 'Missing required fields: url/mimeType or files array' });
     }
+    if (filesToProcess.length > 10) {
+      return res.status(413).json({ error: 'Too many files. Send at most 10 per request.', code: 'ai_too_large' });
+    }
 
-    log.info('Files to process', { count: filesToProcess.length, firstUrl: filesToProcess[0]?.url });
+    log.info('Files to process', { count: filesToProcess.length });
 
     const sourceFiles = filesToProcess.map(f => ({
       publicId: f.publicId,
@@ -228,7 +231,7 @@ export default requireAuth(async function handler(req, res) {
 
     if (!isConfigured()) {
       log.error('Gemini API not configured');
-      return res.status(503).json({ error: 'Gemini API is not configured. Set GEMINI_API_KEY.' });
+      return res.status(503).json(geminiUnavailable());
     }
 
     const geminiFiles = [];
@@ -244,12 +247,11 @@ export default requireAuth(async function handler(req, res) {
       const fileName = path.basename(new URL(file.url).pathname.split('?')[0]) || `file_${Date.now()}`;
       const filePath = path.join('/tmp', fileName);
       const downloadUrl = file.url;
-      log.info('Downloading file', { url: downloadUrl });
       if (!/^https?:\/\//.test(downloadUrl)) {
-        log.warn('Suspicious download URL detected', { url: downloadUrl });
+        log.warn('Suspicious download URL detected');
       }
       const response = await fetch(downloadUrl);
-      if (!response.ok) throw new Error(`Failed to download file ${downloadUrl}: ${response.status}`);
+      if (!response.ok) throw new Error(`File download failed with status ${response.status}`);
       await pipeline(response.body, fs.createWriteStream(filePath));
       log.info('File saved to temp storage', { filePath });
       tempFiles.push(filePath);
@@ -344,8 +346,10 @@ SCHEMA NOTES: matchPairs MUST use "pairs": [{"left":{"id":"l1","text":"..."},"ri
     return res.status(200).json({ ok: true, data: generated });
   } catch (error) {
     log.error('Failed to process uploaded notes', error);
-    const statusCode = error.message?.includes('Gemini API is not configured') ? 503 : 500;
-    const errorMessage = error.message || 'Failed to process uploaded notes';
-    return res.status(statusCode).json({ error: errorMessage });
+    // Safe error: never echo provider messages, URLs, or key names.
+    if (error.message?.includes('Gemini API is not configured')) {
+      return res.status(503).json(geminiUnavailable());
+    }
+    return res.status(500).json(aiFailed('Failed to process uploaded notes. Please try again.'));
   }
 });

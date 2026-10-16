@@ -1,19 +1,14 @@
 /* global btoa, URLSearchParams */
 import { requireAuth } from '../lib/auth.js';
+import { checkAiGuard, aiFailed } from '../lib/aiLimits.js';
 
 function getCloudinaryConfig() {
-  console.log({
-    cwd: process.cwd(),
-    cloud: !!process.env.CLOUDINARY_CLOUD_NAME,
-    key: !!process.env.CLOUDINARY_API_KEY,
-    secret: !!process.env.CLOUDINARY_API_SECRET,
-  });
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.VITE_CLOUDINARY_CLOUD_NAME;
   const apiKey = process.env.CLOUDINARY_API_KEY || process.env.VITE_CLOUDINARY_API_KEY;
   const apiSecret = process.env.CLOUDINARY_API_SECRET || process.env.VITE_CLOUDINARY_API_SECRET;
 
   if (!cloudName || !apiKey || !apiSecret) {
-    throw new Error('Cloudinary Admin API is not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.');
+    throw new Error('Cloudinary file service is not configured.');
   }
 
   return { cloudName, apiKey, apiSecret };
@@ -50,17 +45,25 @@ export default requireAuth(async function handler(req, res) {
   }
 
   try {
+    // P51 1.3: request-size cap + authenticated-user rate limit BEFORE any
+    // third-party call (per-instance best-effort; caps are the hard
+    // guarantee). At most 20 files per request.
+    if (!checkAiGuard(req, res, "delete-cloudinary-files")) return;
+
     const { files } = req.body;
 
     if (!Array.isArray(files) || files.length === 0) {
       return res.status(400).json({ error: 'Missing required field: files array' });
     }
+    if (files.length > 20) {
+      return res.status(413).json({ error: 'Too many files. Send at most 20 per request.', code: 'ai_too_large' });
+    }
 
     let cloudinaryConfig;
     try {
       cloudinaryConfig = getCloudinaryConfig();
-    } catch (configError) {
-      return res.status(503).json({ error: configError.message });
+    } catch {
+      return res.status(503).json({ error: 'File service is temporarily unavailable. Please try again later.', code: 'ai_unavailable' });
     }
 
     const { cloudName, apiKey, apiSecret } = cloudinaryConfig;
@@ -76,15 +79,14 @@ export default requireAuth(async function handler(req, res) {
       try {
         await destroyCloudinaryFile(cloudName, apiKey, apiSecret, publicId, resourceType);
         results.push({ publicId, status: 'deleted' });
-      } catch (error) {
-        console.warn(`Failed to delete ${publicId}:`, error.message);
-        results.push({ publicId, status: 'failed', error: error.message });
+      } catch {
+        // Safe per-file error: never echo provider messages.
+        results.push({ publicId, status: 'failed', error: 'Delete failed. Please try again.' });
       }
     }
 
     return res.status(200).json({ ok: true, results });
-  } catch (error) {
-    console.error('Failed to delete Cloudinary files:', error);
-    return res.status(500).json({ error: 'Failed to delete Cloudinary files.' });
+  } catch {
+    return res.status(500).json(aiFailed('Failed to delete files. Please try again.'));
   }
 });

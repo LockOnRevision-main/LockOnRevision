@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { createLogger, withTimeout, retry, validateExplanation } from '../lib/forge-integrity.js';
 import { requireAuth } from '../lib/auth.js';
+import { checkAiGuard, geminiUnavailable, assertAiTextLength, aiFailed } from '../lib/aiLimits.js';
 
 const log = createLogger('explain-wrong-answer');
 
@@ -73,15 +74,25 @@ export default requireAuth(async function handler(req, res) {
   }
 
   try {
+    // P51 1.3: request-size cap + authenticated-user rate limit BEFORE any
+    // model call (per-instance best-effort; caps are the hard guarantee).
+    if (!checkAiGuard(req, res, "explain-wrong-answer")) return;
+
     const { question, selectedAnswer, preferredLanguage } = req.body;
 
     if (!question || !selectedAnswer) {
       return res.status(400).json({ error: 'Missing required fields: question, selectedAnswer' });
     }
+    try {
+      assertAiTextLength(JSON.stringify(question), "explain-wrong-answer", "question");
+      assertAiTextLength(String(selectedAnswer), "explain-wrong-answer", "selectedAnswer");
+    } catch (e) {
+      return res.status(e.status || 413).json({ error: e.message, code: 'ai_too_large' });
+    }
 
     if (!isConfigured()) {
       log.error('Gemini API not configured');
-      return res.status(503).json({ error: 'Gemini API is not configured. Set GEMINI_API_KEY.' });
+      return res.status(503).json(geminiUnavailable());
     }
 
     const lang = preferredLanguage || "en";
@@ -95,6 +106,6 @@ ${JSON.stringify(question)}`;
     return res.status(200).json(result);
   } catch (error) {
     log.error('Failed to generate explanation', error);
-    return res.status(500).json({ error: 'Failed to generate explanation. Please try again.' });
+    return res.status(500).json(aiFailed('Failed to generate explanation. Please try again.'));
   }
 });

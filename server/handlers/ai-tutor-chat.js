@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { GoogleGenAI } from '@google/genai';
 import { createLogger, withTimeout, retry } from '../lib/forge-integrity.js';
 import { requireAuth } from '../lib/auth.js';
-import { rateLimit, rateLimitKey } from '../lib/validation.js';
+import { checkAiGuard, geminiUnavailable } from '../lib/aiLimits.js';
 
 const log = createLogger('ai-tutor-chat');
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
@@ -52,8 +52,6 @@ try {
     initError = null;
 
     googleAI = new GoogleGenAI({ apiKey: geminiApiKey });
-    console.log("Using model:", modelName);
-
     log.info('Gemini initialized', { model: modelName });
   }
 } catch (e) {
@@ -135,6 +133,20 @@ export async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // P51 1.3: request-size cap + authenticated-user rate limit FIRST — they
+  // apply even when Gemini is unconfigured (no quota is spent then, but
+  // oversized/abusive traffic is still rejected uniformly).
+  if (!checkAiGuard(req, res, "ai-tutor-chat")) return;
+
+  // Deterministic message caps apply before the configured check too, so
+  // malformed traffic is rejected the same way with or without a key.
+  let messages;
+  try {
+    messages = validateChatInput(req.body);
+  } catch (e) {
+    return res.status(e.status || 400).json({ error: e.message });
+  }
+
   if (!isConfigured()) {
     if (process.env.NODE_ENV !== 'production') {
       log.warn('Gemini not configured, using local fallback response', { reason: initError });
@@ -143,34 +155,18 @@ export async function handler(req, res) {
         provider: 'Google Gemini',
         model: modelName,
         configured: false,
-        apiKeyName: 'GEMINI_API_KEY',
       });
     }
 
     log.error('Gemini not configured', { reason: initError });
     return res.status(503).json({
-      error: `Gemini AI is not connected. ${initError}. Add it to your environment as GEMINI_API_KEY.`,
-      code: 'gemini_not_configured',
+      ...geminiUnavailable(),
       provider: 'Google Gemini',
       configured: false,
-      apiKeyName: 'GEMINI_API_KEY',
     });
   }
 
   try {
-    // Per-instance friction on top of the deterministic caps below.
-    // LIMITATION (documented): serverless instances do not share memory,
-    // so this is best-effort per-instance protection, not a strict global
-    // limit. The CHAT_LIMITS caps above are the hard guarantee.
-    const rl = rateLimit(rateLimitKey(req, "ai-tutor-chat"), { max: 30, windowMs: 60_000 });
-    if (!rl.allowed) return res.status(429).json({ error: "Too many requests. Try again later." });
-
-    let messages;
-    try {
-      messages = validateChatInput(req.body);
-    } catch (e) {
-      return res.status(e.status || 400).json({ error: e.message });
-    }
     const { context, preferredLanguage } = req.body;
 
     const conversation = messages.map((m) => `${m.role === 'user' ? 'Student' : 'Assistant'}: ${m.content}`).join('\n');
@@ -250,13 +246,15 @@ Please provide your response in plain text (Markdown). Do not wrap it in JSON.`;
 
     return res.status(200).json({ reply, provider: 'Google Gemini', model: modelName, configured: true });
   } catch (error) {
+    // Safe error: never echo provider messages (may contain prompts or
+    // internals). The client maps status codes to friendly text itself.
     log.error('AI tutor chat error', { message: error.message, stack: error.stack?.split('\n').slice(0, 3).join('\n') });
     return res.status(200).json({
-      reply: `Gemini AI (${modelName}) is configured and reachable, but the request failed: ${error.message}. Please try again in a moment.`,
+      reply: `The AI assistant is temporarily unavailable. Please try again in a moment.`,
       provider: 'Google Gemini',
       model: modelName,
       configured: true,
-      error: error.message,
+      code: 'ai_error',
     });
   }
 }

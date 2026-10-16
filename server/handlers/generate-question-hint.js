@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { createLogger, withTimeout, retry, validateHint } from '../lib/forge-integrity.js';
 import { requireAuth } from '../lib/auth.js';
+import { checkAiGuard, geminiUnavailable, assertAiTextLength, aiFailed } from '../lib/aiLimits.js';
 
 const log = createLogger('generate-question-hint');
 
@@ -60,15 +61,24 @@ export default requireAuth(async function handler(req, res) {
   }
 
   try {
+    // P51 1.3: request-size cap + authenticated-user rate limit BEFORE any
+    // model call (per-instance best-effort; caps are the hard guarantee).
+    if (!checkAiGuard(req, res, "generate-question-hint")) return;
+
     const { question, preferredLanguage } = req.body;
 
     if (!question) {
       return res.status(400).json({ error: 'Missing required field: question' });
     }
+    try {
+      assertAiTextLength(JSON.stringify(question), "generate-question-hint", "question");
+    } catch (e) {
+      return res.status(e.status || 413).json({ error: e.message, code: 'ai_too_large' });
+    }
 
     if (!isConfigured()) {
       log.error('Gemini API not configured');
-      return res.status(503).json({ error: 'Gemini API is not configured. Set GEMINI_API_KEY.' });
+      return res.status(503).json(geminiUnavailable());
     }
 
     const lang = preferredLanguage || "en";
@@ -81,6 +91,6 @@ ${JSON.stringify(question)}`;
     return res.status(200).json(result);
   } catch (error) {
     log.error('Failed to generate hint', error);
-    return res.status(500).json({ error: 'Failed to generate hint. Please try again.' });
+    return res.status(500).json(aiFailed('Failed to generate hint. Please try again.'));
   }
 });

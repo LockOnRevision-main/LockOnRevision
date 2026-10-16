@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { createLogger, withTimeout, retry } from "../lib/forge-integrity.js";
 import { requireAuth } from "../lib/auth.js";
+import { checkAiGuard, aiFailed } from "../lib/aiLimits.js";
 
 const log = createLogger("generate-daily-challenge");
 
@@ -320,6 +321,11 @@ function fallbackFor(templateId, difficulty, focusSubject) {
 
 export default requireAuth(async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  // P51 1.3: request-size cap + authenticated-user rate limit BEFORE any
+  // model call (per-instance best-effort; caps are the hard guarantee).
+  // This route degrades to a local fallback, so over-limit callers get 429
+  // rather than silently spending quota.
+  if (!checkAiGuard(req, res, "generate-daily-challenge")) return;
   try {
     const payload = req.body;
     if (!payload.templateId) return res.status(400).json({ error: "Missing templateId" });
@@ -352,6 +358,6 @@ export default requireAuth(async function handler(req, res) {
     }
   } catch (error) {
     log.error("generate-daily-challenge failed", error);
-    return res.status(500).json({ error: error.message || "Failed to generate challenge" });
+    return res.status(500).json(aiFailed("Failed to generate challenge. Please try again."));
   }
 });

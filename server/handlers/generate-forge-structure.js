@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { createLogger, withTimeout, retry, validateForgeStructure } from '../lib/forge-integrity.js';
 import { requireAuth } from '../lib/auth.js';
+import { checkAiGuard, geminiUnavailable, assertAiTextLength } from '../lib/aiLimits.js';
 
 const log = createLogger('generate-forge-structure');
 
@@ -82,15 +83,24 @@ export default requireAuth(async function handler(req, res) {
   }
 
   try {
+    // P51 1.3: request-size cap + authenticated-user rate limit BEFORE any
+    // model call (per-instance best-effort; caps are the hard guarantee).
+    if (!checkAiGuard(req, res, "generate-forge-structure")) return;
+
     const { sourceText, preferredLanguage } = req.body;
 
     if (!sourceText) {
       return res.status(400).json({ error: 'Missing required field: sourceText' });
     }
+    try {
+      assertAiTextLength(sourceText, "generate-forge-structure", "sourceText");
+    } catch (e) {
+      return res.status(e.status || 413).json({ error: e.message, code: 'ai_too_large' });
+    }
 
     if (!isConfigured()) {
       log.error('Gemini API not configured');
-      return res.status(503).json({ error: 'Gemini API is not configured. Set GEMINI_API_KEY.' });
+      return res.status(503).json(geminiUnavailable());
     }
 
     const lang = preferredLanguage || "en";
@@ -202,6 +212,7 @@ ${sourceText}`;
     log.error('Failed to generate forge structure', error);
     return res.status(500).json({
       error: 'Failed to generate structure from study material. Gemini could not create a valid curriculum. Please try again with clearer notes.',
+      code: 'ai_error',
     });
   }
 });
