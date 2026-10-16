@@ -221,11 +221,28 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // ============ SCHOOLS (Stage D) ============
+    // ============ SCHOOLS (Stage D + P51 1.1) ============
+    // Sensitive school fields (joinPolicy, type, createdByUid, createdAt)
+    // are SERVER-WRITE-ONLY: they change only via audited Admin-SDK routes
+    // (provision-school, set-join-policy). A school_admin client may update
+    // display fields (name, country, updatedAt) only; arbitrary new fields
+    // are rejected by the closed key set. Uses the proven `in`-guarded
+    // unchanged() style — never diff().hasAny() for privilege-bearing
+    // fields (see note above).
+    function schoolProtectedUnchanged() {
+      return unchanged('type')
+        && unchanged('joinPolicy')
+        && unchanged('createdByUid')
+        && unchanged('createdAt');
+    }
+
     match /schools/{schoolId} {
       allow read: if isAdmin() || isSchoolMember(schoolId);
       allow create: if isAdmin();
-      allow update: if isAdmin() || (isSchoolMember(schoolId) && schoolRole(schoolId) == 'school_admin');
+      allow update: if isAdmin() || (isSchoolMember(schoolId) && schoolRole(schoolId) == 'school_admin'
+        && schoolProtectedUnchanged()
+        && request.resource.data.keys().hasOnly(
+          ['name', 'type', 'country', 'joinPolicy', 'createdAt', 'updatedAt', 'createdByUid']));
       allow delete: if false;
     }
 
