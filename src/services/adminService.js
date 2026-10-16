@@ -45,17 +45,12 @@ async function verifyAdminServer() {
   if (functions) {
     try {
       const check = httpsCallable(functions, "verifyAdminAccess");
-      // Log request for debugging: URL is auto-resolved by SDK to
-      // https://us-central1-{projectId}.cloudfunctions.net/verifyAdminAccess
-      console.log("[admin] verifyAdminAccess callable invoked", { region: "us-central1" });
       const result = await check();
-      console.log("[admin] verifyAdminAccess callable succeeded", result.data);
       if (result?.data?.admin === true) return true;
       // If server explicitly says not admin, don't fall back - respect server.
       return false;
     } catch (err) {
       const code = err?.code || err?.message || "unknown";
-      console.warn("[admin] verifyAdminAccess callable failed, falling back to Firestore", { code, message: err?.message });
       // Fall through to Firestore fallback for deploy/ CORS errors
       const isDeployOrCorsError =
         code === "functions/not-found" ||
@@ -66,7 +61,6 @@ async function verifyAdminServer() {
         err?.message?.includes("not-found");
       if (!isDeployOrCorsError && code !== "unauthenticated" && code !== "permission-denied") {
         // For unexpected errors, still try fallback but also surface error
-        console.warn("[admin] unexpected callable error, attempting fallback", err);
       }
       // permission-denied / unauthenticated from callable are definitive - do not fallback to bypass
       if (code === "permission-denied" || code === "functions/permission-denied") {

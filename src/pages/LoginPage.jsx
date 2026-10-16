@@ -20,7 +20,7 @@ function GoogleIcon() {
 }
 
 export function LoginPage() {
-  const { isFirebaseConfigured, login, register, resetPassword, signInWithGoogle, completeGoogleLinkWithPassword, user } = useAuth();
+  const { isFirebaseConfigured, serviceUnavailable, login, register, resetPassword, signInWithGoogle, completeGoogleLinkWithPassword, user } = useAuth();
   const { t } = useTranslation();
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
@@ -35,6 +35,21 @@ export function LoginPage() {
   const [linkError, setLinkError] = useState("");
 
   if (user) return <Navigate to="/app" replace />;
+
+  // Production build without backend configuration: no demo sign-in, ever.
+  if (serviceUnavailable) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-background px-4 py-10 text-text-primary">
+        <section className="card w-full max-w-md p-6 sm:p-8 text-center" style={{ boxShadow: "var(--shadow-elevated)" }}>
+          <div className="mb-4 flex flex-col items-center">
+            <Logo variant="horizontal" theme="light" className="mb-4 h-9 w-auto" />
+            <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-text-primary">Service unavailable</h1>
+            <p className="mt-2 text-sm text-text-secondary">We&apos;re having trouble connecting. Please try again later.</p>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();

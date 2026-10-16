@@ -32,9 +32,23 @@ function LoadingScreen() {
   );
 }
 
+function ServiceUnavailable() {
+  return (
+    <main className="grid min-h-screen place-items-center bg-background text-text-primary p-6">
+      <div className="card max-w-md p-6 sm:p-8 text-center">
+        <h1 className="text-xl font-extrabold tracking-tight">Service unavailable</h1>
+        <p className="mt-2 text-sm text-text-secondary">
+          We&apos;re having trouble connecting. Please try again later.
+        </p>
+      </div>
+    </main>
+  );
+}
+
 function ProtectedRoute({ children }) {
-  const { isFirebaseConfigured, loading, user, profile } = useAuth();
+  const { isFirebaseConfigured, loading, user, profile, serviceUnavailable } = useAuth();
   if (loading) return <LoadingScreen />;
+  if (serviceUnavailable) return <ServiceUnavailable />;
   if (!isFirebaseConfigured && !user) return <Navigate to="/login" replace />;
   if (!user) return <Navigate to="/login" replace />;
   if (!profile) return <LoadingScreen />;
@@ -43,8 +57,9 @@ function ProtectedRoute({ children }) {
 }
 
 function AdminRoute({ children }) {
-  const { isFirebaseConfigured, loading, user, profile } = useAuth();
+  const { isFirebaseConfigured, loading, user, profile, serviceUnavailable } = useAuth();
   if (loading) return <LoadingScreen />;
+  if (serviceUnavailable) return <ServiceUnavailable />;
   if (!isFirebaseConfigured && !user) return <Navigate to="/login" replace />;
   if (!user) return <Navigate to="/login" replace />;
   if (!canAccessAdmin(profile, user.email)) return <Navigate to="/app" replace />;

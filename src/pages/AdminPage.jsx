@@ -237,13 +237,11 @@ export function AdminPage() {
     async function verify() {
       setVerifyError("");
       // Try callable first; on failure (CORS / not-found on Spark) fall back to client profile
-      if (functions) {
+        if (functions) {
         try {
           const check = httpsCallable(functions, "verifyAdminAccess");
-          console.log("[AdminPage] verifyAdminAccess request", { hasFunctions: !!functions, isAdminClient: isAdmin });
           await check();
           if (cancelled) return;
-          console.log("[AdminPage] server verification succeeded");
           setServerVerified(true);
           setUsingFallback(false);
           getAdminOverview().then(setOverview).catch(() => setOverview({ available: false }));
@@ -252,7 +250,6 @@ export function AdminPage() {
           return;
         } catch (err) {
           const code = err?.code || "";
-          console.warn("[AdminPage] server verification failed, checking fallback", { code, message: err?.message });
           // For definitive server denials, don't fallback
           if (code === "permission-denied" || code === "functions/permission-denied") {
             if (!cancelled) {
@@ -269,7 +266,6 @@ export function AdminPage() {
       // Firestore rules still enforce server-side on every read/write
       if (!cancelled) {
         if (isAdmin) {
-          console.log("[AdminPage] using fallback client verification (functions unavailable)");
           setUsingFallback(true);
           setServerVerified(true);
           getAdminOverview().then(setOverview).catch(() => setOverview({ available: false }));
@@ -415,8 +411,8 @@ export function AdminPage() {
       ) : null}
 
       {usingFallback ? (
-        <p className="rounded-lg border border-success/20 bg-success/10 p-3 text-sm font-bold text-success">
-          Admin dashboard ready.
+        <p className="rounded-lg border border-warning/20 bg-warning/10 p-3 text-sm font-bold text-warning">
+          Server verification is unavailable, so admin tools are running with limited verification. Reads and writes are still enforced by security rules.
         </p>
       ) : null}
       {status ? <p className="rounded-lg border border-info/20 bg-info/10 p-3 text-sm font-bold text-info">{status}</p> : null}

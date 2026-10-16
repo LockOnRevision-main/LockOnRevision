@@ -8,3 +8,5 @@ dist/
 *-out.txt
 backups/
 firestore-debug.log
+# P51 2.1: dev-only GenAI probe scripts are never tracked.
+test_genai*.mjs
