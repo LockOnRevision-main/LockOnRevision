@@ -196,3 +196,64 @@ describe("REAL RULES: server-only collections", () => {
     }
   });
 });
+
+describe("REAL RULES: schools allowlist (P51 1.1)", () => {
+  it("school_admin may update display fields (name, country)", async () => {
+    const { doc, updateDoc } = await import("firebase/firestore");
+    await assertSucceeds(updateDoc(doc(authed("adm-a").firestore(), "schools/school-a"), { name: "School A Renamed" }));
+    await assertSucceeds(updateDoc(doc(authed("adm-a").firestore(), "schools/school-a"), { country: "UK" }));
+  });
+
+  it("school_admin cannot write protected fields (joinPolicy, type, createdByUid, createdAt)", async () => {
+    const { doc, updateDoc } = await import("firebase/firestore");
+    const db = authed("adm-a").firestore();
+    await assertFails(updateDoc(doc(db, "schools/school-a"), { joinPolicy: "IMMEDIATE" }));
+    await assertFails(updateDoc(doc(db, "schools/school-a"), { type: "academy" }));
+    await assertFails(updateDoc(doc(db, "schools/school-a"), { createdByUid: "evil" }));
+    await assertFails(updateDoc(doc(db, "schools/school-a"), { createdAt: "2026-01-01" }));
+  });
+
+  it("school_admin cannot add arbitrary new fields to a school doc", async () => {
+    const { doc, updateDoc } = await import("firebase/firestore");
+    await assertFails(updateDoc(doc(authed("adm-a").firestore(), "schools/school-a"), { evil: 1 }));
+  });
+
+  it("cross-school school writes are denied", async () => {
+    const { doc, updateDoc } = await import("firebase/firestore");
+    await assertFails(updateDoc(doc(authed("adm-a").firestore(), "schools/school-b"), { name: "Evil" }));
+    await assertFails(updateDoc(doc(authed("adm-b").firestore(), "schools/school-a"), { name: "Evil" }));
+  });
+});
+
+describe("REAL RULES: classroom live probes (P51 1.2)", () => {
+  it("school_admin classroom hard-delete denied (even platform admin)", async () => {
+    const { doc, deleteDoc } = await import("firebase/firestore");
+    await assertFails(deleteDoc(doc(authed("adm-a").firestore(), "classrooms/cls-a1")));
+    await assertFails(deleteDoc(doc(authed("platform-1").firestore(), "classrooms/cls-a1")));
+  });
+
+  it("own-school classroom update allowed", async () => {
+    const { doc, updateDoc } = await import("firebase/firestore");
+    await assertSucceeds(updateDoc(doc(authed("adm-a").firestore(), "classrooms/cls-a1"), { name: "Class 1A" }));
+  });
+
+  it("own-school classroom create allowed", async () => {
+    const { doc, setDoc } = await import("firebase/firestore");
+    await assertSucceeds(setDoc(doc(authed("adm-a").firestore(), "classrooms/cls-a-probe"), { schoolId: "school-a", name: "Probe" }));
+  });
+
+  it("cross-school classroom create denied", async () => {
+    const { doc, setDoc } = await import("firebase/firestore");
+    await assertFails(setDoc(doc(authed("adm-a").firestore(), "classrooms/cls-evil"), { schoolId: "school-b", name: "Evil" }));
+  });
+
+  it("anonymous classroom read denied", async () => {
+    const { doc, getDoc } = await import("firebase/firestore");
+    await assertFails(getDoc(doc(testEnv.unauthenticatedContext().firestore(), "classrooms/cls-a1")));
+  });
+
+  it("member classroom read allowed", async () => {
+    const { doc, getDoc } = await import("firebase/firestore");
+    await assertSucceeds(getDoc(doc(authed("stu-a").firestore(), "classrooms/cls-a1")));
+  });
+});
