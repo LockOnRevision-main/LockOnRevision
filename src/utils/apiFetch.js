@@ -34,10 +34,10 @@ export async function apiFetch(url, options = {}) {
         if (token) headers["Authorization"] = `Bearer ${token}`;
       } else if (!headers["Authorization"]) {
         // No user yet – still proceed; server will return 401 with clear message (not 500)
-        console.warn(`[apiFetch] No Firebase user for ${url} – request will be unauthenticated`);
+        console.warn("[apiFetch] request will be unauthenticated");
       }
-    } catch (e) {
-      console.warn(`[apiFetch] Failed to get ID token for ${url}`, e?.message);
+    } catch {
+      console.warn("[apiFetch] failed to get ID token");
     }
   }
   const response = await fetch(resolveUrl(url), { ...options, headers });

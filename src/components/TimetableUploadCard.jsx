@@ -27,6 +27,7 @@ export function TimetableUploadCard({ timetableId }) {
   const [processing, setProcessing] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const inputRef = useRef(null);
 
   const isLoading = busy || processing;
@@ -73,9 +74,8 @@ export function TimetableUploadCard({ timetableId }) {
           loader.setProgress(Math.round((p / 100) * 20));
           setStatus(`Uploading file(s)… ${p}%`);
         });
-        console.log("[TimetableUploadCard] Stage Upload succeeded");
       } catch (e) {
-        console.error("[TimetableUploadCard] Stage Upload failed", e);
+        console.error("[TimetableUploadCard] Stage Upload failed", { code: e?.code });
         throw new Error(`Upload failed: ${e.message}`);
       }
       loader.setStage(1);
@@ -85,13 +85,12 @@ export function TimetableUploadCard({ timetableId }) {
       const inlineFiles = [];
       for (const f of filtered) {
         if (f.size > 4 * 1024 * 1024) {
-          console.warn(`[timetable] ${f.name} >4MB, skipping inline bytes (will use URL, may 401)`);
           continue;
         }
         try {
           const b64 = await fileToBase64(f);
           inlineFiles.push({ name: f.name, type: f.type, contentBase64: b64 });
-        } catch (e) { console.warn(`[timetable] base64 failed for ${f.name}`, e.message); }
+        } catch { /* skip unreadable file */ }
       }
       loader.setStage(2);
       setStatus("Extracting subjects/topics…");
@@ -103,9 +102,8 @@ export function TimetableUploadCard({ timetableId }) {
       let result;
       try {
         result = await reprocessTimetableDocuments(user.uid, timetableId, inlineFiles);
-        console.log("[TimetableUploadCard] Stage Extraction/Generation succeeded", { hasTimetable: !!result?.timetable });
       } catch (e) {
-        console.error("[TimetableUploadCard] Stage Extraction failed", e);
+        console.error("[TimetableUploadCard] Stage Extraction failed", { code: e?.code });
         throw new Error(`Extraction failed: ${e.message}`);
       }
       loader.setStage(4);
@@ -115,7 +113,7 @@ export function TimetableUploadCard({ timetableId }) {
         if (!result?.timetable?.weeks && !result?.timetable?.preferences) {
           console.warn("[TimetableUploadCard] save: no timetable in result, but docs marked");
         }
-      } catch (e) {
+      } catch {
         throw new Error(`We couldn't save your timetable. Please try again.`);
       }
       await new Promise(r => setTimeout(r, 350));
@@ -127,13 +125,12 @@ export function TimetableUploadCard({ timetableId }) {
         const a = result.extracted.assessments?.length || 0;
         const s = result.extracted.syllabus?.length || 0;
         setStatus(`Extracted ${a} assessments, ${s} subjects – timetable updated on dashboard`);
-        console.log("[TimetableUploadCard] Stage Dashboard fetch: active – timetable visible on dashboard via Firestore subscription");
       } else {
         setStatus("Processed – timetable updated on dashboard");
       }
       setTimeout(() => setStatus(""), 4000);
     } catch (e) {
-      console.error("[TimetableUploadCard] Pipeline failed at stage", loader.stage, e);
+      console.error("[TimetableUploadCard] Pipeline failed", { code: e?.code });
       setStatus(e.message || "Upload failed");
     } finally {
       setBusy(false);
@@ -148,7 +145,11 @@ export function TimetableUploadCard({ timetableId }) {
   };
 
   const handleDelete = async (doc) => {
-    if (!confirm(`Delete ${doc.name}?`)) return;
+    if (confirmDeleteId !== doc.id) {
+      setConfirmDeleteId(doc.id);
+      return;
+    }
+    setConfirmDeleteId(null);
     await deleteTimetableDocument(user.uid, doc.id, doc.publicId, doc.resourceType);
   };
 
@@ -176,12 +177,10 @@ export function TimetableUploadCard({ timetableId }) {
       loader.setProgress(40);
       setStatus("Generating timetable…");
       loader.setStage(3);
-      let result;
       try {
-        result = await reprocessTimetableDocuments(user.uid, timetableId);
-        console.log("[TimetableUploadCard] Reprocess Stage Extraction succeeded", { hasTimetable: !!result?.timetable });
+        await reprocessTimetableDocuments(user.uid, timetableId);
       } catch (e) {
-        console.error("[TimetableUploadCard] Reprocess Stage Extraction failed", e);
+        console.error("[TimetableUploadCard] Reprocess Stage Extraction failed", { code: e?.code });
         throw new Error(`Extraction failed: ${e.message}`);
       }
       loader.setStage(4);
@@ -192,7 +191,7 @@ export function TimetableUploadCard({ timetableId }) {
       setStatus(t("timetable.upload_reprocessed") || "Reprocessed successfully – dashboard updated");
       setTimeout(() => setStatus(""), 3000);
     } catch(e) {
-      console.error("[TimetableUploadCard] Reprocess pipeline failed", e);
+      console.error("[TimetableUploadCard] Reprocess pipeline failed", { code: e?.code });
       setStatus(`Reprocess failed: ${e.message}`);
     }
     finally { setProcessing(false); }
@@ -291,7 +290,7 @@ export function TimetableUploadCard({ timetableId }) {
                       <RefreshCw size={12} />
                       <input type="file" className="hidden" accept=".pdf,.docx,.png,.jpg,.jpeg,.webp" onChange={e=>handleReplace(doc, e.target.files)} />
                     </label>
-                    <button onClick={()=>handleDelete(doc)} className="rounded-lg border border-border bg-surface p-1.5 text-text-muted hover:bg-status-error/10 hover:text-status-error" title={t("timetable.delete")||"Delete"}><Trash2 size={12}/></button>
+                    <button onClick={()=>handleDelete(doc)} className={`rounded-lg border border-border bg-surface p-1.5 ${confirmDeleteId===doc.id ? "border-status-error/40 bg-status-error/10 text-status-error" : "text-text-muted hover:bg-status-error/10 hover:text-status-error"}`} title={confirmDeleteId===doc.id ? (t("timetable.confirm_delete")||"Click again to confirm delete") : (t("timetable.delete")||"Delete")} aria-label={confirmDeleteId===doc.id ? (t("timetable.confirm_delete")||"Click again to confirm delete") : `${t("timetable.delete")||"Delete"} ${doc.name}`}><Trash2 size={12}/></button>
                   </div>
                 </li>
               );

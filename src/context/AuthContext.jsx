@@ -28,6 +28,12 @@ const AuthContext = createContext(null);
 
 const PLACEHOLDER_NAME = "Lock-on Learner";
 
+// P51 2.1: local-demo profiles exist ONLY in development builds. A
+// production build without backend configuration must never mint a demo
+// user — it shows the service-unavailable screen instead.
+const isDemoAllowed = import.meta.env.DEV;
+export const serviceUnavailable = !isFirebaseConfigured && !isDemoAllowed;
+
 const FATAL_AUTH_ERRORS = new Set([
   "auth/user-token-expired",
   "auth/invalid-user-token",
@@ -70,17 +76,55 @@ function createUserProfile(user, name) {
   };
 }
 
+async function syncPublicProjection(user, data) {
+  // Beta 1.9 Stage A3: maintain users_public (leaderboard-safe fields only).
+  // Never includes email, isAdmin, role, or school internals.
+  try {
+    const pubRef = doc(db, "users_public", user.uid);
+    await setDoc(
+      pubRef,
+      {
+        name: data.name || "",
+        username: data.username || "",
+        displayName: data.name || "",
+        avatarUrl: data.avatarUrl || "",
+        avatarIcon: data.avatarIcon || "",
+        xp: typeof data.xp === "number" ? data.xp : 0,
+        energy: typeof data.energy === "number" ? data.energy : 0,
+        totalScore: typeof data.totalScore === "number" ? data.totalScore : 0,
+        grade: data.grade || "",
+        curriculum: data.curriculum || "",
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
+  } catch (error) {
+    // Non-fatal: private profile still works; leaderboard entry may lag.
+    console.warn("[AuthContext] users_public sync failed", { code: error?.code });
+  }
+}
+
 async function ensureUserDocument(user, name) {
   if (!db) return false;
-
-  const userPath = `users/${user?.uid}`;
 
   try {
     const userRef = doc(db, "users", user.uid);
     const snapshot = await getDoc(userRef);
 
     if (!snapshot.exists()) {
-      await setDoc(userRef, createUserProfile(user, name));
+      const fresh = createUserProfile(user, name);
+      await setDoc(userRef, fresh);
+      await syncPublicProjection(user, fresh);
+      // Beta 1.9 Stage E: best-effort Academy self-enrolment via server route.
+      try {
+        const token = await user.getIdToken?.();
+        if (token) {
+          await fetch("/api/enroll-academy", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          }).catch(() => {});
+        }
+      } catch {}
       return true;
     }
 
@@ -91,9 +135,10 @@ async function ensureUserDocument(user, name) {
     if (!data.email) patch.email = user.email;
     if (!data.username) patch.username = user.email?.split('@')[0] || "learner";
 
-    if (data.role === "admin" && data.isAdmin !== true) {
-      patch.isAdmin = true;
-    }
+    // NOTE (Beta 2.0 Stage 0.2): no client-side isAdmin/role backfill here.
+    // Rules deny owner writes to protected fields; role=='admin' already
+    // grants everything (isAdmin() + canAccessAdmin check role too), and
+    // scripts/admin-bootstrap.mjs sets both fields via the Admin SDK.
 
     if (data.name === PLACEHOLDER_NAME && data.onboardingCompleted === undefined) {
       patch.onboardingCompleted = false;
@@ -134,20 +179,15 @@ async function ensureUserDocument(user, name) {
       await setDoc(userRef, patch, { merge: true });
     }
 
+    await syncPublicProjection(user, { ...data, ...patch });
+
     return true;
   } catch (error) {
+    // P51: diagnostics are code-only — never log UIDs, paths, or messages.
     const friendly = getUserFriendlyMessage(error, "loading your profile");
-    console.error(
-      "[AuthContext] Firestore operation failed while ensuring the user document.",
-      {
-        uid: user?.uid,
-        path: userPath,
-        code: error?.code,
-        message: error?.message ?? String(error),
-        friendly,
-        isNetwork: isNetworkError(error),
-      },
-    );
+    console.error("[AuthContext] Firestore operation failed while ensuring the user document.", {
+      code: error?.code,
+    });
     return false;
   }
 }
@@ -167,6 +207,14 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (!isFirebaseConfigured || !auth) {
+      // Production without configuration: no demo user, ever. The app
+      // surfaces the service-unavailable screen (see serviceUnavailable).
+      if (!isDemoAllowed) {
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+        return undefined;
+      }
       const localUser = readLocalUser();
       if (localUser && localUser.uid) {
         const defaultProfile = {
@@ -262,10 +310,10 @@ export function AuthProvider({ children }) {
       },
       (authErr) => {
         const friendly = getUserFriendlyMessage(authErr, "checking auth");
-        console.error(
-          "[AuthContext] Firebase Auth observer reported an error.",
-          { code: authErr?.code, message: authErr?.message ?? String(authErr), friendly },
-        );
+        // P51: diagnostics are code-only — never log messages.
+        console.error("[AuthContext] Firebase Auth observer reported an error.", {
+          code: authErr?.code,
+        });
         setAuthError(friendly);
         if (authErr?.code && FATAL_AUTH_ERRORS.has(authErr.code)) {
           signOutLocalUser();
@@ -301,7 +349,6 @@ export function AuthProvider({ children }) {
     if (!user || !db || loading) return undefined;
     // Clear previous error on uid change
     setProfileError("");
-    const userPath = `users/${user.uid}`;
     return onSnapshot(
       doc(db, "users", user.uid),
       (snapshot) => {
@@ -309,18 +356,11 @@ export function AuthProvider({ children }) {
         setProfile(snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null);
       },
       (snapshotError) => {
+        // P51: diagnostics are code-only — never log UIDs, paths, or messages.
         const friendly = getUserFriendlyMessage(snapshotError, "syncing your profile");
-        console.error(
-          "[AuthContext] Firestore user profile subscription failed.",
-          {
-            uid: user.uid,
-            path: userPath,
-            code: snapshotError?.code,
-            message: snapshotError?.message ?? String(snapshotError),
-            friendly,
-            isNetwork: isNetworkError(snapshotError),
-          },
-        );
+        console.error("[AuthContext] Firestore user profile subscription failed.", {
+          code: snapshotError?.code,
+        });
         setProfileError(friendly);
       },
     );
@@ -332,6 +372,7 @@ export function AuthProvider({ children }) {
       profile,
       loading,
       isFirebaseConfigured,
+      serviceUnavailable,
       profileError,
       authError,
       linkedProviders: user?.providerData?.map((p) => p.providerId) || [],
@@ -339,6 +380,8 @@ export function AuthProvider({ children }) {
       hasPasswordProvider: !!user?.providerData?.some((p) => p.providerId === "password"),
       async login(email, password) {
         if (!auth || !isFirebaseConfigured) {
+          // Production without configuration cannot sign anyone in.
+          if (!isDemoAllowed) throw new Error("Service unavailable. Please try again later.");
           const demoProfile = {
             uid: "local-demo-user",
             name: email?.split("@")[0] || "Local learner",
@@ -378,6 +421,8 @@ export function AuthProvider({ children }) {
       },
       async register(name, email, password) {
         if (!auth || !isFirebaseConfigured) {
+          // Production without configuration cannot register anyone.
+          if (!isDemoAllowed) throw new Error("Service unavailable. Please try again later.");
           const demoProfile = {
             uid: "local-demo-user",
             name: name || email?.split("@")[0] || "Local learner",
@@ -419,7 +464,7 @@ export function AuthProvider({ children }) {
       },
       async signInWithGoogle() {
         if (!auth || !isFirebaseConfigured) {
-          throw new Error("Google Sign-In is not available in local demo mode. Configure Firebase.");
+          throw new Error("Google sign-in is unavailable right now. Please try again later.");
         }
         const provider = buildGoogleProvider();
         try {

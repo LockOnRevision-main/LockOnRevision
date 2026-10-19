@@ -117,8 +117,19 @@ async function fetchAllUsers() {
     }));
   }
   if (!db) throw new Error("We couldn't load the leaderboard. Please try again.");
+  // Beta 1.9 Stage A3: leaderboards read the public projection
+  // (users_public) — direct users reads are now owner/admin-only.
+  // Falls back to users for platform admins on legacy data.
+  try {
+    const pubSnap = await getDocs(
+      query(collection(db, "users_public"), orderBy("totalScore", "desc"), limit(5000)),
+    );
+    if (!pubSnap.empty) return pubSnap.docs.map((doc) => normalizeUserDoc(doc.id, doc.data()));
+  } catch {
+    // Fall through to legacy path (admin-only readability).
+  }
   const usersSnap = await getDocs(
-    query(collection(db, "users"), orderBy("totalScore", "desc"), limit(5000))
+    query(collection(db, "users"), orderBy("totalScore", "desc"), limit(5000)),
   );
   // Log raw Firestore pipeline per investigation spec
   // console.table(usersSnap.docs.map(d=>({uid:d.id, displayName:d.data().displayName, username:d.data().username, XP:d.data().xp, Energy:d.data().energy, createdAt:d.data().createdAt})))

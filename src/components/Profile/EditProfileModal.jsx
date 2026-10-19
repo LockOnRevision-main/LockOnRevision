@@ -73,11 +73,11 @@ export function EditProfileModal({ profile, onClose, onSave }) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      window.alert(t('settings.select_image'));
+      setSaveError(t('settings.select_image'));
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      window.alert(t('settings.image_too_large'));
+      setSaveError(t('settings.image_too_large'));
       return;
     }
     setUploadingAvatar(true);
@@ -97,9 +97,8 @@ export function EditProfileModal({ profile, onClose, onSave }) {
         });
         setFormData({ ...formData, avatarUrl: dataUrl, avatarIcon: '', hasCustomAvatar: true });
       }
-    } catch (error) {
-      console.error("Avatar upload error:", error);
-      window.alert(t('settings.upload_failed'));
+    } catch {
+      setSaveError(t('settings.upload_failed'));
     } finally {
       setUploadingAvatar(false);
     }

@@ -62,11 +62,10 @@ export async function deleteStorageFile(publicId, resourceType = "raw") {
       body: JSON.stringify({ files: [{ publicId, resourceType }] }),
     });
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      console.warn("Failed to delete Cloudinary file:", publicId, err.error);
+      console.warn("[storage] failed to delete Cloudinary file");
     }
-  } catch (error) {
-    console.warn("Failed to delete Cloudinary file:", publicId, error.message);
+  } catch {
+    console.warn("[storage] failed to delete Cloudinary file");
   }
 }
 

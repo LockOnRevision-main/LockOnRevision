@@ -5,10 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5173",
-    "dev:api": "node api/_dev-server.js",
+    "dev:api": "node scripts/dev-server.mjs",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "test": "node --test tests/migration.test.mjs tests/lor-1.9-foundations.test.mjs tests/school-isolation.test.mjs tests/pin-flow.test.mjs tests/pin-rotation.test.mjs tests/join-policy.test.mjs tests/school-workflows.test.mjs tests/provision-school.test.mjs tests/set-school-admin.test.mjs tests/audit-coverage.test.mjs tests/invitations.test.mjs tests/permissions.test.mjs tests/staff-ledger.test.mjs tests/dispatch.test.mjs tests/manage-classroom.test.mjs tests/assign-staff.test.mjs tests/ai-limits.test.mjs tests/demo-gating.test.mjs",
+    "test:foundations": "node --test tests/lor-1.9-foundations.test.mjs tests/migration.test.mjs tests/school-isolation.test.mjs tests/pin-flow.test.mjs tests/pin-rotation.test.mjs tests/join-policy.test.mjs tests/school-workflows.test.mjs tests/provision-school.test.mjs tests/set-school-admin.test.mjs tests/audit-coverage.test.mjs tests/invitations.test.mjs tests/permissions.test.mjs tests/staff-ledger.test.mjs tests/dispatch.test.mjs tests/manage-classroom.test.mjs tests/assign-staff.test.mjs tests/ai-limits.test.mjs",
+    "test:emulator": "node --test tests/emulator/rules.test.mjs tests/emulator/storage.test.mjs tests/emulator/concurrency.test.mjs tests/emulator/export-backup.test.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.15.0",
@@ -31,6 +34,7 @@
     "remark-math": "^6.0.0"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.17.0",
     "eslint-plugin-react": "^7.37.2",

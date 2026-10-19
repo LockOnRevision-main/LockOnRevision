@@ -27,11 +27,17 @@ const missingKeys = REQUIRED_KEYS.filter((key) => !firebaseConfig[key]);
 export const isFirebaseConfigured = missingKeys.length === 0;
 
 if (typeof window !== "undefined" && !isFirebaseConfigured) {
-  console.warn(
-    "[firebase] Firebase is NOT fully configured. Missing environment variables: " +
-      missingKeys.join(", ") +
-      ". Set VITE_FIREBASE_* in your .env file. The app will run in local demo mode.",
-  );
+  // Development builds get the actionable detail; production builds get a
+  // generic line so variable names never reach end users.
+  if (import.meta.env.DEV) {
+    console.warn(
+      "[firebase] Firebase is NOT fully configured. Missing: " +
+        missingKeys.join(", ") +
+        ". Set VITE_FIREBASE_* in your .env file. The app will run in local demo mode.",
+    );
+  } else {
+    console.warn("[firebase] Backend configuration is incomplete. Showing the unavailable screen.");
+  }
 }
 
 export const app = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;

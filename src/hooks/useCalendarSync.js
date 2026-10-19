@@ -17,14 +17,9 @@ export function useCalendarSync() {
     synced: false,
     provider: null,
     events: [],
-    async sync(_provider) {
-      console.warn("[useCalendarSync] Not yet implemented.");
-    },
-    async unsync() {
-      console.warn("[useCalendarSync] Not yet implemented.");
-    },
+    async sync(_provider) {},
+    async unsync() {},
     exportEvents() {
-      console.warn("[useCalendarSync] Not yet implemented.");
       return [];
     },
   };

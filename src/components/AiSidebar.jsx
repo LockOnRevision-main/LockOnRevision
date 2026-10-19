@@ -136,15 +136,16 @@ export function AiSidebar() {
       setMessagesAndPersist([...nextMessages, { role: "assistant", content: reply }]);
     } catch (err) {
       if (err.name === "AbortError") return;
-      console.error("AI Assistant Error:", err);
       const raw = err.message || "";
-      const userMessage = raw.includes("503") || raw.includes("gemini_not_configured")
-        ? raw.replace("API request failed: 503 - ", "")
+      const userMessage = raw.includes("503") || raw.includes("gemini_not_configured") || raw.includes("ai_unavailable")
+        ? t("ai.not_connected_gemini")
         : raw.includes("401") || raw.includes("Authentication failed")
-          ? "The AI assistant is running in local demo mode. Please try again in a moment."
-          : raw.includes("500")
+          ? t("ai.error_unauthorized")
+          : raw.includes("429")
+            ? t("ai.rate_limited")
+            : raw.includes("500")
             ? t("ai_sidebar.error_500")
-            : raw || t("ai_sidebar.error_unexpected");
+            : t("ai_sidebar.error_unexpected");
       setError(userMessage);
       setMessagesAndPersist([
         ...nextMessages,
@@ -277,6 +278,7 @@ export function AiSidebar() {
           {error ? <p className="alert alert-error !rounded-none border-x-0 text-xs" role="alert">{error}</p> : null}
 
           <form onSubmit={handleSubmit} className="border-t border-border bg-surface p-3 sm:p-4">
+            <p className="mb-2 text-[11px] text-text-muted">{t("ai.disclaimer")}</p>
             <div className="flex gap-2">
               <input
                 ref={inputRef}

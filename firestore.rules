@@ -15,37 +15,102 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return signedIn() && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-             (userDoc(request.auth.uid).isAdmin == true || 
+      return signedIn() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             (userDoc(request.auth.uid).isAdmin == true ||
               userDoc(request.auth.uid).role == 'admin');
     }
 
+    // ---- Beta 1.9 Stage C/D: school-scoped helpers (membership-doc enforcement) ----
+    function membershipData(schoolId) {
+      return get(/databases/$(database)/documents/memberships/$(request.auth.uid + '_' + schoolId)).data;
+    }
+
+    function isSchoolMember(schoolId) {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/memberships/$(request.auth.uid + '_' + schoolId)) &&
+        membershipData(schoolId).status == 'active';
+    }
+
+    function schoolRole(schoolId) {
+      return isSchoolMember(schoolId) ? membershipData(schoolId).role : '';
+    }
+
+    function isSchoolStaff(schoolId) {
+      return isSchoolMember(schoolId) &&
+        (schoolRole(schoolId) in ['school_admin', 'coordinator', 'teacher']);
+    }
+
+    function canManageSchool(schoolId) {
+      return isAdmin() || (isSchoolMember(schoolId) && schoolRole(schoolId) == 'school_admin');
+    }
+
+    function canTeachSchool(schoolId) {
+      return isAdmin() || (isSchoolMember(schoolId) && (schoolRole(schoolId) in ['school_admin', 'coordinator']));
+    }
+
+    // Protected fields that only trusted server code (Admin SDK / rules-bypass)
+    // or platform admins may change. Normal users can never grant these.
+    // NOTE (Beta 2.0 Stage 0.2): previously enforced via
+    // request.resource.data.diff(resource.data).affectedKeys().hasAny(...).
+    // The REAL emulator proved that construct does NOT deny a scalar value
+    // change (role user->admin succeeded). Direct per-field checks below
+    // replace it. Dot-access on a MISSING key throws in this rules runtime
+    // (proven: "Property X is undefined on object"), so every access is
+    // guarded by `in` via unchanged(). Never use diff() or unguarded
+    // dot-access for privilege-bearing fields.
+    function unchanged(key) {
+      return (!(key in request.resource.data) && !(key in resource.data))
+        || ((key in request.resource.data) && (key in resource.data)
+          && request.resource.data[key] == resource.data[key]);
+    }
+
+    function protectedUnchanged() {
+      return unchanged('createdAt')
+        && unchanged('isAdmin')
+        && unchanged('role')
+        && unchanged('schoolRoles')
+        && unchanged('permissions')
+        && unchanged('permissionSets')
+        && unchanged('adminRewards')
+        && (unchanged('email')
+          || (!( 'email' in resource.data) && ('email' in request.resource.data)));
+    }
+
+    // ============ USERS (Stage A2 + A3) ============
+    // A3: reads restricted to owner + platform admin. The old
+    // `allow read: if signedIn()` exposed every profile to every user.
+    // Public leaderboard data lives in `users_public` (below).
     match /users/{userId} {
-      allow read: if signedIn();
+      allow read: if ownsUserDoc(userId) || isAdmin();
       allow create: if ownsUserDoc(userId)
         && request.resource.data.xp == 0
         && request.resource.data.energy == 0
         && request.resource.data.totalScore == 0
         && request.resource.data.isAdmin != true
-        && request.resource.data.role == 'user';
-      allow update: if ownsUserDoc(userId)
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-          'email',
-          'createdAt',
-          'isAdmin',
-          'adminRewards'
-        ])
-        || isAdmin();
+        && request.resource.data.role == 'user'
+        && !('schoolRoles' in request.resource.data)
+        && !('permissions' in request.resource.data)
+        && !('permissionSets' in request.resource.data);
+      // A2: role escalation closed — protected fields are pinned by direct
+      // equality (see protectedUnchanged). Only the platform-admin path
+      // may change them. Parentheses pin precedence.
+      allow update: if (
+        (ownsUserDoc(userId) && protectedUnchanged())
+        || isAdmin()
+      );
       allow delete: if false;
 
-      // Generic fallback for any subcollection under users/{userId} – ensures new collections (timetableDocuments etc.) work
-      match /{document=**} {
-        allow read: if ownsUserDoc(userId) || isAdmin();
-        allow write: if ownsUserDoc(userId) || isAdmin();
-      }
+      // NOTE (Beta 2.0 Stage 0.2): there is deliberately NO generic
+      // `match /{document=**}` fallback here. A multi-segment wildcard
+      // matches ZERO segments too, so such a fallback also matches
+      // users/{userId} ITSELF and its owner-write would silently re-open
+      // role escalation (proven by the real emulator: role:admin updates
+      // were allowed until the fallback was removed). New subcollections
+      // are DENIED until an explicit owner-only block is added below
+      // (fail-closed). Every subcollection used by the app is listed.
 
-      // Explicit per-collection writes (kept for clarity, covered by fallback above)
+      // Explicit per-collection rules (owner or platform admin only)
       match /subjects/{docId} {
         allow read: if ownsUserDoc(userId) || isAdmin();
         allow write: if ownsUserDoc(userId) || isAdmin();
@@ -120,6 +185,151 @@ service cloud.firestore {
         allow read: if ownsUserDoc(userId) || isAdmin();
         allow write: if ownsUserDoc(userId) || isAdmin();
       }
+
+      match /dailyChallenge/{docId} {
+        allow read: if ownsUserDoc(userId) || isAdmin();
+        allow write: if ownsUserDoc(userId) || isAdmin();
+      }
+
+      match /dailyChallengeHistory/{docId} {
+        allow read: if ownsUserDoc(userId) || isAdmin();
+        allow write: if ownsUserDoc(userId) || isAdmin();
+      }
+    }
+
+    // ============ USERS_PUBLIC (Stage A3 public projection) ============
+    // Minimal leaderboard-safe fields only. Never contains email, role,
+    // isAdmin, or school internals. Owner-maintained; admins may correct.
+    match /users_public/{userId} {
+      allow read: if signedIn();
+      allow create: if ownsUserDoc(userId)
+        && request.resource.data.keys().hasOnly([
+          'name', 'username', 'displayName', 'avatarUrl', 'avatarIcon',
+          'xp', 'energy', 'totalScore', 'grade', 'curriculum', 'searchName', 'updatedAt'
+        ])
+        && !('email' in request.resource.data)
+        && !('isAdmin' in request.resource.data)
+        && !('role' in request.resource.data);
+      allow update: if (
+        (ownsUserDoc(userId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'name', 'username', 'displayName', 'avatarUrl', 'avatarIcon',
+            'xp', 'energy', 'totalScore', 'grade', 'curriculum', 'searchName', 'updatedAt'
+          ]))
+        || isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ============ SCHOOLS (Stage D + P51 1.1) ============
+    // Sensitive school fields (joinPolicy, type, createdByUid, createdAt)
+    // are SERVER-WRITE-ONLY: they change only via audited Admin-SDK routes
+    // (provision-school, set-join-policy). A school_admin client may update
+    // display fields (name, country, updatedAt) only; arbitrary new fields
+    // are rejected by the closed key set. Uses the proven `in`-guarded
+    // unchanged() style — never diff().hasAny() for privilege-bearing
+    // fields (see note above).
+    function schoolProtectedUnchanged() {
+      return unchanged('type')
+        && unchanged('joinPolicy')
+        && unchanged('createdByUid')
+        && unchanged('createdAt');
+    }
+
+    match /schools/{schoolId} {
+      allow read: if isAdmin() || isSchoolMember(schoolId);
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (isSchoolMember(schoolId) && schoolRole(schoolId) == 'school_admin'
+        && schoolProtectedUnchanged()
+        && request.resource.data.keys().hasOnly(
+          ['name', 'type', 'country', 'joinPolicy', 'createdAt', 'updatedAt', 'createdByUid']));
+      allow delete: if false;
+    }
+
+    // ============ CLASSROOMS (exactly one school each) ============
+    // Prompt 48: hard deletes are server-denied (deactivation is soft via
+    // POST /api/manage-classroom, preserving memberships + learning data).
+    // Clients may still create/update within their school; delete = never.
+    match /classrooms/{classroomId} {
+      allow read: if isAdmin() || (signedIn() && isSchoolMember(resource.data.schoolId));
+      allow create: if isAdmin() || (signedIn() && canTeachSchool(request.resource.data.schoolId));
+      allow update: if isAdmin() || (signedIn() && canTeachSchool(resource.data.schoolId));
+      allow delete: if false;
+    }
+
+    // ============ MEMBERSHIPS (deterministic id: uid_schoolId) ============
+    // Removal revokes access via status='removed' — profiles/learning kept.
+    // Stage 2: permission overrides (permissionSet/accessScopes) are
+    // SERVER-ONLY — no client path may grant them, closing the escalation
+    // hole where a school_admin could self-grant via a direct write.
+    // Same `in`-guarded style as unchanged() (dot-access on missing throws).
+    function permissionOverridesUnchanged() {
+      return unchanged('permissionSet')
+        && unchanged('accessScopes')
+        && unchanged('permissionSets');
+    }
+
+    match /memberships/{membershipId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.uid == request.auth.uid)
+        || (signedIn() && isSchoolStaff(resource.data.schoolId));
+      allow create: if isAdmin()
+        || (signedIn() && canManageSchool(request.resource.data.schoolId)
+            && !('permissionSet' in request.resource.data)
+            && !('accessScopes' in request.resource.data)
+            && !('permissionSets' in request.resource.data))
+        || (signedIn() && canTeachSchool(request.resource.data.schoolId)
+            && request.resource.data.role == 'student'
+            && !('permissionSet' in request.resource.data)
+            && !('accessScopes' in request.resource.data)
+            && !('permissionSets' in request.resource.data));
+      allow update: if isAdmin()
+        || (signedIn() && canManageSchool(resource.data.schoolId)
+            && permissionOverridesUnchanged());
+      allow delete: if false;
+    }
+
+    // ============ STAFF ASSIGNMENTS (scoped school_admin/coordinator/teacher) ============
+    match /staffAssignments/{assignmentId} {
+      allow read: if isAdmin() || (signedIn() && isSchoolStaff(resource.data.schoolId));
+      allow create: if isAdmin() || (signedIn() && canManageSchool(request.resource.data.schoolId));
+      allow update: if isAdmin() || (signedIn() && canManageSchool(resource.data.schoolId));
+      allow delete: if false;
+    }
+
+    // ============ ADMIN AUDIT LOGS (append-only, server-written) ============
+    match /adminAuditLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ============ JOINING PINS / REQUESTS / INVITES (Prompt 45) ============
+    // Server-only via Admin SDK (verified-token routes in /api). Clients can
+    // never read hashes or write these docs — plaintext PINs are returned
+    // once by create-pin and never re-readable. Default deny for clients.
+    match /joiningPins/{pinId} {
+      allow read: if false;
+      allow write: if false;
+    }
+    match /joinRequests/{requestId} {
+      allow read: if false;
+      allow write: if false;
+    }
+    match /adminInvitations/{invitationId} {
+      allow read: if false;
+      allow write: if false;
+    }
+    // PIN attempt counters: server-only lockout state. Clients never touch.
+    match /pinAttempts/{uid} {
+      allow read: if false;
+      allow write: if false;
+    }
+    // Invitation attempt counters: server-only lockout state.
+    match /inviteAttempts/{uid} {
+      allow read: if false;
+      allow write: if false;
     }
   }
 }

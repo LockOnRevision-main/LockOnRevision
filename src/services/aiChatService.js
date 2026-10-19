@@ -27,7 +27,7 @@ export async function askForgeAssistant(uid, messages) {
 
     return await response.json();
   } catch (error) {
-    console.error("Vercel API error:", error);
+    console.error("[aiChatService] API error", { code: error?.code });
     const { subjects } = await getForgeContext(uid);
     const fallback = {
       reply: subjects.length

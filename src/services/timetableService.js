@@ -52,7 +52,7 @@ export async function generateTimetable(preferences) {
     }
     return response.json();
   } catch (error) {
-    console.error("Timetable API error:", error);
+    console.error("[timetableService] API error", { code: error?.code });
     return generateLocalFallback(payload);
   }
 }
@@ -203,8 +203,7 @@ export async function upsertTimetable(uid, timetable) {
   let existingSnap;
   try {
     existingSnap = await getDocs(query(collection(db, "users", uid, "timetables"), orderBy("updatedAt", "desc")));
-  } catch (e) {
-    console.warn("[timetableService] upsert: failed to query existing, falling back to save", e?.message);
+  } catch {
     return saveTimetable(uid, timetable);
   }
 
@@ -212,20 +211,17 @@ export async function upsertTimetable(uid, timetable) {
     const existingId = existingSnap.docs[0].id;
     try {
       await updateTimetable(uid, existingId, timetable);
-      console.log("[timetableService] upsert: updated existing", { existingId });
-    } catch (e) {
-      console.error("[timetableService] upsert: update failed, creating new", e?.message);
+    } catch {
       return saveTimetable(uid, timetable);
     }
     // Cleanup orphaned duplicates – delete all but the updated one
     const orphanIds = existingSnap.docs.slice(1).map((d) => d.id);
     if (orphanIds.length) {
-      console.log("[timetableService] upsert: cleaning orphaned timetables", { orphanIds });
       for (const oid of orphanIds) {
         try {
           await deleteDoc(doc(db, "users", uid, "timetables", oid));
-        } catch (e) {
-          console.warn("[timetableService] upsert: failed to delete orphan", oid, e?.message);
+        } catch {
+          console.warn("[timetableService] upsert: failed to delete orphan");
         }
       }
     }
@@ -251,7 +247,7 @@ export function subscribeTimetables(uid, callback) {
     query(collection(db, "users", uid, "timetables"), orderBy("updatedAt", "desc")),
     (snapshot) => callback(snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))),
     (err) => {
-      console.error("[timetableService] subscribeTimetables failed", err?.code, err?.message);
+      console.error("[timetableService] subscribeTimetables failed", err?.code);
     },
   );
 }
@@ -505,9 +501,9 @@ export async function uploadTimetableDocuments(uid, files, onProgress) {
       const { uploadTempFile } = await import("../utils/storage.js");
       const res = await uploadTempFile(uid, file);
       url = res.url; publicId = res.publicId; resourceType = res.resourceType;
-    } catch (e) {
-      // Cloudinary not configured or image type – keep as local placeholder, still persist metadata
-      console.warn("[timetable] uploadTempFile fallback", e.message);
+    } catch {
+      // Cloudinary not configured or image type – keep local file, still persist metadata
+      console.warn("[timetable] uploadTempFile fallback");
     }
     // For text-like files, also capture preview for reprocessing without re-download
     let preview = "";
@@ -597,8 +593,8 @@ export async function reprocessTimetableDocuments(uid, timetableId, inlineFiles 
           currentTimetable = { id: latest.docs[0].id, ...latest.docs[0].data() };
           console.log("[timetable] reprocess: resolved currentTimetable via latest query", { id: currentTimetable.id });
         }
-      } catch (e) {
-        console.warn("[timetable] reprocess: failed to resolve latest timetable", e?.message);
+      } catch {
+        console.warn("[timetable] reprocess: failed to resolve latest timetable");
       }
     }
   }
@@ -611,7 +607,6 @@ export async function reprocessTimetableDocuments(uid, timetableId, inlineFiles 
       ...(inline?.contentBase64 ? { contentBase64: inline.contentBase64 } : {}),
     };
   });
-  console.log(`[timetable] reprocess: docs=${docs.length} inline=${inlineFiles.length} (bypass Cloudinary 401)`);
   // Gemini responsibility: ONLY analyse documents → structured JSON. Engine does scheduling.
   let extracted = null;
   let extractionErrors = [];
@@ -636,7 +631,7 @@ export async function reprocessTimetableDocuments(uid, timetableId, inlineFiles 
       // Only fallback to mock if API unavailable (e.g., local dev without key); otherwise propagate error
       const isConfigError = /GEMINI_API|503/i.test(e.message);
       if (isConfigError) {
-        console.warn("[timetable] extraction API unavailable, using mock fallback", e.message);
+        console.warn("[timetable] extraction API unavailable, using local fallback");
         extracted = extractMockMetadata(docs);
       } else {
         // Mark docs as failed per file

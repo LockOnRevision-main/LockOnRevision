@@ -75,7 +75,7 @@ export function ForgeSubjectPage() {
       loader.setStage(5);
       setStatus(t('forge_subject.regenerated'));
     } catch (error) {
-      console.error("[ForgeSubjectPage] regenerate failed", error);
+      console.error("[ForgeSubjectPage] regenerate failed", { code: error?.code });
       setStatus("We couldn't regenerate this subject. Please try again.");
     } finally {
       setBusy(false);
@@ -119,7 +119,10 @@ export function ForgeSubjectPage() {
 
       <div className="mx-auto max-w-4xl px-4 pt-4 sm:px-6 sm:pt-6">
         {loadError ? (
-          <p className="alert alert-warning mb-4" role="alert">{loadError}</p>
+          <div className="alert alert-warning mb-4 flex items-center gap-3" role="alert">
+            <p className="flex-1">{loadError}</p>
+            <button type="button" onClick={() => window.location.reload()} className="btn-ghost !min-h-[40px] shrink-0 !py-2 text-[13px]">{t("common.retry")}</button>
+          </div>
         ) : null}
         {!busy && !loader.visible && status ? (
           <p className={`alert mb-4 ${status === t('forge_subject.regenerated') ? "alert-success" : "alert-error"}`} role="status">{status}</p>

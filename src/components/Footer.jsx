@@ -16,6 +16,9 @@ export function Footer() {
     { label: t("nav.home"), to: "/" },
     { label: t("nav.leaderboard"), to: "/leaderboard" },
     { label: t("nav.login"), to: "/login" },
+    { label: t("footer.privacy"), to: "/privacy" },
+    { label: t("footer.terms"), to: "/terms" },
+    { label: t("footer.contact"), to: "/contact" },
   ];
 
   return (

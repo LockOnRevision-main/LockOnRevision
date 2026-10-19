@@ -2,7 +2,7 @@ import { db, isFirebaseConfigured } from "../config/firebase.js";
 import { emitScoreChanged } from "./forgeEvents.js";
 import { calculateUnitReward } from "./energyService.js";
 
-import { doc, updateDoc, increment, serverTimestamp, arrayUnion, arrayRemove, getDocs, getDoc, query, orderBy, collection, limit } from "firebase/firestore";
+import { doc, updateDoc, increment, serverTimestamp, arrayUnion, arrayRemove, getDocs, getDoc, query, orderBy, collection, limit, setDoc } from "firebase/firestore";
 
 const ADMIN_FIELDS = new Set(["isAdmin", "role"]);
 
@@ -13,6 +13,13 @@ function stripAdminFields(obj) {
   return cleaned;
 }
 
+async function touchPublicScore(uid, patch) {
+  // Beta 1.9 Stage A3: keep users_public leaderboard scores fresh.
+  // Best-effort; failures never break the learning write.
+  try {
+    await setDoc(doc(db, "users_public", uid), { ...patch, updatedAt: serverTimestamp() }, { merge: true });
+  } catch {}
+}
 export async function fetchLeaderboard(limitCount = 50) {
   // Deprecated path — delegate to leaderboardService for consistent ranking; kept for backward compat
   const { getTopLeaderboardUsers } = await import("./leaderboardService.js");
@@ -53,6 +60,7 @@ export async function completeMockTest(uid, testId, score) {
   });
 
   emitScoreChanged({ uid, reason: "mock-test", totalChange: earnedTotal });
+  await touchPublicScore(uid, { xp: increment(earnedXp), energy: increment(earnedEnergy), totalScore: increment(earnedTotal) });
   return { earnedEnergy, earnedXp };
 }
 
@@ -80,6 +88,7 @@ export async function completeUnit(uid, unitId, profile = {}) {
   });
   
   emitScoreChanged({ uid, reason: "complete-unit", totalChange: earnedTotal });
+  await touchPublicScore(uid, { xp: increment(earnedXp), energy: increment(earnedEnergy), totalScore: increment(earnedTotal) });
   return { earnedEnergy, earnedXp };
 }
 

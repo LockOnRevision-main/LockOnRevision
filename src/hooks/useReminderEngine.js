@@ -14,17 +14,9 @@ export function useReminderEngine() {
   return {
     enabled: false,
     reminders: [],
-    add(_reminder) {
-      console.warn("[useReminderEngine] Not yet implemented.");
-    },
-    remove(_id) {
-      console.warn("[useReminderEngine] Not yet implemented.");
-    },
-    snooze(_id, _minutes) {
-      console.warn("[useReminderEngine] Not yet implemented.");
-    },
-    acknowledge(_id) {
-      console.warn("[useReminderEngine] Not yet implemented.");
-    },
+    add(_reminder) {},
+    remove(_id) {},
+    snooze(_id, _minutes) {},
+    acknowledge(_id) {},
   };
 }

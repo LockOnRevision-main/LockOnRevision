@@ -20,11 +20,6 @@ function sortByOrder(items) {
 }
 
 function normalizeGeneratedStructure(generated) {
-  console.log("[forgeService] AI response received", { hasSubject: !!generated?.subject, rawKeys: generated ? Object.keys(generated) : [] });
-  if (generated?.subject) {
-    const exerciseTypes = (generated.subject.units||[]).flatMap(u=> (u.subUnits||[]).flatMap(su=> (su.lessons||[]).flatMap(l=> (l.exercises||[]).map(e=>e.type))));
-    console.log("[forgeService] parsed exercise JSON", { totalExercises: exerciseTypes.length, types: [...new Set(exerciseTypes)], sample: (generated.subject.units?.[0]?.subUnits?.[0]?.lessons?.[0]?.exercises?.[0]) || null });
-  }
   const subject = generated?.subject;
   if (!subject) {
     throw new Error("Generated response is missing subject field");
@@ -120,16 +115,15 @@ function normalizeExercise(exercise, lesson) {
       pairs = base.options.slice(0, 4).map((opt, i) => ({ left: { id: `l-${i}`, text: String(opt).split(" - ")[0] || `Term ${i+1}` }, right: { id: `r-${i}`, text: String(opt).split(" - ")[1] || String(opt) } }));
       if (pairs.some(p=>p.left.text===p.right.text)) pairs = []; // discard bad fallback
     }
-    if (pairs.length === 0) console.warn("[forgeService] matchPairs exercise has empty pairs after normalization", { exerciseId: base.id, raw: exercise });
+    if (pairs.length === 0) console.warn("[forgeService] matchPairs exercise has empty pairs after normalization", { exerciseId: base.id });
     base.pairs = pairs;
     // Ensure correctAnswer for matching is derived when missing
     if (!base.correctAnswer && pairs.length) base.correctAnswer = pairs.map(p=>`${p.left.id}-${p.right.id}`).join(",");
-    console.log("[forgeService] normalizeExercise matchPairs", { id: base.id, pairsCount: pairs.length, question: base.question.slice(0,80) });
   }
   if (type === "arrangeOrder" || type === "ordering" || type === "sequence" || type === "timelineOrder") {
     const rawItems = exercise?.items || exercise?.options || exercise?.sequence || [];
     const items = normalizeItems(rawItems);
-    if (items.length === 0) console.warn("[forgeService] arrangeOrder exercise empty items", { exerciseId: base.id, raw: exercise });
+    if (items.length === 0) console.warn("[forgeService] arrangeOrder exercise empty items", { exerciseId: base.id });
     base.items = items;
     if (!base.correctAnswer && items.length) base.correctAnswer = items.map(i=>i.id).join(",");
   }
@@ -261,7 +255,7 @@ function flattenStructure(subjectInput, sourceFileIds = [], sourceText = "") {
 
 async function generateStructureFromText(sourceText) {
   if (!isFirebaseConfigured) {
-    throw new Error("Gemini API is not available in local mode. Configure Firebase to use AI generation.");
+    throw new Error("AI generation is temporarily unavailable. Please try again later.");
   }
 
   const response = await apiFetch('/api/generate-forge-structure', {
@@ -305,20 +299,16 @@ export function subscribeForgeSubjects(uid, callback, onError) {
   if (!isFirebaseConfigured) {
     return subscribeLocalState(() => {
       const local = localForgeSubjects(uid);
-      console.log("[forgeService] subscribeForgeSubjects LOCAL emit", { uid, count: local.length });
       callback(local);
     });
   }
 
-  console.log("[forgeService] subscribeForgeSubjects START", { uid });
   let cancelled = false;
   // Listen without orderBy for same reason – delivers all docs regardless of index / timestamp sentinel state
   const unsub = onSnapshot(
     collection(db, "users", uid, "subjects"),
     () => {
-      console.log("[forgeService] subscribeForgeSubjects onSnapshot TRIGGER fetch", { uid });
       if (!cancelled) fetchForgeSubjects(uid).then((items)=>{
-        console.log("[forgeService] subscribeForgeSubjects callback emit", { uid, count: items.length });
         callback(items);
       }).catch((err) => {
         console.error("[forgeService] subscribeForgeSubjects fetch failed", { code: err?.code });
@@ -326,7 +316,7 @@ export function subscribeForgeSubjects(uid, callback, onError) {
       });
     },
     (err) => {
-      console.error("[forgeService] subscribeForgeSubjects LISTEN failed", { code: err?.code, message: err?.message, isBlocked: err?.code==="unavailable" || err?.code==="permission-denied" });
+      console.error("[forgeService] subscribeForgeSubjects LISTEN failed", { code: err?.code });
       onError?.(err);
     },
   );
@@ -366,11 +356,9 @@ export function subscribeForgeLessons(uid, callback, onError) {
 export async function fetchForgeSubjects(uid) {
   if (!isFirebaseConfigured) {
     const local = localForgeSubjects(uid);
-    console.log("[forgeService] fetchForgeSubjects LOCAL", { uid, count: local.length });
     return local;
   }
 
-  console.log("[forgeService] fetchForgeSubjects READ start", { uid, path: `users/${uid}/subjects` });
   try {
     // Smallest fix: read without orderBy to avoid index / serverTimestamp-null ordering issues and blocked-orderBy failures.
     // Sort client-side by updatedAt after fetch; keeps persistence retrieval robust.
@@ -387,23 +375,13 @@ export async function fetchForgeSubjects(uid) {
     const units = unitsSnap.docs.map((item) => ({ id: item.id, ...item.data() }));
     const subUnits = subUnitsSnap.docs.map((item) => ({ id: item.id, ...item.data() }));
     const lessons = lessonsSnap.docs.map((item) => ({ id: item.id, ...item.data() }));
-    console.log("[forgeService] fetchForgeSubjects READ result", {
-      uid,
-      rawSubjects: rawSubjects.length,
-      forgeSubjects: subjects.length,
-      units: units.length,
-      subUnits: subUnits.length,
-      lessons: lessons.length,
-      forgeIds: subjects.map(s=>s.id),
-      reasonEmpty: subjects.length===0 ? (rawSubjects.length===0 ? "no_docs_in_subjects_collection" : "docs_exist_but_forge_flag_false_or_missing") : "ok",
-    });
     if (subjects.length===0 && rawSubjects.length>0) {
-      console.warn("[forgeService] subjects exist but filtered out – check forge field", rawSubjects.slice(0,2));
+      console.warn("[forgeService] subjects exist but filtered out – check forge field");
     }
 
     return subjects.map((subject) => assembleForgeTree(subject, units, subUnits, lessons));
   } catch (e) {
-    console.error("[forgeService] fetchForgeSubjects READ failed", { uid, code: e?.code, message: e?.message });
+    console.error("[forgeService] fetchForgeSubjects READ failed", { code: e?.code });
     throw e;
   }
 }
@@ -480,7 +458,7 @@ export async function uploadForgeFiles(uid, files, onProgress) {
       }
       onProgress?.(Math.round(((index + 1) / files.length) * 100));
     } catch (error) {
-      console.warn(`Failed to process file ${file.name}:`, error.message);
+      console.warn("[forgeService] file processing failed", { code: error?.code });
       // Add a placeholder entry for failed files
       const placeholderFile = {
         id: makeId("file"),
@@ -511,7 +489,7 @@ export async function cleanupUploadedFiles(uploaded) {
 
 export async function generateForgeStructure(uid, sourceText, sourceFileIds = [], files = []) {
   if (!isFirebaseConfigured) {
-    throw new Error("Gemini API is not available in local mode. Configure Firebase to use AI generation.");
+    throw new Error("AI generation is temporarily unavailable. Please try again later.");
   }
 
   let normalized;
@@ -608,9 +586,6 @@ const subUnitIdMap = new Map();
 
   flat.lessons.forEach((lesson) => {
     const { id: _lessonId, ...lessonData } = lesson;
-    // Log Firestore document shape for matching exercises before save
-    const matchExercise = (lessonData.exercises||[]).find(e=>e.type==="matchPairs");
-    if (matchExercise) console.log("[forgeService] saved Firestore document (lesson)", { lessonId: _lessonId, exerciseId: matchExercise.id, pairs: matchExercise.pairs, hasPairs: !!(matchExercise.pairs && matchExercise.pairs.length) });
     const lessonRef = doc(collection(db, "users", uid, "lessons"));
     batch.set(lessonRef, {
       ...lessonData,
@@ -627,16 +602,13 @@ const subUnitIdMap = new Map();
     updatedAt: serverTimestamp(),
   });
 
-  console.log("[forgeService] WRITE start batch.commit", { uid, subjectId: subjectRef.id, units: flat.units.length, subUnits: flat.subUnits.length, lessons: flat.lessons.length, title: flat.subject.title });
   try {
     await batch.commit();
-    console.log("[forgeService] WRITE batch.commit SUCCESS", { uid, subjectId: subjectRef.id });
   } catch (e) {
-    console.error("[forgeService] WRITE batch.commit FAILED", { uid, code: e?.code, message: e?.message });
+    console.error("[forgeService] WRITE batch.commit FAILED", { code: e?.code });
     throw e;
   }
   const after = await fetchForgeSubjects(uid);
-  console.log("[forgeService] WRITE verification read", { uid, totalForge: after.length, foundNew: !!after.find(i=>i.id===subjectRef.id) });
   return after.find((item) => item.id === subjectRef.id);
 }
 

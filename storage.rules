@@ -1,0 +1,20 @@
+rules_version = '2';
+
+// Beta 1.9 Prompt 44 — Stage A4: Firebase Storage rules (deny by default).
+//
+// Evidence: the app does NOT use Firebase Storage for uploads —
+//  - src/utils/storage.js + cloudinary.js upload via Cloudinary unsigned preset
+//  - src/config/firebase.js exports `storage` but no code calls
+//    uploadBytes/ref(storage,...) (verified by repo search)
+//  - avatars are Cloudinary URLs / data-URLs stored in Firestore fields
+//
+// Therefore the safe default is DENY ALL. If Firebase Storage is adopted
+// later, add an owner-scoped path (e.g. avatars/{uid}/...) with
+// request.resource.size and contentType checks, plus rules tests.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

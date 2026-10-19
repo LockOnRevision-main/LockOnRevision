@@ -1,10 +1,147 @@
 {
+  "installCommand": "npm ci --ignore-scripts",
   "git": {
     "deploymentEnabled": {
       "app-scaffold": false
     }
   },
   "rewrites": [
+    {
+      "source": "/api/create-pin",
+      "destination": "/api/school?action=create-pin"
+    },
+    {
+      "source": "/api/revoke-pin",
+      "destination": "/api/school?action=revoke-pin"
+    },
+    {
+      "source": "/api/redeem-pin",
+      "destination": "/api/school?action=redeem-pin"
+    },
+    {
+      "source": "/api/set-join-policy",
+      "destination": "/api/school?action=set-join-policy"
+    },
+    {
+      "source": "/api/review-request",
+      "destination": "/api/school?action=review-request"
+    },
+    {
+      "source": "/api/provision-school",
+      "destination": "/api/school?action=provision-school"
+    },
+    {
+      "source": "/api/revoke-school-admin",
+      "destination": "/api/school?action=revoke-school-admin"
+    },
+    {
+      "source": "/api/set-school-admin",
+      "destination": "/api/school?action=set-school-admin"
+    },
+    {
+      "source": "/api/search-students",
+      "destination": "/api/school?action=search-students"
+    },
+    {
+      "source": "/api/student-profile",
+      "destination": "/api/school?action=student-profile"
+    },
+    {
+      "source": "/api/manage-membership",
+      "destination": "/api/school?action=manage-membership"
+    },
+    {
+      "source": "/api/manage-classroom",
+      "destination": "/api/school?action=manage-classroom"
+    },
+    {
+      "source": "/api/assign-staff",
+      "destination": "/api/school?action=assign-staff"
+    },
+    {
+      "source": "/api/school-overview",
+      "destination": "/api/school?action=school-overview"
+    },
+    {
+      "source": "/api/enroll-academy",
+      "destination": "/api/school?action=enroll-academy"
+    },
+    {
+      "source": "/api/set-permissions",
+      "destination": "/api/school?action=set-permissions"
+    },
+    {
+      "source": "/api/get-permissions",
+      "destination": "/api/school?action=get-permissions"
+    },
+    {
+      "source": "/api/create-invitation",
+      "destination": "/api/school?action=create-invitation"
+    },
+    {
+      "source": "/api/resend-invitation",
+      "destination": "/api/school?action=resend-invitation"
+    },
+    {
+      "source": "/api/revoke-invitation",
+      "destination": "/api/school?action=revoke-invitation"
+    },
+    {
+      "source": "/api/accept-invitation",
+      "destination": "/api/school?action=accept-invitation"
+    },
+    {
+      "source": "/api/list-invitations",
+      "destination": "/api/school?action=list-invitations"
+    },
+    {
+      "source": "/api/ai-status",
+      "destination": "/api/ai?action=ai-status"
+    },
+    {
+      "source": "/api/ai-tutor-chat",
+      "destination": "/api/ai?action=ai-tutor-chat"
+    },
+    {
+      "source": "/api/ask-forge-assistant",
+      "destination": "/api/ai?action=ask-forge-assistant"
+    },
+    {
+      "source": "/api/generate-forge-structure",
+      "destination": "/api/ai?action=generate-forge-structure"
+    },
+    {
+      "source": "/api/process-uploaded-notes",
+      "destination": "/api/ai?action=process-uploaded-notes"
+    },
+    {
+      "source": "/api/extract-timetable-docs",
+      "destination": "/api/ai?action=extract-timetable-docs"
+    },
+    {
+      "source": "/api/generate-learning-content",
+      "destination": "/api/ai?action=generate-learning-content"
+    },
+    {
+      "source": "/api/generate-question-hint",
+      "destination": "/api/ai?action=generate-question-hint"
+    },
+    {
+      "source": "/api/explain-wrong-answer",
+      "destination": "/api/ai?action=explain-wrong-answer"
+    },
+    {
+      "source": "/api/generate-timetable",
+      "destination": "/api/ai?action=generate-timetable"
+    },
+    {
+      "source": "/api/generate-daily-challenge",
+      "destination": "/api/ai?action=generate-daily-challenge"
+    },
+    {
+      "source": "/api/delete-cloudinary-files",
+      "destination": "/api/ai?action=delete-cloudinary-files"
+    },
     {
       "source": "/api/(.*)",
       "destination": "/api/$1"
