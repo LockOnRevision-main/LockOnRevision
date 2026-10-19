@@ -14,6 +14,7 @@ import setJoinPolicy from "../server/handlers/set-join-policy.js";
 import reviewRequest from "../server/handlers/review-request.js";
 import provisionSchool from "../server/handlers/provision-school.js";
 import revokeSchoolAdmin from "../server/handlers/revoke-school-admin.js";
+import setSchoolAdmin from "../server/handlers/set-school-admin.js";
 import searchStudents from "../server/handlers/search-students.js";
 import studentProfile from "../server/handlers/student-profile.js";
 import manageMembership from "../server/handlers/manage-membership.js";
@@ -37,6 +38,7 @@ export const ACTIONS = {
   "review-request": reviewRequest,
   "provision-school": provisionSchool,
   "revoke-school-admin": revokeSchoolAdmin,
+  "set-school-admin": setSchoolAdmin,
   "search-students": searchStudents,
   "student-profile": studentProfile,
   "manage-membership": manageMembership,

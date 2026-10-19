@@ -1,4 +1,5 @@
 {
+  "installCommand": "npm ci --ignore-scripts",
   "git": {
     "deploymentEnabled": {
       "app-scaffold": false
@@ -32,6 +33,10 @@
     {
       "source": "/api/revoke-school-admin",
       "destination": "/api/school?action=revoke-school-admin"
+    },
+    {
+      "source": "/api/set-school-admin",
+      "destination": "/api/school?action=set-school-admin"
     },
     {
       "source": "/api/search-students",

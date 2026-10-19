@@ -1,11 +1,15 @@
 /**
  * POST /api/provision-school — platform-admin-only creation of an external
- * school + assignment of an existing verified user as its school_admin.
+ * school + assignment of an existing verified user as its school_admin, plus
+ * a single generated school-scoped join PIN.
  * Body: { name, country?, adminUid, schoolId? }
  * No invitation emails/tokens (Beta 2.0). adminInvitations stays deny-only.
  * New school_admin is scoped strictly to the new school (single membership
- * doc). Audited. Rate-limited.
+ * doc). A school PIN grants join eligibility only, never administrative
+ * authority. School + staff record + PIN + audits commit in ONE batch.
+ * Audited. Rate-limited.
  */
+import { generatePinCode, hashPin, pinDocIdFromHash, pinExpiryISO, PIN_DEFAULT_TTL_MS } from "../lib/pins.js";
 import { getAdminDb, cors, authedUser, checkRate, isPlatformAdmin, auditRef, auditData, writeStaffRecords } from "../lib/schoolServer.js";
 
 function slug(s) {
@@ -43,7 +47,22 @@ export default async function handler(req, res) {
     if ((await schoolRef.get()).exists) return res.status(409).json({ error: "School already exists." });
 
     const now = new Date().toISOString();
-    // Stage 0.3: school + membership + ledger + both audits in ONE batch.
+    // Generate a secure, random school-scoped join PIN (hash-only storage,
+    // pepper-protected, never derived from school data). Fail closed if the
+    // pepper is unconfigured.
+    let pinCode = null, pinId = null, pinExpiresAt = null, pinHash = null;
+    try {
+      pinCode = generatePinCode();
+      pinHash = hashPin(pinCode);
+      pinId = pinDocIdFromHash(pinHash);
+      pinExpiresAt = pinExpiryISO(PIN_DEFAULT_TTL_MS);
+    } catch {
+      return res.status(500).json({ error: "PIN service not configured." });
+    }
+
+    // Stage 0.3: school + membership + ledger + PIN + both audits in ONE
+    // atomic batch. Retries hit the "school already exists" 409 before any
+    // write, so no duplicate school or PIN record can be created.
     const batch = db.batch();
     batch.create(schoolRef, {
       name: name.trim(), type: "external", country: country || null,
@@ -55,10 +74,18 @@ export default async function handler(req, res) {
       uid: adminUid, schoolId: id, role: "school_admin", status: "active",
       classroomId: null, now,
     });
+    batch.create(db.collection("joiningPins").doc(pinId), {
+      codeHash: pinHash, schoolId: id, classroomId: null,
+      status: "active", expiresAt: pinExpiresAt,
+      createdBy: user.uid, createdAt: now, useCount: 0,
+      revokedAt: null, revokedBy: null,
+    });
     batch.set(auditRef(db), auditData({ actorUid: user.uid, action: "school.provision", targetUid: adminUid, schoolId: id, scope: "platform" }));
     batch.set(auditRef(db), auditData({ actorUid: user.uid, action: "staff.assign", targetUid: adminUid, schoolId: id, scope: "role:school_admin" }));
+    batch.set(auditRef(db), auditData({ actorUid: user.uid, action: "pin.create", targetUid: null, schoolId: id, scope: "school" }));
     await batch.commit();
-    return res.status(200).json({ ok: true, schoolId: id });
+    // Plaintext PIN returned ONCE; never stored or logged.
+    return res.status(200).json({ ok: true, schoolId: id, pin: pinCode, pinId, expiresAt: pinExpiresAt });
   } catch (e) {
     return res.status(e.status || 500).json({ error: e.status ? e.message : "Provisioning failed." });
   }

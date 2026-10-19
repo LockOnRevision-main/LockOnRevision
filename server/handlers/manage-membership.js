@@ -27,6 +27,12 @@ export default async function handler(req, res) {
   if (typeof uid !== "string" || !uid.trim()) return res.status(400).json({ error: "Invalid uid." });
   if (typeof schoolId !== "string" || !schoolId.trim()) return res.status(400).json({ error: "Invalid schoolId." });
 
+  // Academy membership is mandatory and cannot be removed through ordinary
+  // school-membership controls.
+  if (action === "remove-school" && schoolId === "academy") {
+    return res.status(403).json({ error: "Academy membership cannot be removed." });
+  }
+
   // Stage 2: per-action catalogue permissions (scope checked per target).
   const needPerm = action === "remove-school" ? "membership.revoke" : "membership.assign";
 

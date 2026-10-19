@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Plus, ShieldCheck, Users } from "lucide-react";
 import { auth } from "../config/firebase.js";
 import { apiFetch } from "../utils/apiFetch.js";
 import { EmptyState } from "./EmptyState.jsx";
@@ -32,6 +33,11 @@ export function SchoolAdminPanel({ t }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [createName, setCreateName] = useState("");
+  const [createCountry, setCreateCountry] = useState("");
+  const [createAdminUid, setCreateAdminUid] = useState("");
+  const [createBusy, setCreateBusy] = useState(false);
+  const [createdSchool, setCreatedSchool] = useState(null);
   const [freshPin, setFreshPin] = useState(null);
   const [classroomId, setClassroomId] = useState("");
   const [redeemCode, setRedeemCode] = useState("");
@@ -53,6 +59,10 @@ export function SchoolAdminPanel({ t }) {
   const [editName, setEditName] = useState("");
   const [editYear, setEditYear] = useState("");
   const [confirmArchiveId, setConfirmArchiveId] = useState(null);
+  const [memUid, setMemUid] = useState("");
+  const [memSchoolId, setMemSchoolId] = useState("");
+  const [memBusy, setMemBusy] = useState(false);
+  const [memRole, setMemRole] = useState("school_admin");
 
   async function loadOverview(id) {
     setLoading(true);
@@ -66,6 +76,100 @@ export function SchoolAdminPanel({ t }) {
       setError(e.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function createSchool() {
+    setError("");
+    setNotice("");
+    setFreshPin(null);
+    const name = createName.trim();
+    if (!name) { setError("Enter a school name."); return; }
+    if (!createAdminUid.trim()) { setError("Enter the administrator user ID."); return; }
+    setCreateBusy(true);
+    try {
+      const data = await callRoute("/api/provision-school", {
+        name,
+        country: createCountry.trim() || null,
+        adminUid: createAdminUid.trim(),
+      });
+      setCreatedSchool({
+        id: data.schoolId,
+        name,
+        pin: data.pin || null,
+        pinId: data.pinId || null,
+        expiresAt: data.expiresAt || null,
+        adminUid: createAdminUid.trim(),
+      });
+      setNotice(t("admin.school_created"));
+      setCreateName("");
+      setCreateCountry("");
+      setCreateAdminUid("");
+      await loadOverview(data.schoolId);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setCreateBusy(false);
+    }
+  }
+
+  async function assignSchoolAdmin() {
+    setError("");
+    setNotice("");
+    if (!memUid.trim() || !memSchoolId.trim()) { setError("Enter both a user ID and a school ID."); return; }
+    setMemBusy(true);
+    try {
+      const data = await callRoute("/api/set-school-admin", {
+        schoolId: memSchoolId.trim(),
+        uid: memUid.trim(),
+      });
+      setNotice(data.already ? "User is already the school administrator." : "School administrator assigned.");
+      setMemUid("");
+      setMemSchoolId("");
+      await loadOverview(memSchoolId.trim());
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setMemBusy(false);
+    }
+  }
+
+  async function revokeSchoolAdmin() {
+    setError("");
+    setNotice("");
+    if (!memUid.trim() || !memSchoolId.trim()) { setError("Enter both a user ID and a school ID."); return; }
+    setMemBusy(true);
+    try {
+      await callRoute("/api/revoke-school-admin", { schoolId: memSchoolId.trim(), uid: memUid.trim() });
+      setNotice("School administrator revoked. Account and learning data kept.");
+      setMemUid("");
+      setMemSchoolId("");
+      await loadOverview(memSchoolId.trim());
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setMemBusy(false);
+    }
+  }
+
+  async function removeMembership() {
+    setError("");
+    setNotice("");
+    if (!memUid.trim() || !memSchoolId.trim()) { setError("Enter both a user ID and a school ID."); return; }
+    if (memSchoolId.trim() === "academy") { setError("Academy membership cannot be removed."); return; }
+    setMemBusy(true);
+    try {
+      await callRoute("/api/manage-membership", {
+        action: "remove-school", uid: memUid.trim(), schoolId: memSchoolId.trim(),
+      });
+      setNotice("Membership removed. Account and learning data kept.");
+      setMemUid("");
+      setMemSchoolId("");
+      await loadOverview(memSchoolId.trim());
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setMemBusy(false);
     }
   }
 
@@ -320,6 +424,151 @@ export function SchoolAdminPanel({ t }) {
   return (
     <section className="grid gap-4">
       <article className="card card-pad">
+        <div className="section-head">
+          <div className="flex items-center gap-3">
+            <span className="icon-tile" style={{ width: "2.25rem", height: "2.25rem" }}><Plus size={17} /></span>
+            <div>
+              <p className="eyebrow">{t("admin.create_school")}</p>
+              <h2 className="mt-0.5 text-text-primary">{t("admin.create_school")}</h2>
+            </div>
+          </div>
+        </div>
+        <p className="mb-3 text-[13px] text-text-secondary">{t("admin.create_school_desc")}</p>
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+          <input
+            value={createName}
+            onChange={(e) => setCreateName(e.target.value)}
+            placeholder={t("admin.school_name")}
+            aria-label="School name"
+            maxLength={120}
+            className="field min-w-0 flex-1"
+          />
+          <input
+            value={createCountry}
+            onChange={(e) => setCreateCountry(e.target.value)}
+            placeholder={t("admin.school_country")}
+            aria-label="Country"
+            maxLength={80}
+            className="field min-w-0 flex-1 sm:max-w-44"
+          />
+          <input
+            value={createAdminUid}
+            onChange={(e) => setCreateAdminUid(e.target.value)}
+            placeholder={t("admin.school_admin_uid")}
+            aria-label="Administrator user ID"
+            className="field min-w-0 flex-1 font-mono"
+          />
+          <button
+            type="button"
+            disabled={createBusy || !createName.trim() || !createAdminUid.trim()}
+            onClick={createSchool}
+            className="btn-secondary shrink-0"
+          >
+            {createBusy ? t("common.loading", "Creating…") : t("admin.create_school_btn")}
+          </button>
+        </div>
+      </article>
+
+      {createdSchool ? (
+        <article className="card card-pad">
+          <div className="section-head">
+            <div className="flex items-center gap-3">
+              <span className="icon-tile" style={{ width: "2.25rem", height: "2.25rem" }}><ShieldCheck size={17} /></span>
+              <div>
+                <p className="eyebrow">{t("admin.school_created")}</p>
+                <h2 className="mt-0.5 text-text-primary">{t("admin.school_details")}</h2>
+              </div>
+            </div>
+          </div>
+          <div className="mt-2 grid gap-2 sm:grid-cols-3 [&>*]:min-w-0">
+            <div className="rounded-xl border border-border bg-background p-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-text-muted">School ID</p>
+              <p className="font-mono text-sm font-black">{createdSchool.id}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-background p-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-text-muted">Name</p>
+              <p className="text-sm font-black">{createdSchool.name}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-background p-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-text-muted">{t("admin.school_administrator")}</p>
+              <p className="font-mono text-sm font-black">{createdSchool.adminUid}</p>
+            </div>
+          </div>
+          <div className="mt-3 rounded-xl border border-warning/20 bg-warning/10 p-3">
+            <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.1em] text-warning">{t("admin.school_pin")}</p>
+            <p className="font-mono text-lg font-black">{createdSchool.pin}</p>
+            <p className="mt-1 text-xs text-text-secondary">{t("admin.pin_shown_once")}{createdSchool.expiresAt ? ` · ${t("admin.expires_at")}: ${createdSchool.expiresAt}` : ""}</p>
+          </div>
+          <p className="mt-2 text-[12px] text-text-secondary">Use <strong>/api/create-pin</strong> to regenerate or revoke this school PIN. The PIN grants join eligibility only — never administrative authority.</p>
+        </article>
+      ) : null}
+
+      {error ? <p className="alert alert-error mt-3" role="alert">{error}</p> : null}
+      {notice ? <p className="rounded-lg border border-info/20 bg-info/10 p-3 text-sm font-bold text-info mt-3" role="status">{notice}</p> : null}
+
+      <article className="card card-pad">
+        <div className="section-head">
+          <div className="flex items-center gap-3">
+            <span className="icon-tile" style={{ width: "2.25rem", height: "2.25rem" }}><Users size={17} /></span>
+            <div>
+              <p className="eyebrow">{t("admin.user_management", "User management")}</p>
+              <h2 className="mt-0.5 text-text-primary">{t("admin.school_membership", "School membership")}</h2>
+            </div>
+          </div>
+        </div>
+        <p className="mb-3 text-[13px] text-text-secondary">{t("admin.school_membership_desc", "Assign or revoke school administrator for an existing school, or remove a user's membership from a school. Academy membership is mandatory and cannot be removed here.")}</p>
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+          <input
+            value={memUid}
+            onChange={(e) => setMemUid(e.target.value)}
+            placeholder="User ID (Firebase UID)"
+            aria-label="User ID"
+            className="field min-w-0 flex-1 font-mono"
+          />
+          <input
+            value={memSchoolId}
+            onChange={(e) => setMemSchoolId(e.target.value)}
+            placeholder="School ID"
+            aria-label="School ID"
+            className="field min-w-0 flex-1 font-mono"
+          />
+          <select
+            value={memRole}
+            onChange={(e) => setMemRole(e.target.value)}
+            aria-label="Role"
+            className="field shrink-0 sm:max-w-44"
+          >
+            <option value="school_admin">School administrator</option>
+          </select>
+          <button
+            type="button"
+            disabled={memBusy || !memUid.trim() || !memSchoolId.trim()}
+            onClick={assignSchoolAdmin}
+            className="btn-secondary shrink-0"
+          >
+            {memBusy ? "Assigning…" : "Assign school admin"}
+          </button>
+          <button
+            type="button"
+            disabled={memBusy || !memUid.trim() || !memSchoolId.trim()}
+            onClick={revokeSchoolAdmin}
+            className="btn-secondary shrink-0"
+          >
+            {memBusy ? "Revoking…" : "Revoke school admin"}
+          </button>
+          <button
+            type="button"
+            disabled={memBusy || !memUid.trim() || !memSchoolId.trim()}
+            onClick={removeMembership}
+            className="btn-ghost shrink-0"
+          >
+            {memBusy ? "Removing…" : "Remove membership"}
+          </button>
+        </div>
+        <p className="mt-2 text-[12px] text-text-secondary">Removing a membership does not delete the Firebase account and does not affect learning data or other school memberships. Academy membership is preserved.</p>
+      </article>
+
+      <article className="card card-pad">
         <p className="eyebrow">{t("admin.schools_tab", "Schools")}</p>
         <h2 className="mt-0.5">School workflows</h2>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
@@ -334,8 +583,6 @@ export function SchoolAdminPanel({ t }) {
             {loading ? t("common.loading", "Loading…") : "Load school"}
           </button>
         </div>
-        {error ? <p className="alert alert-error mt-3" role="alert">{error}</p> : null}
-        {notice ? <p className="rounded-lg border border-info/20 bg-info/10 p-3 text-sm font-bold text-info mt-3" role="status">{notice}</p> : null}
       </article>
 
       {overview ? (

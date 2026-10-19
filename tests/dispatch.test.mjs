@@ -59,7 +59,7 @@ describe("Stage 0.5: delegation preserves behaviour", () => {
   it("every action resolves to a handler function", async () => {
     const school = await import("../api/school.js");
     const ai = await import("../api/ai.js");
-    assert.equal(Object.keys(school.ACTIONS).length, 21);
+    assert.equal(Object.keys(school.ACTIONS).length, 22);
     assert.equal(Object.keys(ai.ACTIONS).length, 12);
     for (const [name, fn] of [...Object.entries(school.ACTIONS), ...Object.entries(ai.ACTIONS)]) {
       assert.equal(typeof fn, "function", `${name} delegates to a function`);

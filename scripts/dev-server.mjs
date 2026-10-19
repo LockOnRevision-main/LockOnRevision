@@ -33,6 +33,7 @@ const routes = {
   '/api/generate-timetable': () => import('../server/handlers/generate-timetable.js'),
   '/api/generate-daily-challenge': () => import('../server/handlers/generate-daily-challenge.js'),
   '/api/delete-cloudinary-files': () => import('../server/handlers/delete-cloudinary-files.js'),
+  '/api/school': () => import('../api/school.js'),
 };
 
 function createResponse(res) {
