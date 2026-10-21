@@ -371,7 +371,7 @@ export async function fetchForgeSubjects(uid) {
 
     const rawSubjects = subjectsSnap.docs.map((item) => ({ id: item.id, ...item.data() }))
       .sort((a,b)=> String(b.updatedAt||b.createdAt||"").localeCompare(String(a.updatedAt||a.createdAt||"")));
-    const subjects = rawSubjects.filter((item) => item.forge);
+    const subjects = rawSubjects.filter((item) => item.forge !== false);
     const units = unitsSnap.docs.map((item) => ({ id: item.id, ...item.data() }));
     const subUnits = subUnitsSnap.docs.map((item) => ({ id: item.id, ...item.data() }));
     const lessons = lessonsSnap.docs.map((item) => ({ id: item.id, ...item.data() }));

@@ -98,6 +98,37 @@ describe("REAL RULES: user profiles (A2/A3)", () => {
     await assertFails(updateDoc(doc(authed("stu-a").firestore(), "users/stu-a"), { schoolRoles: ["x"] }));
   });
 
+  it("score fields protected: owner cannot change xp/energy/totalScore", async () => {
+    const { doc, updateDoc } = await import("firebase/firestore");
+    const db = authed("stu-a").firestore();
+    await assertFails(updateDoc(doc(db, "users/stu-a"), { xp: 999999 }));
+    await assertFails(updateDoc(doc(db, "users/stu-a"), { energy: 999999 }));
+    await assertFails(updateDoc(doc(db, "users/stu-a"), { totalScore: 99999900 }));
+    await assertFails(updateDoc(doc(db, "users/stu-a"), { xp: 100, energy: 100, totalScore: 10100 }));
+  });
+
+  it("platform admin may change score fields", async () => {
+    const { doc, updateDoc } = await import("firebase/firestore");
+    const db = authed("platform-1").firestore();
+    await assertSucceeds(updateDoc(doc(db, "users/stu-a"), { xp: 500 }));
+    await assertSucceeds(updateDoc(doc(db, "users/stu-a"), { energy: 10 }));
+    await assertSucceeds(updateDoc(doc(db, "users/stu-a"), { totalScore: 1500 }));
+  });
+
+  it("users_public: owner cannot write xp/energy/totalScore", async () => {
+    const { doc, updateDoc } = await import("firebase/firestore");
+    const db = authed("stu-a").firestore();
+    await assertFails(updateDoc(doc(db, "users_public/stu-a"), { xp: 999999 }));
+    await assertFails(updateDoc(doc(db, "users_public/stu-a"), { energy: 999999 }));
+    await assertFails(updateDoc(doc(db, "users_public/stu-a"), { totalScore: 99999900 }));
+    await assertFails(updateDoc(doc(db, "users_public/stu-a"), { role: "admin" }));
+  });
+
+  it("users_public: owner may write display fields only", async () => {
+    const { doc, updateDoc } = await import("firebase/firestore");
+    await assertSucceeds(updateDoc(doc(authed("stu-a").firestore(), "users_public/stu-a"), { name: "Stu A2" }));
+  });
+
   it("owner may update own display name", async () => {
     const { doc, updateDoc } = await import("firebase/firestore");
     await assertSucceeds(updateDoc(doc(authed("stu-a").firestore(), "users/stu-a"), { name: "Stu A2" }));

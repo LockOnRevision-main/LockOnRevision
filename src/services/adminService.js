@@ -62,10 +62,9 @@ async function verifyAdminServer() {
       if (!isDeployOrCorsError && code !== "unauthenticated" && code !== "permission-denied") {
         // For unexpected errors, still try fallback but also surface error
       }
-      // permission-denied / unauthenticated from callable are definitive - do not fallback to bypass
-      if (code === "permission-denied" || code === "functions/permission-denied") {
-        throw new Error("You don't have permission to access this page.");
-      }
+      // permission-denied from callable: fall through to the Firestore
+      // fallback, which performs the same isAdmin check via security rules.
+      // Only unauthenticated is definitive (no session to fall back to).
       if (code === "unauthenticated" || code === "functions/unauthenticated") {
         throw new Error("Please sign in again.");
       }
