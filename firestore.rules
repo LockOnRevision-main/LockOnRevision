@@ -17,8 +17,13 @@ service cloud.firestore {
     function isAdmin() {
       return signedIn() &&
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             (userDoc(request.auth.uid).isAdmin == true ||
-              userDoc(request.auth.uid).role == 'admin');
+             ((
+               'isAdmin' in userDoc(request.auth.uid) &&
+               userDoc(request.auth.uid).isAdmin == true
+             ) || (
+               'role' in userDoc(request.auth.uid) &&
+               userDoc(request.auth.uid).role == 'admin'
+             ));
     }
 
     // ---- Beta 1.9 Stage C/D: school-scoped helpers (membership-doc enforcement) ----
@@ -73,8 +78,25 @@ service cloud.firestore {
         && unchanged('permissions')
         && unchanged('permissionSets')
         && unchanged('adminRewards')
+        && unchanged('xp')
+        && unchanged('energy')
+        && unchanged('totalScore')
         && (unchanged('email')
           || (!( 'email' in resource.data) && ('email' in request.resource.data)));
+    }
+
+    // Score integrity: clients may increment XP/Energy through legitimate
+    // gameplay paths, but cannot set arbitrary values. totalScore must always
+    // equal xp + energy * 100; energy must stay within 0-100; xp must not
+    // decrease; a single write may not add more than 1000 XP (this closes the
+    // direct score-manipulation hole where a user could write
+    // { xp: 1000000, energy: 100000, totalScore: ... } to their own doc.
+    // Admin SDK paths (isAdmin) are exempt.
+    function scoreChangesValid() {
+      return (!('xp' in request.resource.data) || request.resource.data.xp >= resource.data.xp)
+        && (!('xp' in request.resource.data) || (request.resource.data.xp - resource.data.xp) <= 1000)
+        && (!('energy' in request.resource.data) || (request.resource.data.energy >= 0 && request.resource.data.energy <= 100))
+        && (!('totalScore' in request.resource.data) || (request.resource.data.totalScore == request.resource.data.xp + request.resource.data.energy * 100));
     }
 
     // ============ USERS (Stage A2 + A3) ============
@@ -96,7 +118,7 @@ service cloud.firestore {
       // equality (see protectedUnchanged). Only the platform-admin path
       // may change them. Parentheses pin precedence.
       allow update: if (
-        (ownsUserDoc(userId) && protectedUnchanged())
+        (ownsUserDoc(userId) && protectedUnchanged() && scoreChangesValid())
         || isAdmin()
       );
       allow delete: if false;
@@ -214,7 +236,7 @@ service cloud.firestore {
         (ownsUserDoc(userId)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'name', 'username', 'displayName', 'avatarUrl', 'avatarIcon',
-            'xp', 'energy', 'totalScore', 'grade', 'curriculum', 'searchName', 'updatedAt'
+            'grade', 'curriculum', 'searchName', 'updatedAt'
           ]))
         || isAdmin()
       );

@@ -388,8 +388,10 @@ export async function recordAnswer(uid, question, selectedAnswer) {
 }
 
 export async function completeLesson(uid, lessonId, xpEarned, perfectLesson = false, options = {}) {
+  const MAX_LESSON_XP = 1000;
+  const safeXpEarned = Math.max(0, Math.min(Number(xpEarned) || 0, MAX_LESSON_XP));
   const bonusXP = perfectLesson ? 5 : 0;
-  const totalXP = xpEarned + bonusXP;
+  const totalXP = safeXpEarned + bonusXP;
 
   const difficulty = options.difficulty || "medium";
   const grade = options.grade;
