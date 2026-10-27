@@ -63,13 +63,43 @@ export function ForgeLessonPage() {
       });
       if (!result.success && result.reason === "already-completed") {
         showStatus(t('forge_lesson.already_completed'), "info");
+        return;
       } else if (result.success) {
         showStatus(t('forge_lesson.completed', { xp: result.totalXP, energy: result.energyAward, perfect: perfect ? t('forge_lesson.perfect_suffix') : '' }), "success");
+        await navigateToNextLesson();
       }
     } catch (error) {
       showStatus(error.message || t('forge_lesson.failed_load'), "error");
     }
-  }, [user?.uid, profile, lesson, t]);
+  }, [user?.uid, profile, lesson, t, navigateToNextLesson]);
+
+  const navigateToNextLesson = useCallback(async () => {
+    if (!subjectId || !user?.uid) return;
+    try {
+      let allLessons;
+      if (!isFirebaseConfigured) {
+        const userData = getLocalUser(user.uid);
+        allLessons = (userData?.lessons || []).filter((l) => l.subjectId === subjectId);
+      } else {
+        const snap = await getDocs(
+          query(collection(db, "users", user.uid, "lessons"), where("subjectId", "==", subjectId))
+        );
+        allLessons = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      }
+      const sorted = [...allLessons].sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0));
+      const currentIdx = sorted.findIndex((l) => l.id === lessonId);
+      if (currentIdx === -1) return;
+      const next = sorted[currentIdx + 1];
+      if (next) {
+        navigate(`/forge/lesson/${subjectId}/${next.id}`);
+      } else {
+        navigate(`/forge/subject/${subjectId}`);
+      }
+    } catch (e) {
+      console.error("[ForgeLessonPage] navigateToNextLesson failed", { code: e?.code });
+      navigate(`/forge/subject/${subjectId}`);
+    }
+  }, [subjectId, lessonId, user?.uid, navigate, isFirebaseConfigured]);
 
   const handleBack = useCallback(() => {
     if (subjectId) {

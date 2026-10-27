@@ -620,7 +620,9 @@ export async function reprocessTimetableDocuments(uid, timetableId, inlineFiles 
       // Per spec: explain which file failed and why, never generate from guessed data
       const reason = data.error || data.details || `Extraction failed (${res.status})`;
       extractionErrors = data.errors || docs.map(d=> ({ file: d.name, reason }));
-      throw new Error(reason);
+      const err = new Error(reason);
+      err.status = res.status;
+      throw err;
     }
     if (data.errors?.length) extractionErrors = data.errors;
     if (data.subjects || data.assessments || data.syllabus) {
@@ -629,7 +631,7 @@ export async function reprocessTimetableDocuments(uid, timetableId, inlineFiles 
   } catch (e) {
     if (!extracted) {
       // Only fallback to mock if API unavailable (e.g., local dev without key); otherwise propagate error
-      const isConfigError = /GEMINI_API|503/i.test(e.message);
+      const isConfigError = e.status === 503 || /GEMINI_API|503/i.test(e.message);
       if (isConfigError) {
         console.warn("[timetable] extraction API unavailable, using local fallback");
         extracted = extractMockMetadata(docs);
