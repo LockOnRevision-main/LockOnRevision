@@ -41,12 +41,13 @@ describe("Stage 0.5: function count within Hobby limit", () => {
       ["set-permissions", "school"], ["get-permissions", "school"], ["create-invitation", "school"],
       ["resend-invitation", "school"], ["revoke-invitation", "school"], ["accept-invitation", "school"],
       ["list-invitations", "school"],
+      ["send-message", "school"], ["list-messages", "school"],
       ["ai-status", "ai"], ["ai-tutor-chat", "ai"], ["ask-forge-assistant", "ai"],
       ["generate-forge-structure", "ai"], ["process-uploaded-notes", "ai"], ["extract-timetable-docs", "ai"],
       ["generate-learning-content", "ai"], ["generate-question-hint", "ai"], ["explain-wrong-answer", "ai"],
       ["generate-timetable", "ai"], ["generate-daily-challenge", "ai"], ["delete-cloudinary-files", "ai"],
     ];
-    assert.equal(legacy.length, 33, "all 33 former routes covered");
+    assert.equal(legacy.length, 35, "legacy school/ai paths plus expert messaging");
     for (const [name, disp] of legacy) {
       const rw = rewrites.find((r) => r.source === `/api/${name}`);
       assert.ok(rw, `rewrite for /api/${name}`);
@@ -59,7 +60,7 @@ describe("Stage 0.5: delegation preserves behaviour", () => {
   it("every action resolves to a handler function", async () => {
     const school = await import("../api/school.js");
     const ai = await import("../api/ai.js");
-    assert.equal(Object.keys(school.ACTIONS).length, 22);
+    assert.equal(Object.keys(school.ACTIONS).length, 24);
     assert.equal(Object.keys(ai.ACTIONS).length, 12);
     for (const [name, fn] of [...Object.entries(school.ACTIONS), ...Object.entries(ai.ACTIONS)]) {
       assert.equal(typeof fn, "function", `${name} delegates to a function`);

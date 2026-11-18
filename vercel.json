@@ -95,6 +95,14 @@
       "destination": "/api/school?action=list-invitations"
     },
     {
+      "source": "/api/send-message",
+      "destination": "/api/school?action=send-message"
+    },
+    {
+      "source": "/api/list-messages",
+      "destination": "/api/school?action=list-messages"
+    },
+    {
       "source": "/api/ai-status",
       "destination": "/api/ai?action=ai-status"
     },

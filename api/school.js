@@ -29,6 +29,8 @@ import resendInvitation from "../server/handlers/resend-invitation.js";
 import revokeInvitation from "../server/handlers/revoke-invitation.js";
 import acceptInvitation from "../server/handlers/accept-invitation.js";
 import listInvitations from "../server/handlers/list-invitations.js";
+import sendMessage from "../server/handlers/send-message.js";
+import listMessages from "../server/handlers/list-messages.js";
 
 export const ACTIONS = {
   "create-pin": createPin,
@@ -53,6 +55,8 @@ export const ACTIONS = {
   "revoke-invitation": revokeInvitation,
   "accept-invitation": acceptInvitation,
   "list-invitations": listInvitations,
+  "send-message": sendMessage,
+  "list-messages": listMessages,
 };
 
 export default async function handler(req, res) {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, ShieldCheck, Users } from "lucide-react";
+import { Plus, ShieldCheck, Users, MessageCircle } from "lucide-react";
 import { auth } from "../config/firebase.js";
 import { apiFetch } from "../utils/apiFetch.js";
 import { EmptyState } from "./EmptyState.jsx";
@@ -63,6 +63,16 @@ export function SchoolAdminPanel({ t }) {
   const [memSchoolId, setMemSchoolId] = useState("");
   const [memBusy, setMemBusy] = useState(false);
   const [memRole, setMemRole] = useState("school_admin");
+  // ---- Expert messaging (school-scoped) ----
+  const [msgSchoolId, setMsgSchoolId] = useState("");
+  const [msgRecipientId, setMsgRecipientId] = useState("");
+  const [msgText, setMsgText] = useState("");
+  const [msgTag, setMsgTag] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [msgBusy, setMsgBusy] = useState(false);
+  const [msgError, setMsgError] = useState("");
+  const [msgNotice, setMsgNotice] = useState("");
+  const [msgRole, setMsgRole] = useState(""); // 'staff' | 'student' resolved on load
 
   async function loadOverview(id) {
     setLoading(true);
@@ -418,6 +428,51 @@ export function SchoolAdminPanel({ t }) {
       await loadPerms();
     } catch (e) {
       setError(e.message);
+    }
+  }
+
+  // ---- Expert messaging ----
+
+  async function loadMessages() {
+    setMsgError("");
+    setMsgNotice("");
+    if (!msgSchoolId.trim()) { setMessages([]); return; }
+    setMsgBusy(true);
+    try {
+      const data = await callRoute("/api/list-messages", { schoolId: msgSchoolId.trim() });
+      setMessages(data.messages || []);
+      setMsgRole(msgRole || "student");
+    } catch (e) {
+      setMsgError(e.message);
+      setMessages([]);
+    } finally {
+      setMsgBusy(false);
+    }
+  }
+
+  async function sendMessage() {
+    setMsgError("");
+    setMsgNotice("");
+    if (!msgSchoolId.trim()) { setMsgError("Select a school first."); return; }
+    if (!msgRecipientId.trim()) { setMsgError("Enter a recipient user ID."); return; }
+    if (!msgText.trim()) { setMsgError("Enter a message."); return; }
+    setMsgBusy(true);
+    try {
+      await callRoute("/api/send-message", {
+        schoolId: msgSchoolId.trim(),
+        recipientId: msgRecipientId.trim(),
+        message: msgText.trim(),
+        tag: msgTag.trim() || null,
+      });
+      setMsgNotice("Message sent.");
+      setMsgRecipientId("");
+      setMsgText("");
+      setMsgTag("");
+      await loadMessages();
+    } catch (e) {
+      setMsgError(e.message);
+    } finally {
+      setMsgBusy(false);
     }
   }
 
@@ -793,6 +848,103 @@ export function SchoolAdminPanel({ t }) {
                   </div>
                 )) : <EmptyState title="No students" copy="No matches in this school." />}
             </div>
+          </article>
+
+          <article className="card card-pad">
+            <div className="section-head">
+              <div className="flex items-center gap-3">
+                <span className="icon-tile" style={{ width: "2.25rem", height: "2.25rem" }}><MessageCircle size={17} /></span>
+                <div>
+                  <p className="eyebrow">{t("admin.expert_messaging", "Expert Messaging")}</p>
+                  <h2 className="mt-0.5 text-text-primary">{t("admin.messaging_panel", "School Messaging")}</h2>
+                </div>
+              </div>
+              <p className="text-xs text-text-secondary">{t("admin.messaging_desc", "Students message school staff within the same school. Staff view messages addressed to them. Use @tag to mention a role (e.g. @teacher, @principal).")}</p>
+            </div>
+
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <input
+                value={msgSchoolId}
+                onChange={(e) => setMsgSchoolId(e.target.value)}
+                placeholder="School ID"
+                aria-label="School ID"
+                className="field min-w-0 flex-1 font-mono"
+              />
+              <button
+                type="button"
+                disabled={msgBusy || !msgSchoolId.trim()}
+                onClick={loadMessages}
+                className="btn-secondary shrink-0"
+              >
+                {msgBusy ? t("common.loading", "Loading…") : t("common.load", "Load")}
+              </button>
+            </div>
+
+            {msgRole === "staff" ? (
+              <>
+                <div className="mt-3 rounded-xl border border-info/20 bg-info/10 p-3">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-info">
+                    {t("admin.inbox_title", "Your Inbox")}
+                  </p>
+                  <div className="max-h-64 overflow-auto">
+                    {messages.length ? messages.map((m) => (
+                      <div key={m.id} className="border-b border-border/50 py-2 text-sm last:border-b-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-mono text-xs">{m.senderId.slice(0, 8)}…</span>
+                          {m.tag ? <span className="rounded-xl border border-border bg-background px-2 py-0.5 text-[10px] font-bold text-primary">{m.tag}</span> : null}
+                          <span className={`text-xs font-bold ${m.read ? "text-text-muted" : "text-primary"}`}>
+                            {m.read ? t("admin.read", "Read") : t("admin.unread", "Unread")}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-text-secondary">{m.message}</p>
+                        <p className="mt-0.5 text-[10px] text-text-muted">{new Date(m.createdAt || 0).toLocaleString()}</p>
+                      </div>
+                    )) : <EmptyState title={t("admin.no_messages", "No messages")} copy={t("admin.no_messages_desc", "Messages sent to you will appear here.")} />}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  <input
+                    value={msgRecipientId}
+                    onChange={(e) => setMsgRecipientId(e.target.value)}
+                    placeholder="Recipient user ID (teacher/coordinator/principal)"
+                    aria-label="Recipient user ID"
+                    className="field min-w-0 flex-1 font-mono"
+                  />
+                  <input
+                    value={msgTag}
+                    onChange={(e) => setMsgTag(e.target.value)}
+                    placeholder="@tag (optional, e.g. @teacher)"
+                    aria-label="Tag"
+                    className="field min-w-0 flex-1"
+                    maxLength={100}
+                  />
+                </div>
+                <div className="mt-2">
+                  <textarea
+                    value={msgText}
+                    onChange={(e) => setMsgText(e.target.value)}
+                    placeholder={t("admin.message_placeholder", "Type your question or doubt…")}
+                    aria-label="Message"
+                    rows={3}
+                    className="field w-full"
+                    maxLength={2000}
+                  />
+                </div>
+                <button
+                  type="button"
+                  disabled={msgBusy || !msgSchoolId.trim() || !msgRecipientId.trim() || !msgText.trim()}
+                  onClick={sendMessage}
+                  className="btn-secondary mt-2"
+                >
+                  {msgBusy ? t("common.sending", "Sending…") : t("admin.send_message", "Send Message")}
+                </button>
+                {msgError ? <p className="mt-2 text-xs text-error" role="alert">{msgError}</p> : null}
+                {msgNotice ? <p className="mt-2 text-xs text-success" role="status">{msgNotice}</p> : null}
+              </>
+            )}
           </article>
         </>
       ) : null}

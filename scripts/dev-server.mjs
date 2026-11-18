@@ -34,6 +34,8 @@ const routes = {
   '/api/generate-daily-challenge': () => import('../server/handlers/generate-daily-challenge.js'),
   '/api/delete-cloudinary-files': () => import('../server/handlers/delete-cloudinary-files.js'),
   '/api/school': () => import('../api/school.js'),
+  '/api/send-message': () => import('../api/school.js'),
+  '/api/list-messages': () => import('../api/school.js'),
 };
 
 function createResponse(res) {
@@ -120,11 +122,15 @@ const server = http.createServer(async (req, res) => {
     const body = await readBody(req);
     const module = await routeHandler();
     const handler = module.default;
+    const query = Object.fromEntries(requestUrl.searchParams.entries());
+    if (!query.action && requestUrl.pathname.startsWith("/api/")) {
+      query.action = requestUrl.pathname.slice("/api/".length);
+    }
     const request = {
       body,
       headers: req.headers || {},
       method: req.method,
-      query: Object.fromEntries(requestUrl.searchParams.entries()),
+      query,
       url: requestUrl.pathname,
     };
 

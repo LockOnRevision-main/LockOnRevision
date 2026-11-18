@@ -30,6 +30,7 @@ const SENSITIVE_ROUTES = [
   "server/handlers/revoke-invitation.js",
   "server/handlers/accept-invitation.js",
   "server/handlers/set-permissions.js",
+  "server/handlers/send-message.js",
 ];
 
 const READ_ONLY_ROUTES = [
@@ -38,6 +39,7 @@ const READ_ONLY_ROUTES = [
   "server/handlers/school-overview.js",
   "server/handlers/list-invitations.js",
   "server/handlers/get-permissions.js",
+  "server/handlers/list-messages.js",
 ];
 
 const WRITE_SIGNALS = [

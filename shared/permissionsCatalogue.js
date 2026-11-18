@@ -35,6 +35,8 @@ export const PERMISSIONS = {
   "invite.manage": { description: "Invite school administrators (platform only)", classroomBound: false },
   "permission.manage": { description: "Edit permission sets and scopes", classroomBound: false },
   "self.view": { description: "View own data", classroomBound: false },
+  "message.send": { description: "Send messages to school administrators", classroomBound: true },
+  "message.view": { description: "View school messaging panel", classroomBound: true },
 };
 
 export const PERMISSION_NAMES = Object.keys(PERMISSIONS);

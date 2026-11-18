@@ -23,6 +23,7 @@ import {
 } from "../services/adminService.js";
 import { calculateTotalScore } from "../services/userService.js";
 import { canAccessAdmin } from "../utils/permissions.js";
+import { useSchoolAccess } from "../hooks/useSchoolAccess.js";
 
 /** Cached across tab switches so the panel never refetches on revisit. */
 let platformCache = null;
@@ -200,7 +201,7 @@ function AdminAnalyticsPanel({ t, selectedUserId }) {
 
 export function AdminPage() {
   const { t } = useTranslation();
-  const { isFirebaseConfigured, profile } = useAuth();
+  const { isFirebaseConfigured, profile, user } = useAuth();
   const [overview, setOverview] = useState(null);
   const [users, setUsers] = useState([]);
   const [forgeContent, setForgeContent] = useState([]);
@@ -217,6 +218,7 @@ export function AdminPage() {
   const [view, setView] = useState("manage");
 
   const isAdmin = canAccessAdmin(profile);
+  const schoolAccess = useSchoolAccess(!isAdmin ? user?.uid : null);
   const [serverVerified, setServerVerified] = useState(false);
   const [verifyError, setVerifyError] = useState("");
   const [usingFallback, setUsingFallback] = useState(false);
@@ -282,6 +284,32 @@ export function AdminPage() {
   }, [isAdmin, isFirebaseConfigured, functions]);
 
   if (!isAdmin) {
+    if (schoolAccess.loading) {
+      return (
+        <main className="grid min-h-screen place-items-center bg-background text-text-primary">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+        </main>
+      );
+    }
+    if (schoolAccess.staffSchools.length) {
+      return (
+        <div className="grid min-w-0 grid-cols-1 gap-6 [&>*]:min-w-0">
+          <section className="card overflow-hidden">
+            <div className="p-6" style={{ background: "var(--color-secondary)" }}>
+              <div className="flex items-center gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-white/12 text-white"><ShieldCheck size={20} /></span>
+                <div>
+                  <p className="eyebrow !text-white/60">{t("admin.expert_messaging", "Expert Messaging")}</p>
+                  <h1 className="text-white">{t("admin.messaging_panel", "School Messaging")}</h1>
+                </div>
+              </div>
+              <p className="mt-3 max-w-2xl text-sm text-white/75">{t("admin.messaging_staff_only", "Conversations for your school only. Platform administration stays unavailable.")}</p>
+            </div>
+          </section>
+          <SchoolAdminPanel t={t} mode="staff" staffSchoolIds={schoolAccess.staffSchools.map((m) => m.schoolId)} />
+        </div>
+      );
+    }
     return <Navigate to="/app" replace />;
   }
 

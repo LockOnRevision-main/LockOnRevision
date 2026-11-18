@@ -504,7 +504,17 @@
     "consistency_title": "Consistency",
     "active_days": "active days",
     "timetable_adherence": "Study plan adherence",
-    "sessions_done": "sessions completed"
+    "sessions_done": "sessions completed",
+    "expert_messaging": "Expert Messaging",
+    "messaging_panel": "School Messaging Panel",
+    "messaging_desc": "Students message school staff within the same school. Staff view messages addressed to them. Use @tag to mention a role (e.g. @teacher, @principal).",
+    "inbox_title": "Your Inbox",
+    "message_placeholder": "Type your question or doubt…",
+    "send_message": "Send Message",
+    "no_messages": "No messages",
+    "no_messages_desc": "Messages sent to you will appear here.",
+    "read": "Read",
+    "unread": "Unread"
   },
   "onboarding": {
     "welcome": "Welcome to LockOnRevision!",

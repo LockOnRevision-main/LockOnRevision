@@ -7,11 +7,13 @@ import { Logo } from "./Logo.jsx";
 import { PasswordInput } from "./PasswordInput.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { canAccessAdmin } from "../utils/permissions.js";
+import { useSchoolAccess } from "../hooks/useSchoolAccess.js";
 
 export function AppShell({ children }) {
   const { t } = useTranslation();
   const { isFirebaseConfigured, changePassword, logout, profile, user } = useAuth();
-  const showAdmin = canAccessAdmin(profile, user?.email);
+  const schoolAccess = useSchoolAccess(user?.uid);
+  const showAdmin = canAccessAdmin(profile, user?.email) || schoolAccess.staffSchools.length > 0;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showChangePw, setShowChangePw] = useState(false);
   const [newPassword, setNewPassword] = useState("");

@@ -17,6 +17,7 @@ import { TimetablePage } from "./pages/TimetablePage.jsx";
 import { DailyChallengePage } from "./pages/DailyChallengePage.jsx";
 import { ContactPage, PrivacyPage, TermsPage } from "./pages/LegalPage.jsx";
 import { canAccessAdmin } from "./utils/permissions.js";
+import { useSchoolAccess } from "./hooks/useSchoolAccess.js";
 
 function LoadingScreen() {
   return (
@@ -128,12 +129,15 @@ function ProtectedRoute({ children }) {
 
 function AdminRoute({ children }) {
   const { isFirebaseConfigured, loading, user, profile, serviceUnavailable } = useAuth();
+  const schoolAccess = useSchoolAccess(user?.uid);
   if (loading) return <LoadingScreen />;
   if (serviceUnavailable) return <ServiceUnavailable />;
   if (!isFirebaseConfigured && !user) return <Navigate to="/login" replace />;
   if (!user) return <Navigate to="/login" replace />;
-  if (!canAccessAdmin(profile, user.email)) return <Navigate to="/app" replace />;
-  return <AppShell>{children}</AppShell>;
+  if (canAccessAdmin(profile, user.email)) return <AppShell>{children}</AppShell>;
+  if (schoolAccess.loading) return <LoadingScreen />;
+  if (schoolAccess.staffSchools.length) return <AppShell>{children}</AppShell>;
+  return <Navigate to="/app" replace />;
 }
 
 export default function App() {

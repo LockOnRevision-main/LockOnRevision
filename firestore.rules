@@ -327,6 +327,15 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ============ SCHOOL MESSAGES (expert messaging) ============
+    // Server-only via Admin SDK (send-message / list-messages). Clients
+    // must not read or write private threads; membership, recipient
+    // eligibility, and sender identity are enforced on the trusted API.
+    match /schoolMessages/{messageId} {
+      allow read: if false;
+      allow write: if false;
+    }
+
     // ============ JOINING PINS / REQUESTS / INVITES (Prompt 45) ============
     // Server-only via Admin SDK (verified-token routes in /api). Clients can
     // never read hashes or write these docs — plaintext PINs are returned
